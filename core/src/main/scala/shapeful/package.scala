@@ -88,11 +88,11 @@ package object shapeful:
   // Export type helpers
   export shapeful.tensor.Axis.UnwrapAxes
   export shapeful.tensor.TupleHelpers.*
-  //export shapeful.tensor.Broadcast
+  export shapeful.tensor.Broadcast
   export Prime.*
   
   // Export operations
-  //export shapeful.tensor.TensorOps.*
+  export shapeful.tensor.TensorOps.*
   
   // Export automatic differentiation
   export shapeful.autodiff.{Autodiff, TensorTree, ToPyTree}

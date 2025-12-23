@@ -49,36 +49,36 @@ object Random:
     */
 
   /** Normal distribution with specified mean and standard deviation */
-  def normal[T <: Tuple : Labels](
+  def normal[T <: Tuple : Labels, V : Value](
       key: Key,
       shape: Shape[T],
-      mean: Tensor0 = Tensor0(0f),
-      std: Tensor0 = Tensor0(1f),
-      dtype: DType = DType.Float32
-  ): Tensor[T] =
+      mean: Tensor0[V] = Tensor0.of[DType.Float32.type].apply(0f),
+      std: Tensor0[V] = Tensor0.of[DType.Float32.type].apply(1f)
+  )(using ev: V =:= DType.Float32.type): Tensor[T, V] =
+    val dtype = summon[Value[V]].dtype
     val jaxValues = Jax.jrandom.normal(
       key.jaxKey,
       shape.dimensions.toPythonProxy,
       dtype = JaxDType.jaxDtype(dtype)
     )
-    val standardNormal = Tensor.fromPy[T](jaxValues)
+    val standardNormal = Tensor.fromPy[T, V](jaxValues)
     standardNormal :* std :+ mean
 
   /** Uniform distribution in [0, 1) */
-  def uniform[T <: Tuple : Labels](
+  def uniform[T <: Tuple : Labels, V : Value](
       key: Key,
-      shape: Shape[T],
-      dtype: DType = DType.Float32
-  ): Tensor[T] = uniform(key, shape, Tensor0(0f), Tensor0(1f), dtype)
+      shape: Shape[T]
+  )(using ev: V =:= DType.Float32.type): Tensor[T, V] = 
+    uniform(key, shape, Tensor0.of[V].apply(0f), Tensor0.of[V].apply(1f))
 
   /** Uniform distribution in [minval, maxval) */
-  def uniform[T <: Tuple : Labels](
+  def uniform[T <: Tuple : Labels, V : Value](
       key: Key,
       shape: Shape[T],
-      minval: Tensor0,
-      maxval: Tensor0,
-      dtype: DType
-  ): Tensor[T] =
+      minval: Tensor0[V],
+      maxval: Tensor0[V]
+  ): Tensor[T, V] =
+    val dtype = summon[Value[V]].dtype
     val jaxValues = Jax.jrandom.uniform(
       key.jaxKey,
       shape.dimensions.toPythonProxy,
@@ -86,5 +86,5 @@ object Random:
       maxval = maxval.jaxValue,
       dtype = JaxDType.jaxDtype(dtype)
     )
-    Tensor.fromPy[T](jaxValues)
+    Tensor.fromPy[T, V](jaxValues)
 
