@@ -32,8 +32,8 @@ class Tensor[T <: Tuple : Labels, V : Value] private[tensor](
     d => Jax.device_get(jaxValue).equals(d.jaxDevice)
   ).getOrElse(Device.Other(Jax.device_get(jaxValue).name.as[String]))
 
-  def asType[V2 : Value](newDType: DType): Tensor[T, V2] = 
-    Tensor[T, V2](jaxValue = Jax.jnp.astype(jaxValue, JaxDType.jaxDtype(newDType)))
+  def asType[V2 : Value]: Tensor[T, V2] = 
+    Tensor[T, V2](jaxValue = Jax.jnp.astype(jaxValue, JaxDType.jaxDtype(summon[Value[V2]].dtype)))
 
   def toDevice(newDevice: Device): Tensor[T, V] = 
     Tensor[T, V](jaxValue = Jax.device_put(jaxValue, newDevice.jaxDevice))

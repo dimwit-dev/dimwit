@@ -344,7 +344,7 @@ object Y extends Value.As[Y, Float32]
     val condition = Tensor.of[Float32].zeros(Shape(
       Axis["A"] -> 2,
       Axis["B"] -> 3,
-    )).asType[Bool](DType.Bool)
+    )).asType[Bool]
     val res = where(condition, x, y)
     println(res.shape)
   }
