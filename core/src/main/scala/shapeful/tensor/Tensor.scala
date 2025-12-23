@@ -70,10 +70,10 @@ object Tensor:
         .array(
           values.toPythonProxy,
           dtype = dtype.jaxType,
-          device = device.jaxDevice,
         )
         .reshape(shape.dimensions.toPythonProxy)
-      Tensor[T, V](jaxValues)
+      val jaxValuesOnDevice = Jax.device_put(jaxValues, device.jaxDevice)
+      Tensor[T, V](jaxValuesOnDevice)
 
     def zeros[T <: Tuple : Labels](shape: Shape[T]): Tensor[T, V] =
       Tensor[T, V](Jax.jnp.zeros(shape.dimensions.toPythonProxy, dtype = dtype.jaxType))
