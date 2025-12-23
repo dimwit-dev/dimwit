@@ -1,6 +1,6 @@
 package shapeful.autodiff
 
-import shapeful.tensor.{Tensor, Tensor0, Tensor1, Tensor2, Shape, AxisIndices}
+import shapeful.tensor.{Tensor, Tensor0, Tensor1, Tensor2, Shape, AxisIndices, Value}
 import shapeful.jax.Jax
 import me.shadaj.scalapy.py
 
@@ -9,17 +9,17 @@ object Autodiff:
   type Gradient[In, Out] = Out match
     case EmptyTuple => EmptyTuple
     case h *: t => Gradient[In, h] *: Gradient[In, t]
-    case Tensor[outS] => GradientTensorVsInput[In, outS]
+    case Tensor[outS, v] => GradientTensorVsInput[In, outS, v]
     case _ => EmptyTuple
 
-  type GradientTensorVsInput[In, OutShape <: Tuple] = In match
+  type GradientTensorVsInput[In, OutShape <: Tuple, V] = In match
     case EmptyTuple => EmptyTuple
-    case h *: t => GradientTensorVsInput[h, OutShape] *: GradientTensorVsInput[t, OutShape]
-    case Tensor[inS] => Tensor[Tuple.Concat[OutShape, inS]]
+    case h *: t => GradientTensorVsInput[h, OutShape, V] *: GradientTensorVsInput[t, OutShape, V]
+    case Tensor[inS, v2] => Tensor[Tuple.Concat[OutShape, inS], V]
 
-  def grad[Input](f: Input => Tensor0)(using 
+  def grad[Input, V : Value](f: Input => Tensor0[V])(using 
     inTree: ToPyTree[Input],
-    outTree: ToPyTree[Tensor0],
+    outTree: ToPyTree[Tensor0[V]],
   ): Input => Input =
 
     val fpy = (jxpr: py.Dynamic) =>

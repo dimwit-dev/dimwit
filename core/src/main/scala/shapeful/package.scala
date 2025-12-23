@@ -98,5 +98,5 @@ package object shapeful:
   export shapeful.autodiff.{Autodiff, TensorTree, ToPyTree}
 
   // Export Just-in-Time compilation
-//  export shapeful.jax.Jit.{jit, jit2}
+  export shapeful.jax.Jit.{jit, jit2}
 
