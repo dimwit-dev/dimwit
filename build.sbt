@@ -8,6 +8,10 @@ ThisBuild / organization := "ch.contrafactus"
 // Add resolver for snapshot dependencies
 ThisBuild / resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 
+ThisBuild / envVars := Map(
+  "PYTHONPATH" -> ((ThisBuild / baseDirectory).value / "src" / "python").getAbsolutePath
+)
+
 lazy val root = (project in file("."))
   .aggregate(core, nn, examples)
   .settings(
@@ -19,7 +23,8 @@ lazy val core = (project in file("core"))
     name := "shapeful-core",
     libraryDependencies ++= Seq(
       "dev.scalapy" %% "scalapy-core" % "0.5.3",
-      "org.scalameta" %% "munit" % "1.0.0" % Test
+      "org.scalatest" %% "scalatest" % "3.2.19" % Test,
+      "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test,
     ),
     fork := true,
   )
@@ -43,7 +48,6 @@ lazy val examples = (project in file("examples"))
       "io.github.quafadas" %% "scautable" % "0.0.28",
     ),
     fork := true,
-    envVars := Map("PYTHONPATH" -> (baseDirectory.value.getParentFile / "src" / "python").getAbsolutePath),
     // Don't publish examples
     publish := {},
     publishLocal := {},

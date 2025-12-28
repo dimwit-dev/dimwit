@@ -29,7 +29,7 @@ final case class Shape[+T <: Tuple : Labels] @publicInBinary private (
 
   override def toString: String =
     labels.zip(dimensions)
-      .map((label, dim) => s"$label=$dim")
+      .map((label, dim) => s"$label -> $dim")
       .mkString("Shape(", ", ", ")")
 
   override def equals(other: Any): Boolean = other match

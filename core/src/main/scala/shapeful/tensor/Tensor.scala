@@ -42,6 +42,11 @@ class Tensor[+T <: Tuple : Labels, V] private[tensor](
 
   def toDevice(newDevice: Device): Tensor[T, V] = new Tensor(jaxValue = Jax.device_put(jaxValue, newDevice.jaxDevice))
 
+  override def equals(other: Any): Boolean =
+    other match
+      case that: Tensor[_, _] => Jax.jnp.array_equal(this.jaxValue, that.jaxValue).item().as[Boolean]
+      case _               => false
+
   override def hashCode(): Int = jaxArray.tobytes().hashCode()
 
   override def toString: String = jaxArray.toString()
