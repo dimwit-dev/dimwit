@@ -9,6 +9,10 @@ abstract class As[V, BaseType](using base: ExecutionType[BaseType]) extends Exec
   
 opaque type Y = Float
 
+trait A derives Label
+trait B derives Label
+trait C derives Label
+
 @main def playground(): Unit =
 
   val t = Tensor(Of[Y]).zeros(Shape(
@@ -26,6 +30,8 @@ opaque type Y = Float
 
   println("TensorV2 Playground")
   {
+    trait Samples derives Label
+    trait Features derives Label
     println("MatMul tests")
     val values = Array(
       0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
@@ -34,8 +40,8 @@ opaque type Y = Float
     val X = Tensor(Of[Float]).fromArray(
       values = values,
       shape = Shape(
-        Axis["Samples"] -> 10,
-        Axis["Features"] -> 2,
+        Axis[Samples] -> 10,
+        Axis[Features] -> 2,
       )
     )
     val XT = X.transpose
@@ -87,7 +93,7 @@ opaque type Y = Float
       Axis["Samples"] -> 50,
       Axis["Features"] -> 2,
     ))
-    // val y1 = x.contract(Axis["A"])(A)
+    // val y1 = x.contract(Axis[A])(A)
     val y1 = A.contract(Axis["Features"])(x)
     println(y1.shape)
     // A.contract(Axis["lala"])(x)
@@ -147,6 +153,7 @@ opaque type Y = Float
     println(d.shape)
   }
   {
+
     println("Contraction with overlapping axes")
     import scala.util.NotGiven
     def f[L1: Label, L2: Label, L3: Label](
@@ -159,35 +166,36 @@ opaque type Y = Float
         }
       }
     val z = f(Tensor(Of[Float]).zeros(Shape(
-      Axis["A"] -> 2,
-      Axis["B"] -> 3,
+      Axis[A] -> 2,
+      Axis[B] -> 3,
     )), Tensor(Of[Float]).zeros(Shape(
-      Axis["B"] -> 3,
-      Axis["C"] -> 4,
+      Axis[B] -> 3,
+      Axis[C] -> 4,
     )))
     println(z.shape)
   }
   {
-    def f(t1: Tensor[("A", "C"), Float], t2: Tensor[Tuple1["C"], Float]): Tensor[Tuple1["A"], Float] =
+
+    def f(t1: Tensor[(A, C), Float], t2: Tensor[Tuple1[C], Float]): Tensor[Tuple1[A], Float] =
       t1.matmul(t2)
     val t1 = Tensor(Of[Float]).ones(Shape(
-      Axis["A"] -> 2,
-      Axis["C"] -> 2,
+      Axis[A] -> 2,
+      Axis[C] -> 2,
     ))
     val t2 = Tensor(Of[Float]).ones(Shape(
-      Axis["C"] -> 2,
+      Axis[C] -> 2,
     ))
     println(f(t1, t2))
     println("vmap 2")
     import scala.util.NotGiven
     val x1 = Tensor(Of[Float]).ones(Shape(
-      Axis["B"] -> 1,
-      Axis["A"] -> 2,
-      Axis["C"] -> 2,
+      Axis[B] -> 1,
+      Axis[A] -> 2,
+      Axis[C] -> 2,
     ))
     val x2 = Tensor(Of[Float]).ones(Shape(
-      Axis["B"] -> 1,
-      Axis["C"] -> 2,
+      Axis[B] -> 1,
+      Axis[C] -> 2,
     ))
   }
   {
@@ -199,12 +207,12 @@ opaque type Y = Float
       }
     println(f(
       Tensor(Of[Float]).zeros(Shape(
-        Axis["A"] -> 2,
-        Axis["B"] -> 3,
+        Axis[A] -> 2,
+        Axis[B] -> 3,
       )),
       Tensor(Of[Float]).zeros(Shape(
-        Axis["B"] -> 3,
-        Axis["C"] -> 4,
+        Axis[B] -> 3,
+        Axis[C] -> 4,
       ))
     ).shape)
   }
@@ -212,71 +220,71 @@ opaque type Y = Float
   {
     println("Ravel")
     val res = Tensor(Of[Float]).ones(Shape(
-      Axis["A"] -> 2,
-      Axis["B"] -> 3,
-      Axis["C"] -> 4,
+      Axis[A] -> 2,
+      Axis[B] -> 3,
+      Axis[C] -> 4,
     )).ravel
     println(res.shape)
   }
   {
     println("swapaxes")
     val res = Tensor(Of[Float]).ones(Shape(
-      Axis["A"] -> 2,
-      Axis["B"] -> 3,
-      Axis["C"] -> 4,
-    )).swap(Axis["A"], Axis["C"])
+      Axis[A] -> 2,
+      Axis[B] -> 3,
+      Axis[C] -> 4,
+    )).swap(Axis[A], Axis[C])
     println(res.shape)
   }
   {
     println("appendAxis / prependAxis")
     val res = Tensor(Of[Float]).ones(Shape(
-      Axis["A"] -> 2,
-      Axis["B"] -> 3,
-      Axis["C"] -> 4,
+      Axis[A] -> 2,
+      Axis[B] -> 3,
+      Axis[C] -> 4,
     )).appendAxis(Axis["D"])
     println(res.shape)
     val res2 = Tensor(Of[Float]).ones(Shape(
-      Axis["A"] -> 2,
-      Axis["B"] -> 3,
-      Axis["C"] -> 4,
+      Axis[A] -> 2,
+      Axis[B] -> 3,
+      Axis[C] -> 4,
     )).prependAxis(Axis["D"])
     println(res2.shape)
   }
   {
     println("squeeze")
     val res = Tensor(Of[Float]).ones(Shape(
-      Axis["A"] -> 1,
-      Axis["B"] -> 3,
-      Axis["C"] -> 1,
-    )).squeeze(Axis["A"])
+      Axis[A] -> 1,
+      Axis[B] -> 3,
+      Axis[C] -> 1,
+    )).squeeze(Axis[A])
     println(res.shape)
-    val res2 = res.squeeze(Axis["C"])
+    val res2 = res.squeeze(Axis[C])
     println(res2.shape)
   }
   {
     println("Slice")
     val res = Tensor(Of[Float]).ones(Shape(
-      Axis["A"] -> 2,
-      Axis["B"] -> 3,
+      Axis[A] -> 2,
+      Axis[B] -> 3,
     )).slice(
-      Axis["B"] -> 2
+      Axis[B] -> 2
     )
     println(res.shape)
     val res2 = Tensor(Of[Float]).ones(Shape(
-      Axis["A"] -> 2,
-      Axis["B"] -> 3,
+      Axis[A] -> 2,
+      Axis[B] -> 3,
     )).slice(
-      Axis["B"] -> (0 to 1)
+      Axis[B] -> (0 to 1)
     )
     println(res2.shape)
     val res3 = Tensor(Of[Float]).ones(Shape(
-      Axis["A"] -> 2,
-      Axis["B"] -> 3,
-      Axis["C"] -> 4,
+      Axis[A] -> 2,
+      Axis[B] -> 3,
+      Axis[C] -> 4,
       Axis["D"] -> 5,
     )).slice((
-      Axis["B"] -> 2,
-      Axis["C"] -> 3,
+      Axis[B] -> 2,
+      Axis[C] -> 3,
     ))
     println(res3.shape)
   }
@@ -337,16 +345,16 @@ opaque type Y = Float
   {
     println("TensorWhere tests")
     val x = Tensor(Of[Float]).ones(Shape(
-      Axis["A"] -> 2,
-      Axis["B"] -> 3,
+      Axis[A] -> 2,
+      Axis[B] -> 3,
     ))
     val y = Tensor(Of[Float]).zeros(Shape(
-      Axis["A"] -> 2,
-      Axis["B"] -> 3,
+      Axis[A] -> 2,
+      Axis[B] -> 3,
     ))
     val condition = Tensor(Of[Float]).zeros(Shape(
-      Axis["A"] -> 2,
-      Axis["B"] -> 3,
+      Axis[A] -> 2,
+      Axis[B] -> 3,
     )).asType(Of[Boolean])
     val res = where(condition, x, y)
     println(res.shape)
@@ -354,8 +362,8 @@ opaque type Y = Float
   {
     println("Diag")
     val x = Tensor(Of[Float]).ones(Shape(
-      Axis["A"] -> 2,
-      Axis["B"] -> 3,
+      Axis[A] -> 2,
+      Axis[B] -> 3,
     ))
     val res = x.diagonal
     println(res.shape)
@@ -363,22 +371,22 @@ opaque type Y = Float
   {
     println("Set")
     val x = Tensor(Of[Float]).ones(Shape(
-      Axis["A"] -> 2,
-      Axis["B"] -> 3,
+      Axis[A] -> 2,
+      Axis[B] -> 3,
     )).set((
-      Axis["A"] -> 1,
-      Axis["B"] -> 2,
+      Axis[A] -> 1,
+      Axis[B] -> 2,
     ))(Tensor0(42))
     println(x)
     val v = Tensor1(Of[Float]).fromArray(
-      Axis["B"],
+      Axis[B],
       Array(100, 101, 102).map(_.toFloat),
     )
     val x2 = Tensor(Of[Float]).ones(Shape(
-      Axis["A"] -> 2,
-      Axis["B"] -> 3,
+      Axis[A] -> 2,
+      Axis[B] -> 3,
     )).set(
-      Axis["A"] -> 1,
+      Axis[A] -> 1,
     )(v)
     println(x2)
   }
@@ -421,46 +429,6 @@ opaque type Y = Float
     )
     val newX = x.vmap(Axis[Batch])(attention(_))
     println(newX.shape)
-  }
-  {
-    println("Attention")
-    // multi-head attention mechanism example
-    def softmax[L: Label](tensor: Tensor1[L, Float]): Tensor1[L, Float] =
-      val expTensor = tensor.exp
-      val sumExp = expTensor.sum
-      expTensor.vmap(Axis[L]) { _ / sumExp }
-
-    val X = Tensor(Of[Float]).ones(
-      Shape(Axis["Batch"] -> 32, Axis["Sequence"] -> 128, Axis["Value"] -> 64)
-    )
-    val WK = Tensor(Of[Float]).ones(
-      Shape(Axis["Value"] -> 64, Axis["Key"] -> 8, Axis["Heads"] -> 8)
-    )
-    val WQ = Tensor(Of[Float]).ones(
-      Shape(Axis["Value"] -> 64, Axis["Query"] -> 8, Axis["Heads"] -> 8)
-    )
-    val WV = Tensor(Of[Float]).ones(
-      Shape(Axis["Value"] -> 64, Axis["NewValue"] -> 8, Axis["Heads"] -> 8)
-    )
-    val Xnew = X.vmap(Axis["Batch"]) { Xi => 
-      val K = Xi.contract(Axis["Value"])(WK)
-      val Q = Xi.contract(Axis["Value"])(WQ)
-      val V = Xi.contract(Axis["Value"])(WV)
-      val res = zipvmap(Axis["Heads"])(Q, K, V) { (Qi, Ki, Vi) =>
-        val dk = Tensor0(Math.sqrt(Ki.shape(Axis["Key"])).toFloat)
-        val AttnWeights = (Qi.contract(Axis["Query" ~ "Key"])(Ki) :/ dk)
-          .relabelAll((Axis["NewSequence"], Axis["Weights"]))
-          .vmap(Axis["NewSequence"])(softmax)
-        AttnWeights
-          .contract(Axis["Weights" | "Sequence"])(Vi)
-          .relabel(Axis["NewSequence"] -> Axis["Sequence"])
-      }
-      res.rearrange((
-        Axis["Sequence"],
-        Axis["Heads" |*| "NewValue"],
-      )).relabel(Axis["Heads" |*| "NewValue"] -> Axis["Value"])
-    }
-    println(Xnew.shape)
   }
   {
     trait A derives Label
@@ -509,16 +477,16 @@ opaque type Y = Float
   }
   {
     val t1 = Tensor(Of[Float]).ones(Shape(
-      Axis["A"] -> 2,
-      Axis["B"] -> 3,
-      Axis["C"] -> 4,
+      Axis[A] -> 2,
+      Axis[B] -> 3,
+      Axis[C] -> 4,
     ))
     val t2 = t1.appendAxis(Axis["D"])
-    // val t3 = t1.appendAxis(Axis["A"]) // should not compile
+    // val t3 = t1.appendAxis(Axis[A]) // should not compile
     def f[T <: Tuple : Labels, V](t: Tensor[T, V]) =
       t.appendAxis(Axis["D"])
     def f2[T <: Tuple : Labels, V](t: Tensor[T, V]) =
-      t.appendAxis(Axis["A"])
+      t.appendAxis(Axis[A])
     val t3 = f(t1)
     println(t3.shape)
     val t4 = f2(t1)

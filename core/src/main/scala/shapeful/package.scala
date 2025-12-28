@@ -56,7 +56,7 @@ package object shapeful:
   export shapeful.autodiff.{Autodiff, TensorTree, FloatTensorTree, ToPyTree}
 
   // Export Just-in-Time compilation
-  export shapeful.jax.Jit.{jit, jit2}
+  export shapeful.jax.Jit.jit
 
   object Conversions:
     export shapeful.tensor.Tensor0.{given_Conversion_Int_Tensor0, given_Conversion_Float_Tensor0, given_Conversion_Boolean_Tensor0}

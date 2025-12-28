@@ -12,11 +12,12 @@ import me.shadaj.scalapy.py.SeqConverters
 import shapeful.random.Random
 import me.shadaj.scalapy.readwrite.Writer
 import scala.reflect.ClassTag
+import scala.annotation.unchecked.uncheckedVariance
 
 enum Device(val jaxDevice: PyDynamic):
   case CPU extends Device(Jax.devices("cpu").head.as[PyDynamic])
-  // case GPU extends Device(Jax.devices("gpu").head.as[PyDynamic])
-  case Other(name: String) extends Device(Jax.Dynamic.global.none)
+  case GPU extends Device(Jax.devices("gpu").head.as[PyDynamic])
+  case Other(pyDevice: PyDynamic) extends Device(pyDevice)
 
 object Device:
   val default: Device = Device.CPU
@@ -24,7 +25,7 @@ object Device:
     Device.CPU
   )
 
-class Tensor[T <: Tuple : Labels, V] private[tensor](
+class Tensor[+T <: Tuple : Labels, V] private[tensor](
   val jaxValue: Jax.PyDynamic,
 ):
 
@@ -34,14 +35,11 @@ class Tensor[T <: Tuple : Labels, V] private[tensor](
 
   lazy val device: Device = Device.values.find(
     d => Jax.device_get(jaxValue).equals(d.jaxDevice)
-  ).getOrElse(Device.Other(Jax.device_get(jaxValue).name.as[String]))
+  ).getOrElse(Device.Other(Jax.device_get(jaxValue)))
 
   def asType[V2](of: Of[V2]): Tensor[T, V2] = new Tensor(Jax.jnp.astype(jaxValue, JaxDType.jaxDtype(of.dtype)))
 
   def toDevice(newDevice: Device): Tensor[T, V] = new Tensor(jaxValue = Jax.device_put(jaxValue, newDevice.jaxDevice))
-
-  def equals(other: Tensor[T, V]): Boolean =
-    Jax.jnp.array_equal(this.jaxValue, other.jaxValue).item().as[Boolean]
 
   override def hashCode(): Int = jaxArray.tobytes().hashCode()
 
@@ -49,7 +47,7 @@ class Tensor[T <: Tuple : Labels, V] private[tensor](
 
   private def jaxArray: Jax.PyDynamic = jaxValue.block_until_ready()
 
-  def dim[L](axis: Axis[L])(using axisIndex: AxisIndex[T, L]): Dim[L] = 
+  def dim[L](axis: Axis[L])(using axisIndex: AxisIndex[T @uncheckedVariance, L]): Dim[L] = 
     shape.dim(axis)
 
 object Tensor:

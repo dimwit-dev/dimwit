@@ -3,24 +3,25 @@ package shapeful.tensor
 import scala.collection.View.Empty
 import scala.annotation.publicInBinary
 import shapeful.tensor.{Labels, Label}
+import scala.annotation.unchecked.uncheckedVariance
 
 /** Represents the (typed) Shape of a tensor with runtime labels
   */
-final case class Shape[T <: Tuple : Labels] @publicInBinary private (
+final case class Shape[+T <: Tuple : Labels] @publicInBinary private (
   val dimensions: List[Int],
 ):
 
   lazy val labels: List[String] = summon[Labels[T]].names
 
-  require(dimensions.size == labels.size, s"Dimensions and labels must have the same size but got ${dimensions.size} dims and ${labels.size} labels, overall shape: $this, labels: ${labels.mkString(", ")}")
+  require(dimensions.size == labels.size, s"Dimensions and labels must have the same size but got ${dimensions.size} dims and ${labels.size} labels, dimensions: $dimensions, labels: ${labels.mkString(", ")}")
   require(dimensions.forall(_ > 0), "All dimensions must be positive")
    // TODO maybe same Axis must means symetric along these axes? => same length
   // require(labels.distinct.size == labels.size, "Labels must be unique")
 
   def rank: Int = dimensions.size
   def size: Int = dimensions.foldLeft(1)((acc, d) => acc * d.asInstanceOf[Int])
-  def dim[L](axis: Axis[L])(using axisIndex: AxisIndex[T, L]): Dim[L] = axis -> this(axis)
-  def apply[L](axis: Axis[L])(using axisIndex: AxisIndex[T, L]): Int = this.dimensions(axisIndex.value)
+  def dim[L](axis: Axis[L])(using axisIndex: AxisIndex[T @uncheckedVariance, L]): Dim[L] = axis -> this(axis)
+  def apply[L](axis: Axis[L])(using axisIndex: AxisIndex[T @uncheckedVariance, L]): Int = this.dimensions(axisIndex.value)
 
   def *:[U <: Tuple: Labels](other: Shape[U]): Shape[Tuple.Concat[U, T]] =
     import Labels.ForConcat.given

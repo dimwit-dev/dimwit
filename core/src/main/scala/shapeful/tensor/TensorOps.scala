@@ -331,7 +331,7 @@ object TensorOps:
         case A *: tail => A *: B *: tail
         case h *: tail => h *: InsertAfter[tail, A, B]
 
-      type SliceIndex = Int | List[Int] | Range
+      type SliceIndex = Int | List[Int] | Range | Tensor0[Int]
       type ExtractLabel[X] = X match
           case (Axis[l], SliceIndex) => l
       type ExtractLabels[Inputs <: Tuple] = Tuple.Map[Inputs, ExtractLabel]
@@ -347,6 +347,11 @@ object TensorOps:
           tailExt: SliceLabelExtractor[Tail, TailOut]
         ): SliceLabelExtractor[(Axis[L], Int) *: Tail, L *: TailOut] = 
           new SliceLabelExtractor[(Axis[L], Int) *: Tail, L *: TailOut] {}
+
+        given consTensor0Int [L, Tail <: Tuple, TailOut <: Tuple](using
+          tailExt: SliceLabelExtractor[Tail, TailOut]
+        ): SliceLabelExtractor[(Axis[L], Tensor0[Int]) *: Tail, L *: TailOut] = 
+          new SliceLabelExtractor[(Axis[L], Tensor0[Int]) *: Tail, L *: TailOut] {}
 
         given consSeq[L, SeqT <: Seq[Int], Tail <: Tuple, TailOut <: Tuple](using
           tailExt: SliceLabelExtractor[Tail, TailOut]
@@ -473,6 +478,8 @@ object TensorOps:
                 indicesBuffer(dimIndex) = PySlice(range.head, range.last+1, range.step)
               case idx: Int =>
                 indicesBuffer(dimIndex) = py.Any.from(idx)
+              case tensorId: Tensor0[Int] @unchecked =>
+                indicesBuffer(dimIndex) = tensorId.jaxValue
             }
         }
         
@@ -489,7 +496,6 @@ object TensorOps:
           val names = newNames.toSeq
         val (before, after) = tensor.shape.dimensions.splitAt(splitIdx)
         val newShape = before ++ Seq(interval, after.head / interval) ++ after.drop(1)
-        println(newShape)
         Tensor(
           Jax.jnp.reshape(
             tensor.jaxValue,
@@ -527,6 +533,13 @@ object TensorOps:
         axesIndices: AxisIndices[T, ExtractLabels[Tuple1[(Axis[L], I)]]],
         labels: Labels[R],
       ): Tensor[R, V] = slice(Tuple1(axisWithSliceIndex))
+
+      def gather[L](
+        indices: Tensor1[L, Int],
+      )(using 
+        axesIndex: AxisIndex[T, L],
+      ): Tensor[T, V] = 
+        Tensor(Jax.jnp.take(tensor.jaxValue, indices.jaxValue, axis = axesIndex.value))
 
       def set[Inputs <: Tuple, LabelsToRemove <: Tuple, R <: Tuple](
         inputs: Inputs
@@ -783,7 +796,6 @@ object TensorOps:
       ): Tensor[VmapAxis *: OuterShape, V2] =
         val fpy = (jxpr: Jax.PyDynamic) =>
             val innerTensor = Tensor[R, V](jxpr)
-            println(("A", innerTensor.shape))
             val result = f(innerTensor)
             result.jaxValue
 

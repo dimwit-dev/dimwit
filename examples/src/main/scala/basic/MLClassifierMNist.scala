@@ -16,7 +16,7 @@ def binaryCrossEntropy[L : Label](
   val maxLogit = logits.max
   val stableExp = (logits :- maxLogit).exp
   val logSumExp = stableExp.sum.log + maxLogit
-  val targetLogit = logits.slice(Axis[L] -> label.item)
+  val targetLogit = logits.slice(Axis[L] -> label)
   -(targetLogit - logSumExp)
 
 
@@ -63,6 +63,8 @@ object MLPClassifierMNist:
     
   object MNISTLoader:
 
+    private val device = Device.GPU
+
     private def readInt(dis: DataInputStream): Int = dis.readInt()
     private def loadImagePixels[S <: Sample : Label](filename: String, maxImages: Option[Int] = None): Try[Tensor3[S, Height, Width, Float]] =
       Try {
@@ -87,7 +89,7 @@ object MLPClassifierMNist:
           val allPixels = pixelBytes.map(b => (b & 0xff) / 255.0f)
           val shape = Shape(Axis[S] -> numImages, Axis[Height] -> rows, Axis[Width] -> cols)
           val tensor = Tensor(Of[Float]).fromArray(shape, allPixels)
-          tensor.toDevice(Device.CPU)
+          tensor.toDevice(device)
         finally dis.close()
       }
 
@@ -107,7 +109,7 @@ object MLPClassifierMNist:
 
         // Create Tensor1 from labels - specify the label type correctly
         val tensor = Tensor1(Of[Int]).fromArray(Axis[S], labels)
-        tensor.toDevice(Device.CPU)
+        tensor.toDevice(device)
       finally dis.close()
     }
 
@@ -136,14 +138,15 @@ object MLPClassifierMNist:
   def main(args: Array[String]): Unit =
 
     val learningRate = 5e-2f
-    val numSamples = 5120
+    val numSamples = 5120 // 59904
+    val numTestSamples = 1024 // 9728
     val batchSize = 512
     val numEpochs = 100
     val (dataKey, trainKey) = Random.Key(42).split2()
     val (initKey, restKey) = trainKey.split2()
 
     val (trainX, trainY) = MNISTLoader.createTrainingDataset(maxSamples = Some(numSamples)).get
-    val (testX, testY) = MNISTLoader.createTestDataset(maxSamples = Some(1024)).get
+    val (testX, testY) = MNISTLoader.createTestDataset(maxSamples = Some(numTestSamples)).get
 
     def batchLoss(batchImages: Tensor[(TrainSample, Height, Width), Float], batchLabels: Tensor1[TrainSample, Int])(
         params: MLP.Params
@@ -171,6 +174,15 @@ object MLPClassifierMNist:
       val matches = zipvmap(Axis[Sample])(predictions, targets)(_ === _)
       matches.mean
 
+    def gradientStep(
+      imageBatch: Tensor[(TrainSample, Height, Width), Float],
+      labelBatch: Tensor1[TrainSample, Int],
+      params: MLP.Params
+    ): MLP.Params =
+      val lossBatch = batchLoss(imageBatch, labelBatch)
+      val df = Autodiff.grad(lossBatch)
+      GradientDescent(df, learningRate).step(params)
+    val jitStep = jit(gradientStep.tupled)
     def miniBatchGradientDescent(
       imageBatches: Seq[Tensor[(TrainSample, Height, Width), Float]],
       labelBatches: Seq[Tensor1[TrainSample, Int]],
@@ -178,10 +190,8 @@ object MLPClassifierMNist:
       params: MLP.Params
     ): MLP.Params =
       imageBatches.zip(labelBatches).foldLeft(params):
-        case (params, (imageBatch, labelBatch)) =>
-          val lossBatch = batchLoss(imageBatch, labelBatch)
-          val df = Autodiff.grad(lossBatch)
-          GradientDescent(df, learningRate).step(params)
+        case (currentParams, (imageBatch, labelBatch)) =>
+          jitStep(imageBatch, labelBatch, currentParams)
     
     def timed[A](template: String)(block: => A): A =
       val t0 = System.currentTimeMillis()
@@ -193,22 +203,26 @@ object MLPClassifierMNist:
       trainX.chunk(Axis[TrainSample], batchSize),
       trainY.chunk(Axis[TrainSample], batchSize),
     )
-    val jitTrainMiniBatchGradientDescent = jit2(trainMiniBatchGradientDescent)
     val trainTrajectory = Iterator.iterate(initParams)( currentParams => 
       timed("Training"):
         trainMiniBatchGradientDescent(currentParams)
-        // jitTrainMiniBatchGradientDescent(currentParams) // worse on CPU... TODO test on a GPU
     )
+    def evaluate(
+      params: MLP.Params,
+      dataX: Tensor[(Sample, Height, Width), Float],
+      dataY: Tensor1[Sample, Int],
+    ): Tensor0[Float] =
+      val model = MLP(params)
+      val predictions = dataX.vmap(Axis[Sample])(model)
+      accuracy(predictions, dataY)
+    val jitEvaluate = jit(evaluate.tupled)
     val finalParams = trainTrajectory
       .zipWithIndex
       .tapEach:
         case (params, epoch) =>
           timed("Evaluation"):
-            val model = MLP(params)
-            val testPredictions = testX.vmap(Axis[TestSample])(model)
-            val testAccuracy = accuracy(testPredictions, testY)
-            val trainPredictions = trainX.vmap(Axis[TrainSample])(model)
-            val trainAccuracy = accuracy(trainPredictions, trainY)
+            val testAccuracy = jitEvaluate(params, testX, testY)
+            val trainAccuracy = jitEvaluate(params, trainX, trainY)
             println(List(
               s"Epoch $epoch",
               f"Test accuracy: ${testAccuracy.item * 100}%.2f%%",
