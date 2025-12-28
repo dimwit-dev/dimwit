@@ -2,6 +2,7 @@ package examples.basic
 
 import shapeful.*
 import scala.util.NotGiven
+import shapeful.random.Random
 
 abstract class As[V, BaseType](using base: ExecutionType[BaseType]) extends ExecutionType[V]:
   def dtype: DType = base.dtype
@@ -492,4 +493,8 @@ trait C derives Label
     println(t3.shape)
     val t4 = f2(t1)
     println(t4.shape)
+  }
+  {
+    val x = Random.Normal(Shape(Axis["A"] -> 3, Axis["B"] -> 4))
+    println(x)
   }

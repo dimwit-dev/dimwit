@@ -58,7 +58,7 @@ object Tensor:
   def apply[T <: Tuple : Labels, V](jaxValue: Jax.PyDynamic): Tensor[T, V] = new Tensor(jaxValue)
   def randn[T <: Tuple: Labels](shape: Shape[T])(key: Random.Key)(using 
     executionType: ExecutionType[Float]
-  ): Tensor[T, Float] = Random.Normal(key, shape)
+  ): Tensor[T, Float] = Random.Normal(shape)(key)
 
   def fromPy[T <: Tuple: Labels, V](vtype: VType[V])(jaxValue: Jax.PyDynamic): Tensor[T, V] = new Tensor(jaxValue)
   def zeros[T <: Tuple: Labels, V](shape: Shape[T], vtype: VType[V]): Tensor[T, V] = Tensor(Jax.jnp.zeros(shape.dimensions.toPythonProxy, dtype = vtype.dtype.jaxType))
@@ -90,7 +90,7 @@ object Tensor0:
   def one[V](vtype: VType[V]): Tensor0[V] = Tensor.ones(Shape.empty, vtype)
   def const[V](vtype: VType[V])(value: V)(using writer: Writer[V]): Tensor0[V] = Tensor.const(Shape.empty, vtype)(value)
 
-  def randn(key: Random.Key)(using executionType: ExecutionType[Float]): Tensor0[Float] = Random.Normal(key, Shape.empty)
+  def randn(key: Random.Key)(using executionType: ExecutionType[Float]): Tensor0[Float] = Random.Normal(Shape.empty)(key)
   def apply[V](jaxValue: Jax.PyDynamic): Tensor0[V] = Tensor(jaxValue)
   def apply[V](value: V)(using sv: ExecutionType[V], writer: Writer[V]): Tensor0[V] = Tensor0.const(VType[V])(value)
 
@@ -103,8 +103,6 @@ object Tensor1:
     dtype = vtype.dtype.jaxType
   ))
 
-  def randn[L: Label](dim: Dim[L])(key: Random.Key)(using executionType: ExecutionType[Float]): Tensor1[L, Float] = Random.Normal(key, Shape1(dim))
-  
 object Tensor2:
 
   def fromArray[L1: Label, L2: Label, V](
@@ -122,9 +120,3 @@ object Tensor2:
 
   def eye[L: Label, V](dim: Dim[L], vtype: VType[V]): Tensor2[L, L, V] = Tensor(Jax.jnp.eye(dim._2, dtype = vtype.dtype.jaxType))
   def diag[L: Label, V](diag: Tensor1[L, V]): Tensor2[L, L, V] = Tensor(Jax.jnp.diag(diag.jaxValue))
-
-  def randn[L1: Label, L2: Label](dim1: Dim[L1], dim2: Dim[L2])(key: Random.Key)(using executionType: ExecutionType[Float]): Tensor2[L1, L2, Float] = Random.Normal(key, Shape2(dim1, dim2))
-
-object Tensor3:
-
-  def randn[L1: Label, L2: Label, L3: Label](dim1: Dim[L1], dim2: Dim[L2], dim3: Dim[L3])(key: Random.Key)(using executionType: ExecutionType[Float]): Tensor3[L1, L2, L3, Float] = Random.Normal(key, Shape3(dim1, dim2, dim3))

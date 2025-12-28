@@ -20,10 +20,8 @@ object LinearLayer:
         )(using 
             executionType: ExecutionType[Float]
         ): Params[In, Out] = 
-            val mean = Tensor0[Float].apply(0f)
-            val std = Tensor0[Float].apply(1f)
             Params(
-                weight = Random.Normal(paramKey, Shape(inputDim, outputDim), mean, std),
+                weight = Random.Normal(Shape(inputDim, outputDim))(paramKey),
                 bias = Tensor.zeros(Shape(outputDim), VType[Float]),
             )
 
@@ -43,10 +41,8 @@ object LinearMap:
         def apply[In : Label](paramKey: Key)(inputDim: Dim[In])(using 
             executionType: ExecutionType[Float]
         ): Params[In] = 
-            val mean = Tensor0[Float].apply(0f)
-            val std = Tensor0[Float].apply(1f)
             Params(
-                weight = Random.Normal(paramKey, Shape(inputDim), mean, std),
+                weight = Random.Normal(Shape(inputDim))(paramKey),
                 bias = Tensor0(0.0f),
             )
 

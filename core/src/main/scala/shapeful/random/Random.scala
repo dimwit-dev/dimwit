@@ -44,55 +44,55 @@ object Random:
 
   object Normal:
 
-    def apply[T <: Tuple: Labels](
-        key: Key,
-        shape: Shape[T],
-        mean: Tensor0[Float],
-        std: Tensor0[Float],
-    )(using 
-      executionType: ExecutionType[Float]
-    ): Tensor[T, Float] =
-      val standardNormal = this(key, shape)
-      standardNormal :* std :+ mean
+    class NormalFactory[T <: Tuple: Labels](shape: Shape[T]):
+      def apply(
+          key: Key,
+      )(using 
+        executionType: ExecutionType[Float]
+      ): Tensor[T, Float] = this(key, Tensor0.zero(VType[Float]), Tensor0.one(VType[Float]))
 
-    /** Normal distribution with mean=0 and std=1 */
-    def apply[T <: Tuple: Labels](
-        key: Key,
-        shape: Shape[T],
-    )(using 
-      executionType: ExecutionType[Float]
-    ): Tensor[T, Float] = Tensor(
-      Jax.jrandom.normal(
-        key.jaxKey,
-        shape.dimensions.toPythonProxy,
-        dtype = executionType.dtype.jaxType
-      )
-    )
+      def apply(
+          key: Key,
+          mean: Tensor0[Float],
+          std: Tensor0[Float],
+      )(using 
+        executionType: ExecutionType[Float]
+      ): Tensor[T, Float] =
+        val jaxValues = Jax.jrandom.normal(
+          key.jaxKey,
+          shape.dimensions.toPythonProxy,
+          dtype = executionType.dtype.jaxType
+        )
+        val standardNormal = Tensor[T, Float](jaxValues)
+        standardNormal :* std :+ mean
+
+    def apply[T <: Tuple: Labels](shape: Shape[T]) = new NormalFactory[T](shape)
 
   class Uniform:
-    def apply[T <: Tuple: Labels](
-        key: Key,
-        shape: Shape[T],
-        dtype: DType = DType.Float32
-    )(using 
-      executionType: ExecutionType[Float]
-    ): Tensor[T, Float] = 
-      apply(key, shape, Tensor0.zero(VType[Float]), Tensor0.one(VType[Float]))
 
-    /** Uniform distribution in [minval, maxval) */
-    def apply[T <: Tuple: Labels](
-        key: Key,
-        shape: Shape[T],
-        minval: Tensor0[Float],
-        maxval: Tensor0[Float],
-    )(using 
-      executionType: ExecutionType[Float]
-    ): Tensor[T, Float] =
-      val jaxValues = Jax.jrandom.uniform(
-        key.jaxKey,
-        shape.dimensions.toPythonProxy,
-        minval = minval.jaxValue,
-        maxval = maxval.jaxValue,
-        dtype = executionType.dtype.jaxType
-      )
-      Tensor(jaxValues)
+    class UniformFactory[T <: Tuple: Labels](shape: Shape[T]):
+        
+      def apply(
+          key: Key,
+      )(using 
+        executionType: ExecutionType[Float]
+      ): Tensor[T, Float] = this(key, Tensor0.zero(VType[Float]), Tensor0.one(VType[Float]))
+
+      /** Uniform distribution in [minval, maxval) */
+      def apply(
+          key: Key,
+          minval: Tensor0[Float],
+          maxval: Tensor0[Float],
+      )(using 
+        executionType: ExecutionType[Float]
+      ): Tensor[T, Float] =
+        val jaxValues = Jax.jrandom.uniform(
+          key.jaxKey,
+          shape.dimensions.toPythonProxy,
+          minval = minval.jaxValue,
+          maxval = maxval.jaxValue,
+          dtype = executionType.dtype.jaxType
+        )
+        Tensor(jaxValues)
+
+    def apply[T <: Tuple: Labels](shape: Shape[T]) = new UniformFactory[T](shape)
