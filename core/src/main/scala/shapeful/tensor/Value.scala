@@ -15,7 +15,7 @@ object ExecutionType:
 object VType:
   def apply[V](tensor: Tensor[?, V]): VType[V] = new OfImpl[V](tensor.dtype)
   def apply[A: ExecutionType]: VType[A] = new OfImpl[A](summon[ExecutionType[A]].dtype)
-  
+
 sealed trait VType[A]:
   def dtype: DType
 

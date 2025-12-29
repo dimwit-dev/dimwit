@@ -13,8 +13,8 @@ object TupleHelpers:
       type Out = EmptyTuple
 
     given chain[T <: Tuple, K1, K2, Rest <: Tuple, Inter <: Tuple, O <: Tuple](using
-      s1: Subset[T, K1 *: EmptyTuple] { type Out = Inter },
-      s2: Subset[Inter, K2 *: Rest] { type Out = O }
+        s1: Subset[T, K1 *: EmptyTuple] { type Out = Inter },
+        s2: Subset[Inter, K2 *: Rest] { type Out = O }
     ): Subset[T, K1 *: K2 *: Rest] with
       type Out = s2.Out
 
@@ -22,7 +22,7 @@ object TupleHelpers:
       type Out = Tail
 
     given singleSearch[H, Tail <: Tuple, K, TailOut <: Tuple](using
-      next: Subset[Tail, K *: EmptyTuple] { type Out = TailOut }
+        next: Subset[Tail, K *: EmptyTuple] { type Out = TailOut }
     ): Subset[H *: Tail, K *: EmptyTuple] with
       type Out = H *: TailOut
 
@@ -35,36 +35,40 @@ object TupleHelpers:
     type Out <: Tuple
 
   object RemoverAll extends LowPriorityRemoverAll:
-    
+
     // 0. The Aux type alias forces the compiler to resolve 'O' explicitly
-    type Aux[T <: Tuple, ToRemove <: Tuple, O <: Tuple] = 
+    type Aux[T <: Tuple, ToRemove <: Tuple, O <: Tuple] =
       RemoverAll[T, ToRemove] { type Out = O }
 
     // 1. Base Case: Empty keys -> Return input as is
-    given emptyKeys[T <: Tuple]: Aux[T, EmptyTuple, T] = 
-      new RemoverAll[T, EmptyTuple] { type Out = T }
+    given emptyKeys[T <: Tuple]: Aux[T, EmptyTuple, T] =
+      new RemoverAll[T, EmptyTuple]:
+        type Out = T
 
     // 2. Chain Case: Process K1, then K2...
     // We use Aux to capture 'Inter' and 'O' explicitly
     given chain[T <: Tuple, K1, K2, Rest <: Tuple, Inter <: Tuple, O <: Tuple](using
-      r1: Aux[T, K1 *: EmptyTuple, Inter],
-      r2: Aux[Inter, K2 *: Rest, O]
-    ): Aux[T, K1 *: K2 *: Rest, O] = 
-      new RemoverAll[T, K1 *: K2 *: Rest] { type Out = O }
+        r1: Aux[T, K1 *: EmptyTuple, Inter],
+        r2: Aux[Inter, K2 *: Rest, O]
+    ): Aux[T, K1 *: K2 *: Rest, O] =
+      new RemoverAll[T, K1 *: K2 *: Rest]:
+        type Out = O
 
     // 3. Found Case: H is a subtype of K
     // We explicitly return 'Tail' as the output
-    given singleFound[H, Tail <: Tuple, K](using H <:< K): Aux[H *: Tail, K *: EmptyTuple, Tail] = 
-      new RemoverAll[H *: Tail, K *: EmptyTuple] { type Out = Tail }
+    given singleFound[H, Tail <: Tuple, K](using H <:< K): Aux[H *: Tail, K *: EmptyTuple, Tail] =
+      new RemoverAll[H *: Tail, K *: EmptyTuple]:
+        type Out = Tail
 
   trait LowPriorityRemoverAll:
     // 4. Search Case: Recurse
     // We capture 'TailOut' as a type parameter to ensure it is fully resolved
     given singleSearch[H, Tail <: Tuple, K, TailOut <: Tuple](using
-      next: RemoverAll.Aux[Tail, K *: EmptyTuple, TailOut]
-    ): RemoverAll.Aux[H *: Tail, K *: EmptyTuple, H *: TailOut] = 
-      new RemoverAll[H *: Tail, K *: EmptyTuple] { type Out = H *: TailOut }
-    
+        next: RemoverAll.Aux[Tail, K *: EmptyTuple, TailOut]
+    ): RemoverAll.Aux[H *: Tail, K *: EmptyTuple, H *: TailOut] =
+      new RemoverAll[H *: Tail, K *: EmptyTuple]:
+        type Out = H *: TailOut
+
   trait Replacer[T <: Tuple, Target, Replacement]:
     type Out <: Tuple
 
@@ -75,14 +79,13 @@ object TupleHelpers:
 
   trait ReplacerLowPriority:
     given recurse[Head, Tail <: Tuple, Target, Replacement, TailOut <: Tuple](using
-      next: Replacer[Tail, Target, Replacement] { type Out = TailOut }
+        next: Replacer[Tail, Target, Replacement] { type Out = TailOut }
     ): Replacer[Head *: Tail, Target, Replacement] with
       type Out = Head *: TailOut
 
-
   import shapeful.Prime
-  import scala.compiletime.ops.boolean._
-  import scala.compiletime.ops.boolean._
+  import scala.compiletime.ops.boolean.*
+  import scala.compiletime.ops.boolean.*
 
   type Member[X, T <: Tuple] <: Boolean = T match
     case EmptyTuple => false
@@ -95,40 +98,42 @@ object TupleHelpers:
   trait PrimeRestLowPriority:
     /** If nothing found, we can't proof Member (e.g. for generics), just assume they are different. */
     given assumeAbsent[Fixed <: Tuple, H, T <: Tuple, TailOut <: Tuple](using
-      tail: PrimeRest.Aux[Fixed, T, TailOut],
-    ): PrimeRest.Aux[Fixed, H *: T, H *: TailOut] = 
-      new PrimeRest[Fixed, H *: T] { type Out = H *: TailOut }
-    
+        tail: PrimeRest.Aux[Fixed, T, TailOut]
+    ): PrimeRest.Aux[Fixed, H *: T, H *: TailOut] =
+      new PrimeRest[Fixed, H *: T]:
+        type Out = H *: TailOut
 
   object PrimeRest extends PrimeRestLowPriority:
-    type Aux[Fixed <: Tuple, Incoming <: Tuple, O <: Tuple] = 
+    type Aux[Fixed <: Tuple, Incoming <: Tuple, O <: Tuple] =
       PrimeRest[Fixed, Incoming] { type Out = O }
 
-    given empty[Fixed <: Tuple]: PrimeRest.Aux[Fixed, EmptyTuple, EmptyTuple] = 
-      new PrimeRest[Fixed, EmptyTuple] { type Out = EmptyTuple }
+    given empty[Fixed <: Tuple]: PrimeRest.Aux[Fixed, EmptyTuple, EmptyTuple] =
+      new PrimeRest[Fixed, EmptyTuple]:
+        type Out = EmptyTuple
 
     given present[Fixed <: Tuple, H, T <: Tuple, TailOut <: Tuple](using
-      ev: Member[H, Fixed] =:= true,
-      tail: PrimeRest.Aux[Fixed, T, TailOut],
-    ): PrimeRest.Aux[Fixed, H *: T, Prime[H] *: TailOut] = 
-      new PrimeRest[Fixed, H *: T] { type Out = Prime[H] *: TailOut }
+        ev: Member[H, Fixed] =:= true,
+        tail: PrimeRest.Aux[Fixed, T, TailOut]
+    ): PrimeRest.Aux[Fixed, H *: T, Prime[H] *: TailOut] =
+      new PrimeRest[Fixed, H *: T]:
+        type Out = Prime[H] *: TailOut
 
     given absent[Fixed <: Tuple, H, T <: Tuple, TailOut <: Tuple](using
-      ev: Member[H, Fixed] =:= false,
-      tail: PrimeRest.Aux[Fixed, T, TailOut],
-    ): PrimeRest.Aux[Fixed, H *: T, H *: TailOut] = 
-      new PrimeRest[Fixed, H *: T] { type Out = H *: TailOut }
-    
+        ev: Member[H, Fixed] =:= false,
+        tail: PrimeRest.Aux[Fixed, T, TailOut]
+    ): PrimeRest.Aux[Fixed, H *: T, H *: TailOut] =
+      new PrimeRest[Fixed, H *: T]:
+        type Out = H *: TailOut
+
   trait PrimeConcat[R1 <: Tuple, R2 <: Tuple]:
     type Out <: Tuple
 
   object PrimeConcat:
-    type Aux[R1 <: Tuple, R2 <: Tuple, O <: Tuple] = 
+    type Aux[R1 <: Tuple, R2 <: Tuple, O <: Tuple] =
       PrimeConcat[R1, R2] { type Out = O }
 
     given [R1 <: Tuple, R2 <: Tuple, Suffix <: Tuple](using
-      rest: PrimeRest.Aux[R1, R2, Suffix]
-    ): PrimeConcat.Aux[R1, R2, Tuple.Concat[R1, Suffix]] = 
-      new PrimeConcat[R1, R2] {
+        rest: PrimeRest.Aux[R1, R2, Suffix]
+    ): PrimeConcat.Aux[R1, R2, Tuple.Concat[R1, Suffix]] =
+      new PrimeConcat[R1, R2]:
         type Out = Tuple.Concat[R1, Suffix]
-      }

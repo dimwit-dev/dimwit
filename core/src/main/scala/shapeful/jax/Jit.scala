@@ -8,7 +8,7 @@ import me.shadaj.scalapy.py
 object Jit:
 
   def jit[InPyTree: ToPyTree, OutPyTree: ToPyTree](
-    f: InPyTree => OutPyTree
+      f: InPyTree => OutPyTree
   ): InPyTree => OutPyTree =
 
     // Python function that accepts a pytree

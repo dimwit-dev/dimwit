@@ -13,11 +13,11 @@ object LogisticRegression:
 
   object BinaryLogisticRegression:
     case class Params(
-      linearMap: LinearMap.Params[Feature]
+        linearMap: LinearMap.Params[Feature]
     )
 
   case class BinaryLogisticRegression(
-    params: BinaryLogisticRegression.Params,
+      params: BinaryLogisticRegression.Params
   ) extends Function[Tensor1[Feature, Float], Tensor0[Boolean]]:
     private val linear = LinearMap(params.linearMap)
     def logits(input: Tensor1[Feature, Float]): Tensor0[Float] = linear(input)
@@ -25,20 +25,21 @@ object LogisticRegression:
     def apply(input: Tensor1[Feature, Float]): Tensor0[Boolean] = logits(input) >= Tensor0(0f)
 
   def main(args: Array[String]): Unit =
- 
-    val df = PenguinCSV.parse("./data/penguins.csv")
+
+    val df = PenguinCSV
+      .parse("./data/penguins.csv")
       .filter(row => row.species != 2)
 
     val dfShuffled = scala.util.Random.shuffle(df)
 
     val featureData = dfShuffled.map { row =>
-        Array(
-          row.flipper_length_mm.toFloat,
-          row.bill_length_mm.toFloat,
-          row.bill_depth_mm.toFloat,
-          row.body_mass_g.toFloat
-        )
-      }.toArray
+      Array(
+        row.flipper_length_mm.toFloat,
+        row.bill_length_mm.toFloat,
+        row.bill_depth_mm.toFloat,
+        row.body_mass_g.toFloat
+      )
+    }.toArray
     val labelData = dfShuffled.map(_.species).toArray.map {
       case 1 => true
       case 0 => false
@@ -54,7 +55,7 @@ object LogisticRegression:
     def calcMeanAndStd(t: Tensor2[Sample, Feature, Float]): (Tensor1[Feature, Float], Tensor1[Feature, Float]) =
       val mean = t.vmap(Axis[Feature])(_.mean)
       val std = zipvmap(Axis[Feature])(t, mean):
-        case (x, m) => 
+        case (x, m) =>
           val epsilon = 1e-6f
           (x :- m).pow(2f).mean.sqrt + epsilon
           // x.vmap(Axis[Sample])(xi => (xi - m).pow(2)).mean.sqrt + epsilon
@@ -89,20 +90,21 @@ object LogisticRegression:
     val learningRate = 3e-1f
     val xxx = summon[FloatTensorTree[BinaryLogisticRegression.Params]]
     val gd = GradientDescent(Autodiff.grad(trainLoss), learningRate)
-    
+
     val trainTrajectory = Iterator.iterate(initParams)(gd.step)
-    val finalParams = trainTrajectory
-      .zipWithIndex
+    val finalParams = trainTrajectory.zipWithIndex
       .tapEach:
         case (params, index) =>
           val model = BinaryLogisticRegression(params)
           val trainPreds = trainingData.vmap(Axis[Sample])(model)
           val valPreds = valData.vmap(Axis[Sample])(model)
-          println(List(
-            "epoch: " + index,
-            "trainAcc: " + (1f - (trainPreds.toInt - trainLabels.toInt).abs.mean),
-            "valAcc: " + (1f - (valPreds.toInt - valLabels.toInt).abs.mean)
-          ).mkString(", "))
+          println(
+            List(
+              "epoch: " + index,
+              "trainAcc: " + (1f - (trainPreds.toInt - trainLabels.toInt).abs.mean),
+              "valAcc: " + (1f - (valPreds.toInt - valLabels.toInt).abs.mean)
+            ).mkString(", ")
+          )
       .map((params, _) => params)
       .drop(2500)
       .next()
@@ -116,25 +118,28 @@ object LogisticRegression:
 
 object PenguinCSV:
   case class Row(
-    species: Int,
-    bill_length_mm: Double,
-    bill_depth_mm: Double,
-    flipper_length_mm: Double,
-    body_mass_g: Double
+      species: Int,
+      bill_length_mm: Double,
+      bill_depth_mm: Double,
+      flipper_length_mm: Double,
+      body_mass_g: Double
   )
 
   def parse(path: String): Seq[Row] =
     val source = scala.io.Source.fromFile(path)
     try
       val lines = source.getLines().toSeq
-      lines.drop(1).map { line =>
-      val parts = line.split(",")
-      Row(
-        species = parts(1).toInt,
-        bill_length_mm = parts(2).toDouble,
-        bill_depth_mm = parts(3).toDouble,
-        flipper_length_mm = parts(4).toDouble,
-        body_mass_g = parts(5).toDouble
-      )
-    }.toSeq
+      lines
+        .drop(1)
+        .map { line =>
+          val parts = line.split(",")
+          Row(
+            species = parts(1).toInt,
+            bill_length_mm = parts(2).toDouble,
+            bill_depth_mm = parts(3).toDouble,
+            flipper_length_mm = parts(4).toDouble,
+            body_mass_g = parts(5).toDouble
+          )
+        }
+        .toSeq
     finally source.close()

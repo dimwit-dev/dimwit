@@ -1,3 +1,1 @@
-package object nn {
-  
-}
+package object nn {}

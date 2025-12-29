@@ -119,4 +119,4 @@ object Jax:
         throw new RuntimeException(
           s"Failed to import JAX Lax module. Make sure JAX is installed: ${e.getMessage}",
           e
-      )
+        )

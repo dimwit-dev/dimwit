@@ -1,4 +1,3 @@
-
 import scala.annotation.targetName
 package object shapeful:
 
@@ -9,28 +8,28 @@ package object shapeful:
 
   trait Prime[T]
   object Prime:
-    given[L](using label: Label[L]): Label[Prime[L]] with
+    given [L](using label: Label[L]): Label[Prime[L]] with
       val name: String = s"${label.name}'"
 
     type RemovePrimes[T <: Tuple] <: Tuple = T match
-      case EmptyTuple => EmptyTuple
+      case EmptyTuple       => EmptyTuple
       case Prime[l] *: tail => l *: RemovePrimes[tail]
-      case h *: tail => h *: RemovePrimes[tail]
+      case h *: tail        => h *: RemovePrimes[tail]
 
-    extension[T <: Tuple : Labels, V](tensor: Tensor[T, V])
+    extension [T <: Tuple: Labels, V](tensor: Tensor[T, V])
       def dropPrimes: Tensor[RemovePrimes[T], V] =
         given newLabels: Labels[RemovePrimes[T]] with
-          val names: List[String] = 
+          val names: List[String] =
             val oldLabels = summon[Labels[T]]
             oldLabels.names.toList.map(_.replace("'", ""))
         Tensor[RemovePrimes[T], V](tensor.jaxValue)
 
-  @targetName("On") 
+  @targetName("On")
   infix trait ~[A, B]
   object `~`:
     given [A, B](using labelA: Label[A], labelB: Label[B]): Label[A ~ B] with
       val name: String = s"${labelA.name}_on_${labelB.name}"
-  
+
   @targetName("Combined")
   infix trait |*|[A, B]
   object `|*|`:
@@ -42,16 +41,16 @@ package object shapeful:
   export shapeful.tensor.{Shape, Shape0, Shape1, Shape2, Shape3}
   export shapeful.tensor.{DType, Device}
   export shapeful.tensor.{VType, ExecutionType, Label, Labels, Axis, AxisIndex, AxisIndices, Dim}
-  
+
   // Export type helpers
   export shapeful.tensor.Axis.UnwrapAxes
   export shapeful.tensor.TupleHelpers.*
   export shapeful.tensor.Broadcast
   export Prime.*
-  
+
   // Export operations
   export shapeful.tensor.TensorOps.*
-  
+
   // Export automatic differentiation
   export shapeful.autodiff.{Autodiff, TensorTree, FloatTensorTree, ToPyTree}
 

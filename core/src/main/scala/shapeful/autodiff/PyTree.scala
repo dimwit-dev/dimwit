@@ -18,7 +18,7 @@ object ToPyTree:
   def apply[P](using pt: ToPyTree[P]): ToPyTree[P] = pt
 
   // Keep the tensor instance
-  given [T <: Tuple : Labels, V]: ToPyTree[Tensor[T, V]] with
+  given [T <: Tuple: Labels, V]: ToPyTree[Tensor[T, V]] with
     def toPyTree(t: Tensor[T, V]): Jax.PyAny = t.jaxValue
     def fromPyTree(p: Jax.PyAny): Tensor[T, V] = Tensor(p.as[Jax.PyDynamic])
 
@@ -57,7 +57,7 @@ object ToPyTree:
 
   inline def reconstructField[T](pyElem: py.Dynamic): T =
     inline erasedValue[T] match
-      case _: Tensor[?, ?] => 
+      case _: Tensor[?, ?] =>
         // For tensors, delegate to the ToPyTree instance which has the proper type info
         compiletime.summonInline[ToPyTree[T]].fromPyTree(pyElem)
       case _: String =>

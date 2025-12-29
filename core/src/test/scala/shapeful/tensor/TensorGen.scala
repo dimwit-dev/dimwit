@@ -14,21 +14,21 @@ object ShapeGen:
 
   val genShape0: Gen[Shape[EmptyTuple]] = Gen.const(Shape.empty)
 
-  def genShape1: Gen[Shape[Tuple1[A]]] = 
+  def genShape1: Gen[Shape[Tuple1[A]]] =
     Gen.choose(1, 100).map(d => Shape(Axis[A] -> d))
 
   def genShape2: Gen[Shape[(A, B)]] =
-    for {
+    for
       d1 <- Gen.choose(1, 10)
       d2 <- Gen.choose(1, 10)
-    } yield Shape(Axis[A] -> d1, Axis[B] -> d2)
+    yield Shape(Axis[A] -> d1, Axis[B] -> d2)
 
   def genShape3: Gen[Shape[(A, B, C)]] =
-    for {
+    for
       d1 <- Gen.choose(1, 5)
       d2 <- Gen.choose(1, 5)
       d3 <- Gen.choose(1, 5)
-    } yield Shape(Axis[A] -> d1, Axis[B] -> d2, Axis[C] -> d3)
+    yield Shape(Axis[A] -> d1, Axis[B] -> d2, Axis[C] -> d3)
 
 object TensorGen:
 
@@ -65,12 +65,14 @@ object TensorGen:
       def vtype = VType[Boolean]
       def conv = summon[py.ConvertableToSeqElem[Boolean]]
 
-  def genTensor[T <: Tuple : Labels, V](shape: Shape[T], min: V, max: V)(using tvg: TensorValueGen[V]): Gen[Tensor[T, V]] =
-    tvg.genData(shape.size, min, max).map: data =>
-      given py.ConvertableToSeqElem[V] = tvg.conv
-      Tensor.fromArray(shape, tvg.vtype)(data)
+  def genTensor[T <: Tuple: Labels, V](shape: Shape[T], min: V, max: V)(using tvg: TensorValueGen[V]): Gen[Tensor[T, V]] =
+    tvg
+      .genData(shape.size, min, max)
+      .map: data =>
+        given py.ConvertableToSeqElem[V] = tvg.conv
+        Tensor.fromArray(shape, tvg.vtype)(data)
 
-  def genTensor[T <: Tuple : Labels, V](shape: Shape[T])(using tvg: TensorValueGen[V]): Gen[Tensor[T, V]] =
+  def genTensor[T <: Tuple: Labels, V](shape: Shape[T])(using tvg: TensorValueGen[V]): Gen[Tensor[T, V]] =
     genTensor(shape, tvg.defaultMin, tvg.defaultMax)
 
   // --- Shape Generators ---
@@ -101,7 +103,7 @@ object TensorGen:
   def tensor2GenWithShape[V](d1: Int, d2: Int, min: V, max: V)(using TensorValueGen[V]): Gen[Tensor2[A, B, V]] =
     genTensor(Shape(Axis[A] -> d1, Axis[B] -> d2), min, max)
   def tensor2GenWithShape[V](vtype: VType[V])(d1: Int, d2: Int)(using tvg: TensorValueGen[V]): Gen[Tensor2[A, B, V]] = tensor2GenWithShape(d1, d2, tvg.defaultMin, tvg.defaultMax)
-    
+
   def tensor2SquareGen[V](min: V, max: V)(using TensorValueGen[V]): Gen[Tensor2[A, B, V]] =
     Gen.choose(1, 10).flatMap { dim =>
       genTensor(Shape(Axis[A] -> dim, Axis[B] -> dim), min, max)
@@ -110,49 +112,49 @@ object TensorGen:
 
   // --- Multiple Tensor Generators ---
 
-  def nTensorGen[S <: Tuple : Labels, V](n: Int, genShape: Gen[Shape[S]], min: V, max: V)(using tvg: TensorValueGen[V]): Gen[Seq[Tensor[S, V]]] =
-    for {
+  def nTensorGen[S <: Tuple: Labels, V](n: Int, genShape: Gen[Shape[S]], min: V, max: V)(using tvg: TensorValueGen[V]): Gen[Seq[Tensor[S, V]]] =
+    for
       shape <- genShape
       tensors <- Gen.listOfN(n, genTensor(shape, min, max))
-    } yield tensors
+    yield tensors
 
-  def twoTensor0Gen[V](min: V, max: V)(using TensorValueGen[V]): Gen[(Tensor0[V], Tensor0[V])] = 
+  def twoTensor0Gen[V](min: V, max: V)(using TensorValueGen[V]): Gen[(Tensor0[V], Tensor0[V])] =
     nTensorGen(2, genShape0, min, max).map { seq => (seq(0), seq(1)) }
-  def twoTensor0Gen[V](vtype: VType[V])(using tvg: TensorValueGen[V]): Gen[(Tensor0[V], Tensor0[V])] = 
+  def twoTensor0Gen[V](vtype: VType[V])(using tvg: TensorValueGen[V]): Gen[(Tensor0[V], Tensor0[V])] =
     twoTensor0Gen(tvg.defaultMin, tvg.defaultMax)
 
-  def twoTensor1Gen[V](min: V, max: V)(using TensorValueGen[V]): Gen[(Tensor1[A, V], Tensor1[A, V])] = 
+  def twoTensor1Gen[V](min: V, max: V)(using TensorValueGen[V]): Gen[(Tensor1[A, V], Tensor1[A, V])] =
     nTensorGen(2, genShape1, min, max).map { seq => (seq(0), seq(1)) }
-  def twoTensor1Gen[V](vtype: VType[V])(using tvg: TensorValueGen[V]): Gen[(Tensor1[A, V], Tensor1[A, V])] = 
+  def twoTensor1Gen[V](vtype: VType[V])(using tvg: TensorValueGen[V]): Gen[(Tensor1[A, V], Tensor1[A, V])] =
     twoTensor1Gen(tvg.defaultMin, tvg.defaultMax)
 
-  def twoTensor2Gen[V](min: V, max: V)(using TensorValueGen[V]): Gen[(Tensor2[A, B, V], Tensor2[A, B, V])] = 
+  def twoTensor2Gen[V](min: V, max: V)(using TensorValueGen[V]): Gen[(Tensor2[A, B, V], Tensor2[A, B, V])] =
     nTensorGen(2, genShape2, min, max).map { seq => (seq(0), seq(1)) }
-  def twoTensor2Gen[V](vtype: VType[V])(using tvg: TensorValueGen[V]): Gen[(Tensor2[A, B, V], Tensor2[A, B, V])] = 
+  def twoTensor2Gen[V](vtype: VType[V])(using tvg: TensorValueGen[V]): Gen[(Tensor2[A, B, V], Tensor2[A, B, V])] =
     twoTensor2Gen(tvg.defaultMin, tvg.defaultMax)
 
-  def twoTensor3Gen[V](min: V, max: V)(using TensorValueGen[V]): Gen[(Tensor3[A, B, C, V], Tensor3[A, B, C, V])] = 
+  def twoTensor3Gen[V](min: V, max: V)(using TensorValueGen[V]): Gen[(Tensor3[A, B, C, V], Tensor3[A, B, C, V])] =
     nTensorGen(2, genShape3, min, max).map { seq => (seq(0), seq(1)) }
   def twoTensor3Gen[V](vtype: VType[V])(using tvg: TensorValueGen[V]): Gen[(Tensor3[A, B, C, V], Tensor3[A, B, C, V])] = twoTensor3Gen(tvg.defaultMin, tvg.defaultMax)
 
-  def sameTensorPair[T <: Tuple : Labels, V](gen: Gen[Tensor[T, V]])(using tvg: TensorValueGen[V]): Gen[(Tensor[T, V], Tensor[T, V])] =
+  def sameTensorPair[T <: Tuple: Labels, V](gen: Gen[Tensor[T, V]])(using tvg: TensorValueGen[V]): Gen[(Tensor[T, V], Tensor[T, V])] =
     gen.map(t => (t, Tensor.fromPy(tvg.vtype)(t.jaxValue)))
 
-  def twoSameTensor0Gen[V](min: V, max: V)(using TensorValueGen[V]): Gen[(Tensor0[V], Tensor0[V])] = 
+  def twoSameTensor0Gen[V](min: V, max: V)(using TensorValueGen[V]): Gen[(Tensor0[V], Tensor0[V])] =
     sameTensorPair(tensor0Gen(min, max))
-  def twoSameTensor0Gen[V](vtype: VType[V])(using tvg: TensorValueGen[V]): Gen[(Tensor0[V], Tensor0[V])] = 
+  def twoSameTensor0Gen[V](vtype: VType[V])(using tvg: TensorValueGen[V]): Gen[(Tensor0[V], Tensor0[V])] =
     twoSameTensor0Gen(tvg.defaultMin, tvg.defaultMax)
 
-  def twoSameTensor1Gen[V](min: V, max: V)(using TensorValueGen[V]): Gen[(Tensor1[A, V], Tensor1[A, V])] = 
+  def twoSameTensor1Gen[V](min: V, max: V)(using TensorValueGen[V]): Gen[(Tensor1[A, V], Tensor1[A, V])] =
     sameTensorPair(tensor1Gen(min, max))
-  def twoSameTensor1Gen[V](vtype: VType[V])(using tvg: TensorValueGen[V]): Gen[(Tensor1[A, V], Tensor1[A, V])] = 
+  def twoSameTensor1Gen[V](vtype: VType[V])(using tvg: TensorValueGen[V]): Gen[(Tensor1[A, V], Tensor1[A, V])] =
     twoSameTensor1Gen(tvg.defaultMin, tvg.defaultMax)
-  def twoSameTensor2Gen[V](min: V, max: V)(using TensorValueGen[V]): Gen[(Tensor2[A, B, V], Tensor2[A, B, V])] = 
+  def twoSameTensor2Gen[V](min: V, max: V)(using TensorValueGen[V]): Gen[(Tensor2[A, B, V], Tensor2[A, B, V])] =
     sameTensorPair(tensor2Gen(min, max))
-  def twoSameTensor2Gen[V](vtype: VType[V])(using tvg: TensorValueGen[V]): Gen[(Tensor2[A, B, V], Tensor2[A, B, V])] = 
+  def twoSameTensor2Gen[V](vtype: VType[V])(using tvg: TensorValueGen[V]): Gen[(Tensor2[A, B, V], Tensor2[A, B, V])] =
     twoSameTensor2Gen(tvg.defaultMin, tvg.defaultMax)
 
-  def twoSameTensor3Gen[V](min: V, max: V)(using TensorValueGen[V]): Gen[(Tensor3[A, B, C, V], Tensor3[A, B, C, V])] = 
+  def twoSameTensor3Gen[V](min: V, max: V)(using TensorValueGen[V]): Gen[(Tensor3[A, B, C, V], Tensor3[A, B, C, V])] =
     sameTensorPair(tensor3Gen(min, max))
-  def twoSameTensor3Gen[V](vtype: VType[V])(using tvg: TensorValueGen[V]): Gen[(Tensor3[A, B, C, V], Tensor3[A, B, C, V])] = 
+  def twoSameTensor3Gen[V](vtype: VType[V])(using tvg: TensorValueGen[V]): Gen[(Tensor3[A, B, C, V], Tensor3[A, B, C, V])] =
     twoSameTensor3Gen(tvg.defaultMin, tvg.defaultMax)

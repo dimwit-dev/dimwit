@@ -23,26 +23,31 @@ object FloatTensorTree extends FloatTensorTreeLowPriority:
       f[Q](using n)(p1.retag[Q](using n), p2.retag[Q](using n))
 
   inline given derived[P <: Product](using m: Mirror.ProductOf[P]): FloatTensorTree[P] =
-      val elemInstances = summonAll[Tuple.Map[m.MirroredElemTypes, FloatTensorTree]]
-      val instances = elemInstances.toList.asInstanceOf[List[FloatTensorTree[Any]]]
-      derivedImpl(instances, m)
+    val elemInstances = summonAll[Tuple.Map[m.MirroredElemTypes, FloatTensorTree]]
+    val instances = elemInstances.toList.asInstanceOf[List[FloatTensorTree[Any]]]
+    derivedImpl(instances, m)
 
   private def derivedImpl[P <: Product](
-      instances: List[FloatTensorTree[Any]], 
+      instances: List[FloatTensorTree[Any]],
       m: Mirror.ProductOf[P]
   ): FloatTensorTree[P] = new FloatTensorTree[P]:
-        def map(p: P, f: [T <: Tuple] => Labels[T] ?=> (Tensor[T, Float] => Tensor[T, Float])): P =
-          val inputs = p.productIterator.toList
-          val mappedElems = inputs.zip(instances).map: 
-            case (elem, inst) => inst.map(elem, f)
-          m.fromProduct(Tuple.fromArray(mappedElems.map(_.asInstanceOf[Object]).toArray))
+    def map(p: P, f: [T <: Tuple] => Labels[T] ?=> (Tensor[T, Float] => Tensor[T, Float])): P =
+      val inputs = p.productIterator.toList
+      val mappedElems = inputs
+        .zip(instances)
+        .map:
+          case (elem, inst) => inst.map(elem, f)
+      m.fromProduct(Tuple.fromArray(mappedElems.map(_.asInstanceOf[Object]).toArray))
 
-        def zipMap(p1: P, p2: P, f: [T <: Tuple] => Labels[T] ?=> ((Tensor[T, Float], Tensor[T, Float]) => Tensor[T, Float])): P =
-          val inputs1 = p1.productIterator.toList
-          val inputs2 = p2.productIterator.toList
-          val mappedElems = inputs1.zip(inputs2).zip(instances).map:
-            case ((e1, e2), inst) => inst.zipMap(e1, e2, f)
-          m.fromProduct(Tuple.fromArray(mappedElems.map(_.asInstanceOf[Object]).toArray))
+    def zipMap(p1: P, p2: P, f: [T <: Tuple] => Labels[T] ?=> ((Tensor[T, Float], Tensor[T, Float]) => Tensor[T, Float])): P =
+      val inputs1 = p1.productIterator.toList
+      val inputs2 = p2.productIterator.toList
+      val mappedElems = inputs1
+        .zip(inputs2)
+        .zip(instances)
+        .map:
+          case ((e1, e2), inst) => inst.zipMap(e1, e2, f)
+      m.fromProduct(Tuple.fromArray(mappedElems.map(_.asInstanceOf[Object]).toArray))
 
 trait FloatTensorTreeLowPriority:
   given identity[A]: FloatTensorTree[A] = new FloatTensorTree[A]:

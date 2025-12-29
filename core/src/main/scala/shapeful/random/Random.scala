@@ -12,8 +12,7 @@ import me.shadaj.scalapy.py.SeqConverters
   *   - Keys are split to generate independent random streams
   *   - This ensures reproducibility and parallelizability
   *
-  * This object provides low-level sampling primitives using JAX. For statistical modeling, prefer using distribution
-  * classes in shapeful.distributions.
+  * This object provides low-level sampling primitives using JAX. For statistical modeling, prefer using distribution classes in shapeful.distributions.
   */
 object Random:
 
@@ -46,17 +45,17 @@ object Random:
 
     class NormalFactory[T <: Tuple: Labels](shape: Shape[T]):
       def apply(
-          key: Key,
-      )(using 
-        executionType: ExecutionType[Float]
+          key: Key
+      )(using
+          executionType: ExecutionType[Float]
       ): Tensor[T, Float] = this(key, Tensor0.zero(VType[Float]), Tensor0.one(VType[Float]))
 
       def apply(
           key: Key,
           mean: Tensor0[Float],
-          std: Tensor0[Float],
-      )(using 
-        executionType: ExecutionType[Float]
+          std: Tensor0[Float]
+      )(using
+          executionType: ExecutionType[Float]
       ): Tensor[T, Float] =
         val jaxValues = Jax.jrandom.normal(
           key.jaxKey,
@@ -71,20 +70,20 @@ object Random:
   class Uniform:
 
     class UniformFactory[T <: Tuple: Labels](shape: Shape[T]):
-        
+
       def apply(
-          key: Key,
-      )(using 
-        executionType: ExecutionType[Float]
+          key: Key
+      )(using
+          executionType: ExecutionType[Float]
       ): Tensor[T, Float] = this(key, Tensor0.zero(VType[Float]), Tensor0.one(VType[Float]))
 
       /** Uniform distribution in [minval, maxval) */
       def apply(
           key: Key,
           minval: Tensor0[Float],
-          maxval: Tensor0[Float],
-      )(using 
-        executionType: ExecutionType[Float]
+          maxval: Tensor0[Float]
+      )(using
+          executionType: ExecutionType[Float]
       ): Tensor[T, Float] =
         val jaxValues = Jax.jrandom.uniform(
           key.jaxKey,

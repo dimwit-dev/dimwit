@@ -2,7 +2,7 @@ package shapeful.tensor
 
 import shapeful.*
 import shapeful.Conversions.given
-import org.scalacheck.Prop._
+import org.scalacheck.Prop.*
 import org.scalacheck.{Arbitrary, Gen}
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
@@ -13,30 +13,30 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 class TensorOpsReductionSuite extends AnyPropSpec with ScalaCheckPropertyChecks with Matchers:
-  
+
   py.exec("import jax.numpy as jnp")
-      
-  def checkBinaryReductionOpsToBool[T <: Tuple : Labels](gen: Gen[(Tensor[T, Float], Tensor[T, Float])], suffix: String)(pyCode: String, scOp: (Tensor[T, Float], Tensor[T, Float]) => Boolean) =
+
+  def checkBinaryReductionOpsToBool[T <: Tuple: Labels](gen: Gen[(Tensor[T, Float], Tensor[T, Float])], suffix: String)(pyCode: String, scOp: (Tensor[T, Float], Tensor[T, Float]) => Boolean) =
     property(s"$suffix Tensor[${summon[Labels[T]].names.mkString(", ")}]"):
-      forAll(gen): (t1, t2) => 
+      forAll(gen): (t1, t2) =>
         val (py, sc) = pythonScalaBinaryReductionOpsToBool(t1, t2)(pyCode, scOp)
         py shouldEqual sc
 
-  def checkReductionOpsFloatToFloat[T <: Tuple : Labels](gen: Gen[Tensor[T, Float]], suffix: String)(pyCode: String, scOp: Tensor[T, Float] => Tensor0[Float]) =
+  def checkReductionOpsFloatToFloat[T <: Tuple: Labels](gen: Gen[Tensor[T, Float]], suffix: String)(pyCode: String, scOp: Tensor[T, Float] => Tensor0[Float]) =
     property(s"$suffix Tensor[${summon[Labels[T]].names.mkString(", ")}]"):
-      forAll(gen): t => 
+      forAll(gen): t =>
         val (py, sc) = pythonScalaReductionOpsToFloat(t)(pyCode, scOp)
         py.item shouldEqual sc.item
 
-  def checkReductionOpsFloatToInt[T <: Tuple : Labels](gen: Gen[Tensor[T, Float]], suffix: String)(pyCode: String, scOp: Tensor[T, Float] => Tensor0[Int]) =
+  def checkReductionOpsFloatToInt[T <: Tuple: Labels](gen: Gen[Tensor[T, Float]], suffix: String)(pyCode: String, scOp: Tensor[T, Float] => Tensor0[Int]) =
     property(s"$suffix Tensor[${summon[Labels[T]].names.mkString(", ")}]"):
-      forAll(gen): t => 
+      forAll(gen): t =>
         val (py, sc) = pythonScalaReductionOpsToInt(t)(pyCode, scOp)
         py.item shouldEqual sc.item
 
-  def checkReductionOpsBoolToBool[T <: Tuple : Labels](gen: Gen[Tensor[T, Boolean]], suffix: String)(pyCode: String, scOp: Tensor[T, Boolean] => Tensor0[Boolean]) =
+  def checkReductionOpsBoolToBool[T <: Tuple: Labels](gen: Gen[Tensor[T, Boolean]], suffix: String)(pyCode: String, scOp: Tensor[T, Boolean] => Tensor0[Boolean]) =
     property(s"$suffix Tensor[${summon[Labels[T]].names.mkString(", ")}]"):
-      forAll(gen): t => 
+      forAll(gen): t =>
         val (py, sc) = pythonScalaReductionOpsToBool(t)(pyCode, scOp)
         py.item shouldEqual sc.item
 
@@ -98,61 +98,56 @@ class TensorOpsReductionSuite extends AnyPropSpec with ScalaCheckPropertyChecks 
   property("approxEquals Tensor[a, b]"):
     forAll(tensor2Gen(VType[Float])): t1 =>
       val t2 = t1 :* Tensor0(1 + Float.MinValue)
-      val pyRes = {
+      val pyRes =
         py.eval("globals()").bracketUpdate("t1", t1.jaxValue)
         py.eval("globals()").bracketUpdate("t2", t2.jaxValue)
         py.exec(s"res = jnp.allclose(t1, t2)")
         py.eval("res.item()").as[Boolean]
-      }
       val scalaRes: Boolean = t1.approxEquals(t2).item
       pyRes shouldEqual scalaRes
 
-  private def pythonScalaBinaryReductionOpsToBool[T <: Tuple : Labels](t1: Tensor[T, Float], t2: Tensor[T, Float])(
-    pythonProgram: String,
-    scalaProgram: (Tensor[T, Float], Tensor[T, Float]) => Boolean,
+  private def pythonScalaBinaryReductionOpsToBool[T <: Tuple: Labels](t1: Tensor[T, Float], t2: Tensor[T, Float])(
+      pythonProgram: String,
+      scalaProgram: (Tensor[T, Float], Tensor[T, Float]) => Boolean
   ): (Boolean, Boolean) =
     require(t1.shape == t2.shape, s"Shape mismatch: ${t1.shape} vs ${t2.shape}")
-    val pyRes = {
+    val pyRes =
       py.eval("globals()").bracketUpdate("t1", t1.jaxValue)
       py.eval("globals()").bracketUpdate("t2", t2.jaxValue)
       py.exec(s"res = $pythonProgram")
       py.eval("res.item()").as[Boolean]
-    }
     val scalaRes = scalaProgram(t1, t2)
     (pyRes, scalaRes)
 
-  private def pythonScalaReductionOpsToFloat[T <: Tuple : Labels](t: Tensor[T, Float])(
-    pythonProgram: String,
-    scalaProgram: Tensor[T, Float] => Tensor0[Float],
+  private def pythonScalaReductionOpsToFloat[T <: Tuple: Labels](t: Tensor[T, Float])(
+      pythonProgram: String,
+      scalaProgram: Tensor[T, Float] => Tensor0[Float]
   ): (Tensor0[Float], Tensor0[Float]) =
-    val pyRes = {
+    val pyRes =
       py.eval("globals()").bracketUpdate("t", t.jaxValue)
       py.exec(s"res = $pythonProgram")
       py.eval("res.item()").as[Float]
-    }
     val scalaRes = scalaProgram(t)
     (pyRes, scalaRes)
 
-  private def pythonScalaReductionOpsToInt[T <: Tuple : Labels](t: Tensor[T, Float])(
-    pythonProgram: String,
-    scalaProgram: Tensor[T, Float] => Tensor0[Int],
+  private def pythonScalaReductionOpsToInt[T <: Tuple: Labels](t: Tensor[T, Float])(
+      pythonProgram: String,
+      scalaProgram: Tensor[T, Float] => Tensor0[Int]
   ): (Tensor0[Int], Tensor0[Int]) =
-    val pyRes = {
+    val pyRes =
       py.eval("globals()").bracketUpdate("t", t.jaxValue)
       py.exec(s"res = $pythonProgram")
       py.eval("res.item()").as[Int]
-    }
     val scalaRes = scalaProgram(t)
     (pyRes, scalaRes)
 
-  private def pythonScalaReductionOpsToBool[T <: Tuple : Labels](t: Tensor[T, Boolean])(
-    pythonProgram: String,
-    scalaProgram: Tensor[T, Boolean] => Tensor0[Boolean],
+  private def pythonScalaReductionOpsToBool[T <: Tuple: Labels](t: Tensor[T, Boolean])(
+      pythonProgram: String,
+      scalaProgram: Tensor[T, Boolean] => Tensor0[Boolean]
   ): (Tensor0[Boolean], Tensor0[Boolean]) =
-    val pyRes = {
+    val pyRes =
       py.eval("globals()").bracketUpdate("t", t.jaxValue)
       py.exec(s"res = $pythonProgram")
       py.eval("res.item()").as[Boolean]
-    }
     val scalaRes = scalaProgram(t)
     (pyRes, scalaRes)

@@ -1,10 +1,8 @@
 package shapeful.jax
 
-
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
 import me.shadaj.scalapy.py.PyQuote
-
 
 object Einops:
 
@@ -18,9 +16,9 @@ object Einops:
       pattern: String,
       kwargsMap: Map[String, Int] = Map()
   ): PyDynamic =
-      val einops = py.module("einops")
-      val convertedSeq = kwargsMap.map { 
-        case (k, v: Int)     => k -> py.Any.from(v)
-      }.toSeq
-      val pyKwargs = py.Dynamic.global.dict(convertedSeq.toPythonProxy)
-      kwargUnpacker(einops.rearrange, x, pattern, pyKwargs).as[py.Dynamic]
+    val einops = py.module("einops")
+    val convertedSeq = kwargsMap.map { case (k, v: Int) =>
+      k -> py.Any.from(v)
+    }.toSeq
+    val pyKwargs = py.Dynamic.global.dict(convertedSeq.toPythonProxy)
+    kwargUnpacker(einops.rearrange, x, pattern, pyKwargs).as[py.Dynamic]

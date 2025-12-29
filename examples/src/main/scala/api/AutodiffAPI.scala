@@ -1,23 +1,32 @@
 package examples.api
 
-import shapeful.* 
+import shapeful.*
 
 @main
 def autoDiffAPI(): Unit =
-  val AB = Tensor.ones(Shape(
-    Axis["A"] -> 10,
-    Axis["B"] -> 5,
-  ), VType[Float])
-  val AC = Tensor.ones(Shape(
-      Axis["A"]-> 10,
+  val AB = Tensor.ones(
+    Shape(
+      Axis["A"] -> 10,
+      Axis["B"] -> 5
+    ),
+    VType[Float]
+  )
+  val AC = Tensor.ones(
+    Shape(
+      Axis["A"] -> 10,
       Axis["C"] -> 5
-  ), VType[Float])
-  val ABCD = Tensor.ones(Shape(
+    ),
+    VType[Float]
+  )
+  val ABCD = Tensor.ones(
+    Shape(
       Axis["A"] -> 2,
       Axis["B"] -> 3,
       Axis["C"] -> 4,
-      Axis["D"] -> 5,
-  ), VType[Float])
+      Axis["D"] -> 5
+    ),
+    VType[Float]
+  )
   {
     def f(x: Tensor1["A", Float]): Tensor0[Float] = x.sum
     val df = Autodiff.grad(f)
@@ -29,30 +38,38 @@ def autoDiffAPI(): Unit =
     def f(params: ParamsTuple): Tensor0[Float] =
       params._1.sum + params._2.sum
     val df = Autodiff.grad(f)
-    val delta = df((
-      Tensor2.fromArray(Axis["A"], Axis["B"], VType[Float])(Array(
-        Array.fill(5)(1.0f),
-        Array.fill(5)(1.0f),
-      )),
-      Tensor1.fromArray(Axis["C"], VType[Float])(Array.fill(5)(1.0f))
-    ))
+    val delta = df(
+      (
+        Tensor2.fromArray(Axis["A"], Axis["B"], VType[Float])(
+          Array(
+            Array.fill(5)(1.0f),
+            Array.fill(5)(1.0f)
+          )
+        ),
+        Tensor1.fromArray(Axis["C"], VType[Float])(Array.fill(5)(1.0f))
+      )
+    )
     println((delta._1.shape, delta._2.shape))
   }
   {
     case class Params(
-      a: Tensor2["A", "B", Float], 
-      b: Tensor1["C", Float],
+        a: Tensor2["A", "B", Float],
+        b: Tensor1["C", Float]
     ) derives TensorTree
     def f(params: Params): Tensor0[Float] =
       params.a.sum + params.b.sum
     val df = Autodiff.grad(f)
-    val delta = df(Params(
-      Tensor2.fromArray(Axis["A"], Axis["B"], VType[Float])(Array(
-        Array.fill(5)(1.0f),
-        Array.fill(5)(1.0f),
-      )),
-      Tensor1.fromArray(Axis["C"], VType[Float])(Array.fill(5)(1.0f))
-    ))
+    val delta = df(
+      Params(
+        Tensor2.fromArray(Axis["A"], Axis["B"], VType[Float])(
+          Array(
+            Array.fill(5)(1.0f),
+            Array.fill(5)(1.0f)
+          )
+        ),
+        Tensor1.fromArray(Axis["C"], VType[Float])(Array.fill(5)(1.0f))
+      )
+    )
     println(delta)
   }
   {
@@ -72,13 +89,17 @@ def autoDiffAPI(): Unit =
     type ParamsTuple = (Tensor2["A", "B", Float], Tensor1["C", Float])
     def f(x: ParamsTuple): Tensor1["A", Float] = x._1.slice(Axis["B"] -> 0)
     val df = Autodiff.jacobian(f)
-    val delta = df((
-      Tensor2.fromArray(Axis["A"], Axis["B"], VType[Float])(Array(
-        Array.fill(5)(1.0f),
-        Array.fill(5)(1.0f),
-      )),
-      Tensor1.fromArray(Axis["C"], VType[Float])(Array.fill(5)(1.0f))
-    ))
+    val delta = df(
+      (
+        Tensor2.fromArray(Axis["A"], Axis["B"], VType[Float])(
+          Array(
+            Array.fill(5)(1.0f),
+            Array.fill(5)(1.0f)
+          )
+        ),
+        Tensor1.fromArray(Axis["C"], VType[Float])(Array.fill(5)(1.0f))
+      )
+    )
     println((delta._1.shape, delta._2.shape))
   }
   {
@@ -104,16 +125,22 @@ def autoDiffAPI(): Unit =
     def f(x: ParamsTuple): Tensor0[Float] = x._1.sum
     val df = Autodiff.jacobian(f)
     val ddf = Autodiff.jacobian(df)
-    val delta = ddf((
-      Tensor2.fromArray(Axis["A"], Axis["B"], VType[Float])(Array(
-        Array.fill(5)(1.0f),
-        Array.fill(5)(1.0f),
-      )),
-      Tensor1.fromArray(Axis["C"], VType[Float])(Array.fill(5)(1.0f))
-    ))
+    val delta = ddf(
+      (
+        Tensor2.fromArray(Axis["A"], Axis["B"], VType[Float])(
+          Array(
+            Array.fill(5)(1.0f),
+            Array.fill(5)(1.0f)
+          )
+        ),
+        Tensor1.fromArray(Axis["C"], VType[Float])(Array.fill(5)(1.0f))
+      )
+    )
     // TODO Is this actually correct, check it!
-    println((
-      (delta._1._1.shape, delta._1._2.shape),
-      (delta._2._1.shape, delta._2._2.shape)
-    ))
+    println(
+      (
+        (delta._1._1.shape, delta._1._2.shape),
+        (delta._2._1.shape, delta._2._2.shape)
+      )
+    )
   }

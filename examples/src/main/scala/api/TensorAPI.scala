@@ -28,39 +28,54 @@ def tensorAPI(): Unit =
   py.exec("import jax.numpy as jnp")
   py.exec("import einops")
   // py.eval("import jax.numpy as jnp")
-  val AB = Tensor.ones(Shape(
-    Axis[A] -> 2,
-    Axis[B] -> 3,
-  ), VType[Float])
+  val AB = Tensor.ones(
+    Shape(
+      Axis[A] -> 2,
+      Axis[B] -> 3
+    ),
+    VType[Float]
+  )
   py.exec("ab = jnp.ones((2, 3))")
-  val AC = Tensor.ones(Shape(
-      Axis[A]-> 2,
+  val AC = Tensor.ones(
+    Shape(
+      Axis[A] -> 2,
       Axis[C] -> 4
-  ), VType[Float])
+    ),
+    VType[Float]
+  )
   py.exec("ac = jnp.ones((2, 4))")
-  val BCD = Tensor.ones(Shape(
-      Axis[B]-> 3,
+  val BCD = Tensor.ones(
+    Shape(
+      Axis[B] -> 3,
       Axis[C] -> 4,
-      Axis[D] -> 5,
-  ), VType[Float])
+      Axis[D] -> 5
+    ),
+    VType[Float]
+  )
   py.exec("bcd = jnp.ones((3, 4, 5))")
-  val BC = Tensor.ones(Shape(
-      Axis[B]-> 3,
-      Axis[C] -> 4,
-  ), VType[Float])
+  val BC = Tensor.ones(
+    Shape(
+      Axis[B] -> 3,
+      Axis[C] -> 4
+    ),
+    VType[Float]
+  )
   py.exec("bc = jnp.ones((3, 4))")
-  val ABCD = Tensor.ones(Shape(
+  val ABCD = Tensor.ones(
+    Shape(
       Axis[A] -> 2,
       Axis[B] -> 3,
       Axis[C] -> 4,
-      Axis[D] -> 5,
-  ), VType[Float])
+      Axis[D] -> 5
+    ),
+    VType[Float]
+  )
   py.exec("abcd = jnp.ones((2, 3, 4, 5))")
   println((AB.shape, py.eval("ab.shape")))
   println((AC.shape, py.eval("ac.shape")))
   println((ABCD.shape, py.eval("abcd.shape")))
   {
-    /* 
+    /*
      * BROADCASTING
      * https://numpy.org/doc/stable/user/basics.broadcasting.html
      */
@@ -77,13 +92,17 @@ def tensorAPI(): Unit =
     opBlock("Axes broadcasting backward: ABCD + CD") {
       py.exec("cd = jnp.ones((4,5))")
       py.exec("res = abcd + cd")
-      val CD = Tensor.ones(Shape(
-        Axis[C] -> 4, Axis[D] -> 5,
-      ), VType[Float])
+      val CD = Tensor.ones(
+        Shape(
+          Axis[C] -> 4,
+          Axis[D] -> 5
+        ),
+        VType[Float]
+      )
       ABCD :+ CD
     }
     opBlock("Dim broadcast: ABC1 to ABCD") {
-      // 
+      //
       py.exec("abc1 = jnp.ones((2,3,4,1))")
       py.exec("res = abcd + abc1")
       UNSUPPORTED // Do not support as d != 1, broadcasting does implicit magic
@@ -105,7 +124,7 @@ def tensorAPI(): Unit =
         py.exec("res = abcd + ab")
         assert(false, "Expected exception not thrown")
       catch
-        case e: PythonException => 
+        case e: PythonException =>
           py.exec("res = 'Not Supported by JAX'")
           ABCD :+ AB
     }
@@ -114,13 +133,13 @@ def tensorAPI(): Unit =
         py.exec("res = abcd + bc")
         assert(false, "Expected exception not thrown")
       catch
-        case e: PythonException => 
+        case e: PythonException =>
           py.exec("res = 'Not Supported by JAX'")
           ABCD :+ BC
     }
-    /** 
-     * ELEMENT-WISE OPERATIONS
-     */
+
+    /** ELEMENT-WISE OPERATIONS
+      */
     println("ELEMENT-WISE OPERATIONS")
     opBlock("+") {
       py.exec("res = ab + ab")
@@ -198,9 +217,9 @@ def tensorAPI(): Unit =
       py.exec("res = jnp.array_equal(ab, ab)")
       AB == AB
     }
-    /** 
-     * REDUCTION
-     */
+
+    /** REDUCTION
+      */
     opBlock("sum") {
       py.exec("res = jnp.sum(ab)")
       AB.sum
@@ -261,11 +280,10 @@ def tensorAPI(): Unit =
       py.exec("res = jnp.argmin(ab, axis=0)")
       AB.argmin(Axis[A])
     }
-    /** 
-     * CONTRACT
-     * Analog to JAX tensordot with a single axis, with two changes:
-     * - Only a single axis is allowed TODO allow multiple axes
-     */
+
+    /** CONTRACT Analog to JAX tensordot with a single axis, with two changes:
+      *   - Only a single axis is allowed TODO allow multiple axes
+      */
     opBlock("contract") {
       py.exec("res = einops.einsum(ab, ac, 'a b, a c -> b c')") // einsum variant
       py.exec("res = jnp.tensordot(ab, ac, axes=(0, 0))") // pure JAX variant
@@ -281,10 +299,9 @@ def tensorAPI(): Unit =
       py.exec("res = jnp.matmul(ab.T, ac)")
       AB.transpose.matmul(AC)
     }
-    /** 
-     * OUTER PRODUCT (contract over zero axes)
-     * Analog to JAX outer product, i.e., no axes to contract
-     */
+
+    /** OUTER PRODUCT (contract over zero axes) Analog to JAX outer product, i.e., no axes to contract
+      */
     opBlock("outerProduct") {
       py.exec("res = jnp.einsum('ij, kl -> ijkl', ab, ac)") // einsum variant
       py.exec("res = jnp.tensordot(ab, ac, axes=0)") // pure JAX variant
@@ -296,7 +313,7 @@ def tensorAPI(): Unit =
     }
     opBlock("stack AB AB AB AB axis=1") {
       py.exec("res = jnp.stack([ab, ab, ab, ab], axis=1)")
-      stack(List(AB, AB, AB, AB), Axis["Stack"], afterAxis=Axis[A])
+      stack(List(AB, AB, AB, AB), Axis["Stack"], afterAxis = Axis[A])
     }
     opBlock("concat AB AB") {
       py.exec("res = jnp.concatenate([ab, ab], axis=0)")
@@ -306,12 +323,11 @@ def tensorAPI(): Unit =
       py.exec("res = jnp.concatenate([ab, ab], axis=1)")
       concatenate(List(AB, AB), Axis[B])
     }
-    /** 
-     * SLICE 
-     * Analog to JAX slice(...) or JAX at(...).get, with two changes:
-     * - Out of range index leads to an error (instead of clipping)
-     * - No colon access (e.g., X[:, 0]), as due to name of axes this is not necessary (just leave out name)
-     */
+
+    /** SLICE Analog to JAX slice(...) or JAX at(...).get, with two changes:
+      *   - Out of range index leads to an error (instead of clipping)
+      *   - No colon access (e.g., X[:, 0]), as due to name of axes this is not necessary (just leave out name)
+      */
     // Select single index
     opBlock("slice ab axis=0") {
       py.exec("res = ab[0, :]")
@@ -327,10 +343,12 @@ def tensorAPI(): Unit =
     }
     opBlock("slice ab axis=0,2") {
       py.exec("res = ab[0:1, 2]")
-      AB.slice((  // TODO make (()) optional
-        Axis[A] -> (0 until 1),
-        Axis[B] -> 2,
-      ))
+      AB.slice(
+        ( // TODO make (()) optional
+          Axis[A] -> (0 until 1),
+          Axis[B] -> 2
+        )
+      )
     }
     // opBlock("slice ab axis=[0,2]") { // TODO make this work
     //   py.exec("res = ab[:, [0,2]]")
@@ -351,12 +369,11 @@ def tensorAPI(): Unit =
       )
       res
     }
-    /** 
-     * SET 
-     * Analog to JAX at(...).set, with two changes:
-     * - Out of range index leads to an error (instead of clipping)
-     * - No colon access (e.g., X[:, 0]), as due to name of axes this is not necessary (just leave out name)
-     */
+
+    /** SET Analog to JAX at(...).set, with two changes:
+      *   - Out of range index leads to an error (instead of clipping)
+      *   - No colon access (e.g., X[:, 0]), as due to name of axes this is not necessary (just leave out name)
+      */
     opBlock("set ab axis=0") {
       py.exec("res = ab.at[0, :].set(jnp.array([0,1,2]))")
       AB.set(
@@ -366,23 +383,23 @@ def tensorAPI(): Unit =
     // set sub-matrix, AB.at[0:1, 0:1].set([[1,2],[3,4]])
     opBlock("set ab axis=0:1,0:1") {
       py.exec("res = ab.at[0:2, 0:2].set(jnp.array([[1,2],[3,4]]))")
-      AB.set((  // TODO make (()) optional
-        Axis[A] -> (0 until 2),
-        Axis[B] -> (0 until 2),
-      ))(Tensor2.fromArray(
-          Axis[A], 
-          Axis[B],
-          VType[Float])(
+      AB.set(
+        ( // TODO make (()) optional
+          Axis[A] -> (0 until 2),
+          Axis[B] -> (0 until 2)
+        )
+      )(
+        Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
           Array(
-            Array(1f, 2f), 
-            Array(3f, 4f),
+            Array(1f, 2f),
+            Array(3f, 4f)
           )
-      ))
+        )
+      )
     }
-    /**
-     * REARRANGE
-     * Analog to einops rearrange, but with named axes. For JAX this replaces `transpose` and `reshape` operations.
-     */
+
+    /** REARRANGE Analog to einops rearrange, but with named axes. For JAX this replaces `transpose` and `reshape` operations.
+      */
     // einops.rearrange(ABCD, 'a b c d -> b a c d')
     opBlock("rearrange ABCD swap A and B") {
       py.exec("res = einops.rearrange(abcd, 'a b c d -> b a c d')") // einops variant
@@ -404,11 +421,11 @@ def tensorAPI(): Unit =
       py.exec("res = einops.rearrange(tmp, '(b a) c d -> a b c d', a=abcd.shape[0], b=abcd.shape[1])") // einops variant
       py.exec("res = jnp.reshape(tmp, (abcd.shape[0], abcd.shape[1], tmp.shape[1], tmp.shape[2])).transpose((1, 0, 2, 3))") // pure JAX variant
       val ABCDFlat = ABCD.rearrange(
-        ( Axis[B |*| A], Axis[C], Axis[D] )
+        (Axis[B |*| A], Axis[C], Axis[D])
       )
       ABCDFlat.rearrange(
-        ( Axis[A], Axis[B], Axis[C], Axis[D] ),
-        ( ABCD.shape.dim(Axis[A]), ABCD.shape.dim(Axis[B]) )
+        (Axis[A], Axis[B], Axis[C], Axis[D]),
+        (ABCD.shape.dim(Axis[A]), ABCD.shape.dim(Axis[B]))
       )
     }
     opBlock("split/rearrange? ABCD to ABECD") {
@@ -420,24 +437,27 @@ def tensorAPI(): Unit =
     opBlock("chunk ABCD") {
       py.exec("res = list(map(lambda x: x.shape, jnp.array_split(abcd, 2, axis=2)))")
       ABCD.chunk(Axis[C], 2).map(_.shape)
-    } 
+    }
+
     /** AS / RELABEL - rename axes labels */
     opBlock("as AB to XY") {
-      py.exec("res = ab  # no equivalent in JAX, as axes are not named") 
+      py.exec("res = ab  # no equivalent in JAX, as axes are not named")
       AB.relabel(Axis[A] -> Axis["X"]).relabel(Axis[B] -> Axis["Y"])
       // TODO add relabel of tuple of axes? => AB.relabel((Axis[A] -> Axis["X"], Axis[B] -> Axis["Y"]))
     }
     opBlock("relabel AB to XB") {
-      py.exec("res = ab  # no equivalent in JAX, as axes are not named") 
+      py.exec("res = ab  # no equivalent in JAX, as axes are not named")
       AB.relabel(
         Axis[A] -> Axis["X"]
       )
     }
+
     /** SWAP */
     opBlock("swap AB axes A and B") {
       py.exec("res = jnp.swapaxes(ab, 0, 1)")
       AB.swap(Axis[A], Axis[B])
     }
+
     /** RAVEL */
     // AB.ravel()
     opBlock("ravel AB") {
@@ -445,11 +465,9 @@ def tensorAPI(): Unit =
       val res = ABCD.ravel
       res
     }
-    /** 
-     * APPEND AXIS
-     * Analog to jnp.expand_dims / None indexing in JAX, adds a new axis at the end or beginning.
-     * If axis must be inserted at a specific position use `rearrange` after `appendAxis` or `prependAxis`.
-     */
+
+    /** APPEND AXIS Analog to jnp.expand_dims / None indexing in JAX, adds a new axis at the end or beginning. If axis must be inserted at a specific position use `rearrange` after `appendAxis` or `prependAxis`.
+      */
     // AB[:, :, None]
     opBlock("append axis C to AB") {
       py.exec("res = ab[:, :, None]")
@@ -465,36 +483,39 @@ def tensorAPI(): Unit =
       Note that we have no direct equivalent to this in shapeful,
       but we can achieve the same result by first appending or prepending the axis,
       and then rearranging the axes to the desired order.
-      */
-      AB.prependAxis(Axis[C]).rearrange(
-        (Axis[A], Axis[C], Axis[B])
-      )
+       */
+      AB.prependAxis(Axis[C])
+        .rearrange(
+          (Axis[A], Axis[C], Axis[B])
+        )
     }
-    /** 
-     * SQUEEZE
-     * Analog to jnp.squeeze in JAX
-     */
+
+    /** SQUEEZE Analog to jnp.squeeze in JAX
+      */
     opBlock("squeeze A from AB") {
       py.exec("tmp = jnp.ones((1,3))") // Setup
-      val tmp = Tensor.ones(Shape(
-        Axis[A] -> 1,
-        Axis[B] -> 3,
-      ), VType[Float])
+      val tmp = Tensor.ones(
+        Shape(
+          Axis[A] -> 1,
+          Axis[B] -> 3
+        ),
+        VType[Float]
+      )
       py.exec("res = jnp.squeeze(tmp, axis=0)")
       tmp.squeeze(Axis[A])
     }
-    /** VMAP (/ ZIPVMAP)
-     * Analog to JAX vmap, with one changes:
-     * - vmap allows only single axis
-     * - zipvmap for multiple tensors to be mapped over the same axis (vmap in JAX)
-     */
+
+    /** VMAP (/ ZIPVMAP) Analog to JAX vmap, with one changes:
+      *   - vmap allows only single axis
+      *   - zipvmap for multiple tensors to be mapped over the same axis (vmap in JAX)
+      */
     opBlock("vmap AB over axis A") {
       py.exec("res = jax.vmap(lambda row: jnp.sum(row))(ab)")
-      AB.vmap(Axis[A]){ row => row.sum }
+      AB.vmap(Axis[A]) { row => row.sum }
     }
     opBlock("vmap ABCD over axis C") {
       py.exec("res = jax.vmap(lambda slice: jnp.sum(slice, axis=0), in_axes=2)(abcd)")
-      ABCD.vmap(Axis[C]){ slice => slice.sum(Axis[A]) }
+      ABCD.vmap(Axis[C]) { slice => slice.sum(Axis[A]) }
     }
     opBlock("vmap ABCD over axis C and D") {
       // TODO Is this even supported in JAX?
@@ -504,23 +525,23 @@ def tensorAPI(): Unit =
     }
     opBlock("vmap ABCD over axis C then D") {
       py.exec("res = jax.vmap(lambda abc: jax.vmap(lambda ad: jnp.sum(ad, axis=0), in_axes=1)(abc), in_axes=2)(abcd)")
-      ABCD.vmap(Axis[C]) { xx => 
-        xx.vmap(Axis[B]) { x => 
-          val res = x.sum(Axis[A]) 
+      ABCD.vmap(Axis[C]) { xx =>
+        xx.vmap(Axis[B]) { x =>
+          val res = x.sum(Axis[A])
           res
         }
       }
     }
     opBlock("vmap/zipvmap AB AC") {
       py.exec("res = jax.vmap(lambda abi, aci: jnp.sum(abi) + jnp.sum(aci))(ab, ac)")
-      zipvmap(Axis[A])((AB, AC)) { 
-        case (abi, aci) => abi.sum + aci.sum 
+      zipvmap(Axis[A])((AB, AC)) { case (abi, aci) =>
+        abi.sum + aci.sum
       }
     }
     opBlock("vmap/zipvmap AB AC AB AC") {
       py.exec("res = jax.vmap(lambda abi, aci, ab2i, ac2i: jnp.sum(abi) + jnp.sum(aci) + jnp.sum(ab2i) + jnp.sum(ac2i))(ab, ac, ab, ac)")
-      zipvmap(Axis[A])((AB, AC, AB, AC)) { 
-        case (abi, aci, ab2i, ac2i) => abi.sum + aci.sum + ab2i.sum + ac2i.sum
+      zipvmap(Axis[A])((AB, AC, AB, AC)) { case (abi, aci, ab2i, ac2i) =>
+        abi.sum + aci.sum + ab2i.sum + ac2i.sum
       }
     }
     opBlock("vapply AB over axis A") {
@@ -528,10 +549,9 @@ def tensorAPI(): Unit =
       val res = AB.vapply(Axis[A]) { row => row }
       res
     }
-    /**
-     * WHERE 
-     * Analog to jnp.where in JAX
-     */
+
+    /** WHERE Analog to jnp.where in JAX
+      */
     opBlock("where") {
       py.exec("shape = (2, 3)")
       py.exec("x = jnp.ones(shape)")
@@ -546,8 +566,8 @@ def tensorAPI(): Unit =
     }
   }
   {
-    /**
-      * LINEAR ALGEBRA
+
+    /** LINEAR ALGEBRA
       */
     opBlock("trace ABCD over axes A and B") {
       py.exec("res = jnp.trace(abcd, axis1=0, axis2=1)")
@@ -588,13 +608,10 @@ def tensorAPI(): Unit =
       AB.norm
     }
     opBlock("inv AB") {
-      val a1a2 = Tensor2.fromArray(
-        Axis["A1"], 
-        Axis["A2"],
-        VType[Float])(
+      val a1a2 = Tensor2.fromArray(Axis["A1"], Axis["A2"], VType[Float])(
         Array(
           Array(2f, 0f),
-          Array(0f, 2f),
+          Array(0f, 2f)
         )
       )
       py.exec("a1a2 = jnp.array([[2, 0],[0, 2]])")
