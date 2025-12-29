@@ -54,4 +54,4 @@ jobs:
         run: sbt test
 
       - name: Check formatting
-        run: sbt scalafmtCheckAll || echo "Formatting check failed (non-blocking)"
+        run: sbt scalafmtCheckAll 
