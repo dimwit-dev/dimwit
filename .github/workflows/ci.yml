@@ -50,5 +50,8 @@ jobs:
       - name: Compile examples module
         run: sbt "project examples" compile
 
-#      - name: Check formatting
-#        run: sbt scalafmtCheckAll || echo "Formatting check failed (non-blocking)"
+      - name: Run tests
+        run: sbt test
+
+      - name: Check formatting
+        run: sbt scalafmtCheckAll || echo "Formatting check failed (non-blocking)"
