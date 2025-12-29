@@ -407,6 +407,9 @@ object TensorOps:
 
     export TensorWhere.where
 
+    def triu[T <: Tuple: Labels, V](tensor: Tensor[T, V], k: Int = 0): Tensor[T, V] =
+      Tensor(Jax.jnp.triu(tensor.jaxValue, k = k))
+
     def stack[L: Label, T <: Tuple: Labels, V](
         tensors: Seq[Tensor[T, V]],
         newAxis: Axis[L]
@@ -525,12 +528,18 @@ object TensorOps:
           labels: Labels[R]
       ): Tensor[R, V] = slice(Tuple1(axisWithSliceIndex))
 
-      def gather[L](
-          indices: Tensor1[L, Int]
+      def gather[L1, L2: Label, R <: Tuple](
+          axis: Axis[L1]
+      )(
+          indices: Tensor1[L2, Int]
       )(using
-          axesIndex: AxisIndex[T, L]
-      ): Tensor[T, V] =
-        Tensor(Jax.jnp.take(tensor.jaxValue, indices.jaxValue, axis = axesIndex.value))
+          axisIndex: AxisIndex[T, L1],
+          remover: Remover.Aux[T, L1, R],
+          labels: Labels[R]
+      ): Tensor[Tuple.Concat[Tuple1[L2], R], V] =
+        import Labels.ForConcat.given
+        val result = Jax.jnp.take(tensor.jaxValue, indices.jaxValue, axis = axisIndex.value)
+        Tensor(result)
 
       def set[Inputs <: Tuple, LabelsToRemove <: Tuple, R <: Tuple](
           inputs: Inputs
