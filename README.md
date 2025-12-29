@@ -27,18 +27,19 @@ JAX and einops, and efficient implementations of tensor operations using JAX as 
 ## Example
 
 ```scala mdoc
-import shapeful.*
+import dimwit.*
 
 // Labels are simply Scala types
 trait Batch derives Label
 trait Feature derives Label
 
 // Create a 2D tensor with shape (3, 2), labeled with Batch and Feature
-val t = Tensor.of[Float](
+val t = Tensor(
         Shape(
             Axis[Batch] -> 3, 
             Axis[Feature] -> 2
         ), 
+        VType[Float],
         Array(
             1.0f, 2.0f,
             3.0f, 4.0f,

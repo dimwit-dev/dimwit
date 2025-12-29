@@ -1,7 +1,7 @@
 // package examples.basic
 
-// import shapeful.*
-// import shapeful.Conversions.given
+// import dimwit.*
+// import dimwit.Conversions.given
 
 // import nn.ActivationFunctions.*
 
@@ -253,8 +253,8 @@
 //     import java.nio.channels.FileChannel
 //     import java.nio.{ByteBuffer, ByteOrder}
 //     import java.nio.charset.StandardCharsets
-//     import shapeful.jax.Jax
-//     import shapeful.tensor.DType
+//     import dimwit.jax.Jax
+//     import dimwit.tensor.DType
 //     import me.shadaj.scalapy.py
 //     import me.shadaj.scalapy.py.SeqConverters
 

@@ -1,10 +1,10 @@
 package nn
 
-import shapeful.*
-import shapeful.random.Random
-import shapeful.random.Random.Key
-import shapeful.tensor.VType
-import shapeful.tensor.ExecutionType
+import dimwit.*
+import dimwit.random.Random
+import dimwit.random.Random.Key
+import dimwit.tensor.VType
+import dimwit.tensor.ExecutionType
 
 object LinearLayer:
 

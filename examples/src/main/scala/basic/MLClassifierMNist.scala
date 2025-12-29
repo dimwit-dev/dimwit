@@ -1,10 +1,10 @@
 package examples.basic
 
-import shapeful.*
-import shapeful.Conversions.given
+import dimwit.*
+import dimwit.Conversions.given
 import nn.*
 import nn.ActivationFunctions.{relu, sigmoid}
-import shapeful.random.Random
+import dimwit.random.Random
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Try

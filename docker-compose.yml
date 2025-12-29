@@ -1,10 +1,10 @@
 services:
-  shapeful:
+  dimwit:
     build:
       context: .
       dockerfile: Dockerfile
-    image: shapeful:latest
-    container_name: shapeful-dev
+    image: dimwit:latest
+    container_name: dimwit-dev
     runtime: nvidia
     environment:
       - NVIDIA_VISIBLE_DEVICES=all

@@ -1,6 +1,6 @@
 package nn
 
-import shapeful.*
+import dimwit.*
 
 case class GradientDescent[Params](df: Params => Params, lr: Tensor0[Float]):
   def step(params: Params)(using paramTree: FloatTensorTree[Params]) =

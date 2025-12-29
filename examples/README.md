@@ -1,6 +1,6 @@
-# Shapeful Examples
+# dimwit Examples
 
-This directory contains example code demonstrating various features of the Shapeful tensor library.
+This directory contains example code demonstrating various features of the dimwit tensor library.
 
 ## Directory Structure
 
@@ -34,7 +34,7 @@ sbt "runMain examples.autodiff.LinearRegression"
 
 1. Open any example file
 2. Use "Run Scala" command or click the run button
-3. Make sure the main shapeful project is compiled first
+3. Make sure the main dimwit project is compiled first
 
 ## Example Categories
 
@@ -57,5 +57,5 @@ sbt "runMain examples.autodiff.LinearRegression"
 
 - Examples are designed to be self-contained and runnable
 - Each example includes comments explaining the concepts being demonstrated
-- Examples use the full Shapeful API as exported from the main package
+- Examples use the full dimwit API as exported from the main package
 - Some examples may require additional setup (noted in individual files)

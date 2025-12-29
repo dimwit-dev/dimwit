@@ -1,4 +1,4 @@
-# JAX helper functions for shapeful library
+# JAX helper functions for dimwit library
 
 import jax
 import jax.numpy as jnp

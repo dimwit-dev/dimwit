@@ -1,7 +1,7 @@
 package nn
 
-import shapeful.*
-import shapeful.jax.Jax
+import dimwit.*
+import dimwit.jax.Jax
 
 object ActivationFunctions:
 

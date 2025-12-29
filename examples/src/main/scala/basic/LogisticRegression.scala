@@ -1,10 +1,10 @@
 package examples.basic
 
-import shapeful.*
+import dimwit.*
 import nn.*
 import nn.ActivationFunctions.{relu, sigmoid}
-import shapeful.Conversions.given
-import shapeful.random.Random
+import dimwit.Conversions.given
+import dimwit.random.Random
 
 object LogisticRegression:
 

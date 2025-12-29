@@ -1,8 +1,8 @@
 package examples.basic
 
-import shapeful.*
+import dimwit.*
 import scala.util.NotGiven
-import shapeful.random.Random
+import dimwit.random.Random
 
 abstract class As[V, BaseType](using base: ExecutionType[BaseType]) extends ExecutionType[V]:
   def dtype: DType = base.dtype
@@ -425,7 +425,7 @@ trait C derives Label
     println(res2.shape)
   }
   {
-    import shapeful.tensor.* // Assuming imports
+    import dimwit.tensor.* // Assuming imports
 
     type Batch = "Batch"
     type Asset = "Asset"

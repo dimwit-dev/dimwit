@@ -1,6 +1,6 @@
 package examples.api
 
-import shapeful.*
+import dimwit.*
 
 @main
 def autoDiffAPI(): Unit =
@@ -85,7 +85,7 @@ def autoDiffAPI(): Unit =
     println(delta.shape)
   }
   {
-    import shapeful.tensor.TensorOps.*
+    import dimwit.tensor.TensorOps.*
     type ParamsTuple = (Tensor2["A", "B", Float], Tensor1["C", Float])
     def f(x: ParamsTuple): Tensor1["A", Float] = x._1.slice(Axis["B"] -> 0)
     val df = Autodiff.jacobian(f)
@@ -120,7 +120,7 @@ def autoDiffAPI(): Unit =
     println(delta.shape)
   }
   {
-    import shapeful.tensor.TensorOps.*
+    import dimwit.tensor.TensorOps.*
     type ParamsTuple = (Tensor2["A", "B", Float], Tensor1["C", Float])
     def f(x: ParamsTuple): Tensor0[Float] = x._1.sum
     val df = Autodiff.jacobian(f)

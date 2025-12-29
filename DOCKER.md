@@ -1,6 +1,6 @@
-# Docker Setup for Shapeful
+# Docker Setup for DimWit
 
-This directory contains Docker configuration for running the Shapeful project with NVIDIA GPU support, Python, and JAX.
+This directory contains Docker configuration for running the DimWit project with NVIDIA GPU support, Python, and JAX.
 
 ## Prerequisites
 
@@ -30,7 +30,7 @@ This directory contains Docker configuration for running the Shapeful project wi
 
 2. **Access the container:**
    ```bash
-   docker-compose exec shapeful bash
+   docker-compose exec dimwit bash
    ```
 
 3. **Stop the container:**
@@ -42,7 +42,7 @@ This directory contains Docker configuration for running the Shapeful project wi
 
 1. **Build the GPU image:**
    ```bash
-   docker build -t shapeful:latest .
+   docker build -t dimwit:latest .
    ```
 
 2. **Run the container:**
@@ -52,7 +52,7 @@ This directory contains Docker configuration for running the Shapeful project wi
      -v sbt-cache:/root/.sbt \
      -v ivy-cache:/root/.ivy2 \
      -p 8888:8888 \
-     shapeful:latest
+     dimwit:latest
    ```
 
 ## Verify GPU Access
@@ -168,7 +168,7 @@ Add more ports in `docker-compose.yml` as required.
 
 ## CI/CD Images
 
-Shapeful provides two separate Dockerfiles:
+dimwit provides two separate Dockerfiles:
 - **Dockerfile** - GPU development image with NVIDIA JAX (~8 GB)
 - **Dockerfile.ci** - CPU-only CI/CD image with JAX CPU (~2-3 GB)
 
@@ -186,7 +186,7 @@ The CPU variant is optimized for CI/CD pipelines, eliminating GPU dependencies w
 The CI image is automatically built and published to GitHub Container Registry:
 
 ```
-ghcr.io/marcelluethi/shapeful-ci:latest
+ghcr.io/marcelluethi/dimwit-ci:latest
 ```
 
 Available tags:
@@ -199,16 +199,16 @@ Pull and run the CI image for local testing:
 
 ```bash
 # Pull the image
-docker pull ghcr.io/marcelluethi/shapeful-ci:latest
+docker pull ghcr.io/marcelluethi/dimwit-ci:latest
 
 # Run compilation
-docker run --rm -v $(pwd):/workspace ghcr.io/marcelluethi/shapeful-ci:latest sbt compile
+docker run --rm -v $(pwd):/workspace ghcr.io/marcelluethi/dimwit-ci:latest sbt compile
 
 # Interactive shell
-docker run --rm -it -v $(pwd):/workspace ghcr.io/marcelluethi/shapeful-ci:latest bash
+docker run --rm -it -v $(pwd):/workspace ghcr.io/marcelluethi/dimwit-ci:latest bash
 
 # Or build locally
-docker build -f Dockerfile.ci -t shapeful-ci .
+docker build -f Dockerfile.ci -t dimwit-ci .
 ```
 
 ### Automated Workflows
@@ -268,8 +268,8 @@ Runs on every push and pull request:
 
 | Variant | Command | Size | Use Case |
 |---------|---------|------|----------|
-| GPU Dev | `docker build -t shapeful .` | ~8 GB | Local development with GPU |
-| CPU CI | `docker build -f Dockerfile.ci -t shapeful-ci .` | ~2-3 GB | CI/CD pipelines |
+| GPU Dev | `docker build -t dimwit .` | ~8 GB | Local development with GPU |
+| CPU CI | `docker build -f Dockerfile.ci -t dimwit-ci .` | ~2-3 GB | CI/CD pipelines |
 
 ### Rebuilding the CI Image
 
@@ -283,8 +283,8 @@ When dependencies need updates (e.g., new JAX version, Python upgrade):
 3. **Wait for build completion** (~10-15 minutes)
 4. **Verify the update**:
    ```bash
-   docker pull ghcr.io/marcelluethi/shapeful-ci:latest
-   docker run --rm ghcr.io/marcelluethi/shapeful-ci:latest pip list | grep jax
+   docker pull ghcr.io/marcelluethi/dimwit-ci:latest
+   docker run --rm ghcr.io/marcelluethi/dimwit-ci:latest pip list | grep jax
    ```
 
 ### Troubleshooting CI

@@ -1,6 +1,5 @@
 import ai.kien.python.Python
 
-
 ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / scalaVersion := "3.7.0"
 ThisBuild / organization := "ch.contrafactus"
@@ -15,23 +14,23 @@ ThisBuild / envVars := Map(
 lazy val root = (project in file("."))
   .aggregate(core, nn, examples)
   .settings(
-    name := "shapeful-root",
+    name := "dimwit-root"
   )
 
 lazy val core = (project in file("core"))
   .settings(
-    name := "shapeful-core",
+    name := "dimwit-core",
     libraryDependencies ++= Seq(
       "dev.scalapy" %% "scalapy-core" % "0.5.3",
       "org.scalatest" %% "scalatest" % "3.2.19" % Test,
-      "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test,
+      "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test
     ),
-    fork := true,
+    fork := true
   )
 
 lazy val nn = (project in file("nn"))
   .settings(
-    name := "shapeful-nn",
+    name := "dimwit-nn"
   )
   .dependsOn(core)
 
@@ -40,11 +39,11 @@ lazy val examples = (project in file("examples"))
   .dependsOn(core)
   .dependsOn(nn)
   .settings(
-    name := "shapeful-examples",
+    name := "dimwit-examples",
     // Examples use the same Scala version and dependencies as main project
     libraryDependencies ++= Seq(
       "org.scala-lang" %% "toolkit" % "0.1.7",
-      "dev.scalapy" %% "scalapy-core" % "0.5.3",
+      "dev.scalapy" %% "scalapy-core" % "0.5.3"
     ),
     fork := true,
     // Don't publish examples
@@ -56,6 +55,3 @@ lazy val examples = (project in file("examples"))
     Compile / resourceDirectory := baseDirectory.value / "src" / "main" / "resources",
     scalafmtFailOnErrors := false
   )
-
-
-

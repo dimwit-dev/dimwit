@@ -1,7 +1,7 @@
 package examples.api
 
-import shapeful.*
-import shapeful.Conversions.given
+import dimwit.*
+import dimwit.Conversions.given
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.PythonException
 
@@ -23,7 +23,7 @@ def tensorAPI(): Unit =
   trait C derives Label
   trait D derives Label
 
-  val UNSUPPORTED = "Not Supported by shapeful"
+  val UNSUPPORTED = "Not Supported by dimwit"
   py.exec("import jax")
   py.exec("import jax.numpy as jnp")
   py.exec("import einops")
@@ -480,7 +480,7 @@ def tensorAPI(): Unit =
     opBlock("insert axis C to AB") {
       py.exec("res = ab[:, None, :]")
       /*
-      Note that we have no direct equivalent to this in shapeful,
+      Note that we have no direct equivalent to this in dimwit,
       but we can achieve the same result by first appending or prepending the axis,
       and then rearranging the axes to the desired order.
        */
