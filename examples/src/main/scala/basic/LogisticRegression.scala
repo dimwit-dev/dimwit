@@ -23,13 +23,11 @@ object LogisticRegression:
     def logits(input: Tensor1[Feature, Float]): Tensor0[Float] = linear(input)
     def probits(input: Tensor1[Feature, Float]): Tensor0[Float] = sigmoid(logits(input))
     def apply(input: Tensor1[Feature, Float]): Tensor0[Boolean] = logits(input) >= Tensor0(0f)
-  def main(args: Array[String]): Unit =
 
-    import io.github.quafadas.table.*
-    val df = CSV
-      .resource("penguins.csv", TypeInferrer.FromAllRows)
-      .filter(row => !(row.species == 2))
-      .toSeq
+  def main(args: Array[String]): Unit =
+ 
+    val df = PenguinCSV.parse("./data/penguins.csv")
+      .filter(row => row.species != 2)
 
     val dfShuffled = scala.util.Random.shuffle(df)
 
@@ -41,7 +39,7 @@ object LogisticRegression:
           row.body_mass_g.toFloat
         )
       }.toArray
-    val labelData = dfShuffled.column["species"].toArray.map {
+    val labelData = dfShuffled.map(_.species).toArray.map {
       case 1 => true
       case 0 => false
     }
@@ -115,3 +113,28 @@ object LogisticRegression:
     val predictionClasses = trainingData.vmap(Axis[Sample])(x => finalModel(x))
 
     println("\nTraining complete. Optimized parameters:" + finalParams)
+
+object PenguinCSV:
+  case class Row(
+    species: Int,
+    bill_length_mm: Double,
+    bill_depth_mm: Double,
+    flipper_length_mm: Double,
+    body_mass_g: Double
+  )
+
+  def parse(path: String): Seq[Row] =
+    val source = scala.io.Source.fromFile(path)
+    try
+      val lines = source.getLines().toSeq
+      lines.drop(1).map { line =>
+      val parts = line.split(",")
+      Row(
+        species = parts(1).toInt,
+        bill_length_mm = parts(2).toDouble,
+        bill_depth_mm = parts(3).toDouble,
+        flipper_length_mm = parts(4).toDouble,
+        body_mass_g = parts(5).toDouble
+      )
+    }.toSeq
+    finally source.close()
