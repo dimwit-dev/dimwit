@@ -5,6 +5,7 @@ import dimwit.random.Random
 import dimwit.random.Random.Key
 import dimwit.tensor.VType
 import dimwit.tensor.ExecutionType
+import dimwit.stats.Normal
 
 object LinearLayer:
 
@@ -21,7 +22,7 @@ object LinearLayer:
         executionType: ExecutionType[Float]
     ): Params[In, Out] =
       Params(
-        weight = Random.Normal(Shape(inputDim, outputDim))(paramKey),
+        weight = Normal.standardNormal(Shape(inputDim, outputDim)).sample(paramKey),
         bias = Tensor.zeros(Shape(outputDim), VType[Float])
       )
 
@@ -42,7 +43,7 @@ object LinearMap:
         executionType: ExecutionType[Float]
     ): Params[In] =
       Params(
-        weight = Random.Normal(Shape(inputDim))(paramKey),
+        weight = Normal.standardNormal(Shape(inputDim)).sample(paramKey),
         bias = Tensor0(0.0f)
       )
 

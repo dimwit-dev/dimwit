@@ -22,6 +22,12 @@ class Normal[T <: Tuple: Labels](
     val standardNormal = Tensor.fromPy[T, Float](VType[Float])(Jax.jrandom.normal(key.jaxKey, loc.shape.dimensions.toPythonProxy))
     standardNormal *! scale +! loc
 
+object Normal:
+  def standardNormal[T <: Tuple: Labels](shape: Shape[T]) = new Normal(
+    loc = Tensor.zeros(shape, VType[Float]),
+    scale = Tensor.ones(shape, VType[Float])
+  )
+
 class Uniform[T <: Tuple: Labels](
     val low: Tensor[T, Float],
     val high: Tensor[T, Float]

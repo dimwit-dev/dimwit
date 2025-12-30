@@ -6,10 +6,10 @@ import dimwit.jax.Jax
 import dimwit.jax.JaxDType
 import dimwit.jax.Jax.PyDynamic
 import dimwit.tensor.{Label, Labels, ExecutionType, VType}
-//import dimwit.random.Random
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
 import dimwit.random.Random
+import dimwit.stats.{Normal, Uniform}
 import me.shadaj.scalapy.readwrite.Writer
 import scala.reflect.ClassTag
 import scala.annotation.unchecked.uncheckedVariance
@@ -61,7 +61,7 @@ object Tensor:
   def apply[T <: Tuple: Labels, V](jaxValue: Jax.PyDynamic): Tensor[T, V] = new Tensor(jaxValue)
   def randn[T <: Tuple: Labels](shape: Shape[T])(key: Random.Key)(using
       executionType: ExecutionType[Float]
-  ): Tensor[T, Float] = Random.Normal(shape)(key)
+  ): Tensor[T, Float] = Normal.standardNormal(shape).sample(key)
 
   def fromPy[T <: Tuple: Labels, V](vtype: VType[V])(jaxValue: Jax.PyDynamic): Tensor[T, V] = new Tensor(jaxValue)
   def zeros[T <: Tuple: Labels, V](shape: Shape[T], vtype: VType[V]): Tensor[T, V] = Tensor(Jax.jnp.zeros(shape.dimensions.toPythonProxy, dtype = vtype.dtype.jaxType))
@@ -96,7 +96,7 @@ object Tensor0:
   def one[V](vtype: VType[V]): Tensor0[V] = Tensor.ones(Shape.empty, vtype)
   def const[V](vtype: VType[V])(value: V)(using writer: Writer[V]): Tensor0[V] = Tensor.const(Shape.empty, vtype)(value)
 
-  def randn(key: Random.Key)(using executionType: ExecutionType[Float]): Tensor0[Float] = Random.Normal(Shape.empty)(key)
+  def randn(key: Random.Key)(using executionType: ExecutionType[Float]): Tensor0[Float] = Normal.standardNormal(Shape.empty).sample(key)
   def apply[V](jaxValue: Jax.PyDynamic): Tensor0[V] = Tensor(jaxValue)
   def apply[V](value: V)(using sv: ExecutionType[V], writer: Writer[V]): Tensor0[V] = Tensor0.const(VType[V])(value)
 
