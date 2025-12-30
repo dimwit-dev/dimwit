@@ -57,7 +57,7 @@ object LogisticRegression:
       val std = zipvmap(Axis[Feature])(t, mean):
         case (x, m) =>
           val epsilon = 1e-6f
-          (x :- m).pow(2f).mean.sqrt + epsilon
+          (x -! m).pow(2f).mean.sqrt + epsilon
           // x.vmap(Axis[Sample])(xi => (xi - m).pow(2)).mean.sqrt + epsilon
       (mean, std)
 
@@ -75,7 +75,7 @@ object LogisticRegression:
 
     def loss(data: Tensor2[Sample, Feature, Float])(params: BinaryLogisticRegression.Params): Tensor0[Float] =
       val model = BinaryLogisticRegression(params)
-      val losses = zipvmap(Axis[Sample])(data, trainLabels.toFloat):
+      val losses = zipvmap(Axis[Sample])(data, trainLabels.asFloat):
         case (sample, label) =>
           val logits = model.logits(sample)
           relu(logits) - logits * label + ((-logits.abs).exp + 1f).log
@@ -101,8 +101,8 @@ object LogisticRegression:
           println(
             List(
               "epoch: " + index,
-              "trainAcc: " + (1f - (trainPreds.toInt - trainLabels.toInt).abs.mean),
-              "valAcc: " + (1f - (valPreds.toInt - valLabels.toInt).abs.mean)
+              "trainAcc: " + (1f - (trainPreds.asInt - trainLabels.asInt).abs.mean),
+              "valAcc: " + (1f - (valPreds.asInt - valLabels.asInt).abs.mean)
             ).mkString(", ")
           )
       .map((params, _) => params)

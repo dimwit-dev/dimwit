@@ -7,6 +7,14 @@ import me.shadaj.scalapy.py
 
 object Jit:
 
+  // TODO replace with TupledFunction when available (no longer experimental)
+  def jit[T1, T2, R](f: (T1, T2) => R)(using t1Tree: ToPyTree[T1], t2Tree: ToPyTree[T2], outTree: ToPyTree[R]): (T1, T2) => R =
+    val jitF = jit(f.tupled)
+    (t1, t2) => jitF((t1, t2))
+  def jit[T1, T2, T3, R](f: (T1, T2, T3) => R)(using t1Tree: ToPyTree[T1], t2Tree: ToPyTree[T2], t3Tree: ToPyTree[T3], outTree: ToPyTree[R]): (T1, T2, T3) => R =
+    val jitF = jit(f.tupled)
+    (t1, t2, t3) => jitF((t1, t2, t3))
+
   def jit[InPyTree: ToPyTree, OutPyTree: ToPyTree](
       f: InPyTree => OutPyTree
   ): InPyTree => OutPyTree =

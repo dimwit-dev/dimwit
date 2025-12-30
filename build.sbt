@@ -11,6 +11,8 @@ ThisBuild / envVars := Map(
   "PYTHONPATH" -> ((ThisBuild / baseDirectory).value / "src" / "python").getAbsolutePath
 )
 
+addCommandAlias("testAndCoverage", "; clean; coverage; test; coverageReport")
+
 lazy val root = (project in file("."))
   .aggregate(core, nn, examples)
   .settings(
@@ -23,9 +25,13 @@ lazy val core = (project in file("core"))
     libraryDependencies ++= Seq(
       "dev.scalapy" %% "scalapy-core" % "0.5.3",
       "org.scalatest" %% "scalatest" % "3.2.19" % Test,
+      "org.scalacheck" %% "scalacheck" % "1.18.0" % Test,
       "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test
     ),
-    fork := true
+    fork := true,
+    coverageMinimumStmtTotal := 80,
+    coverageFailOnMinimum := false,
+    coverageHighlighting := true
   )
 
 lazy val nn = (project in file("nn"))

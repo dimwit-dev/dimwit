@@ -45,7 +45,7 @@ package object dimwit:
   // Export type helpers
   export dimwit.tensor.Axis.UnwrapAxes
   export dimwit.tensor.TupleHelpers.*
-  export dimwit.tensor.Broadcast
+  export dimwit.tensor.Join
   export Prime.*
 
   // Export operations
@@ -58,4 +58,4 @@ package object dimwit:
   export dimwit.jax.Jit.jit
 
   object Conversions:
-    export dimwit.tensor.Tensor0.{given_Conversion_Int_Tensor0, given_Conversion_Float_Tensor0, given_Conversion_Boolean_Tensor0}
+    export dimwit.tensor.Tensor0.{float2FloatTensor, int2IntTensor, int2FloatTensor, boolean2BooleanTensor}

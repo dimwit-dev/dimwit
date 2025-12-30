@@ -63,7 +63,7 @@ object Random:
           dtype = executionType.dtype.jaxType
         )
         val standardNormal = Tensor[T, Float](jaxValues)
-        standardNormal :* std :+ mean
+        standardNormal *! std +! mean
 
     def apply[T <: Tuple: Labels](shape: Shape[T]) = new NormalFactory[T](shape)
 

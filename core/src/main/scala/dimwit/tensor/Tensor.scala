@@ -87,9 +87,10 @@ type Tensor4[L1, L2, L3, L4, V] = Tensor[(L1, L2, L3, L4), V]
 
 object Tensor0:
 
-  given Conversion[Float, Tensor0[Float]] = (x: Float) => Tensor0(x)
-  given Conversion[Int, Tensor0[Int]] = (x: Int) => Tensor0(x)
-  given Conversion[Boolean, Tensor0[Boolean]] = (x: Boolean) => Tensor0(x)
+  given float2FloatTensor: Conversion[Float, Tensor0[Float]] = (x: Float) => Tensor0(x)
+  given int2IntTensor: Conversion[Int, Tensor0[Int]] = (x: Int) => Tensor0(x)
+  given int2FloatTensor: Conversion[Int, Tensor0[Float]] = (x: Int) => Tensor0(x.toFloat)
+  given boolean2BooleanTensor: Conversion[Boolean, Tensor0[Boolean]] = (x: Boolean) => Tensor0(x)
 
   def zero[V](vtype: VType[V]): Tensor0[V] = Tensor.zeros(Shape.empty, vtype)
   def one[V](vtype: VType[V]): Tensor0[V] = Tensor.ones(Shape.empty, vtype)

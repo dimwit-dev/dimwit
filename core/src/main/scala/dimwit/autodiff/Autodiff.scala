@@ -3,6 +3,7 @@ package dimwit.autodiff
 import dimwit.tensor.{Tensor, Tensor0, Tensor1, Tensor2, Shape, AxisIndices}
 import dimwit.jax.Jax
 import me.shadaj.scalapy.py
+import dimwit.tensor.Label
 
 object Autodiff:
 
@@ -16,6 +17,10 @@ object Autodiff:
     case EmptyTuple      => EmptyTuple
     case h *: t          => GradientTensorVsInput[h, OutShape, V] *: GradientTensorVsInput[t, OutShape, V]
     case Tensor[inS, v2] => Tensor[Tuple.Concat[OutShape, inS], V]
+
+  // TODO replace with TupledFunction when available (no longer experimental)
+  def grad[T1, T2, V](f: (T1, T2) => Tensor0[V])(using t1Tree: ToPyTree[T1], t2Tree: ToPyTree[T2], outTree: ToPyTree[Tensor0[V]]): (T1, T2) => (T1, T2) = (t1, t2) => grad(f.tupled)((t1, t2))
+  def grad[T1, T2, T3, V](f: (T1, T2, T3) => Tensor0[V])(using t1Tree: ToPyTree[T1], t2Tree: ToPyTree[T2], t3Tree: ToPyTree[T3], outTree: ToPyTree[Tensor0[V]]): (T1, T2, T3) => (T1, T2, T3) = (t1, t2, t3) => grad(f.tupled)((t1, t2, t3))
 
   def grad[Input, V](f: Input => Tensor0[V])(using
       inTree: ToPyTree[Input],

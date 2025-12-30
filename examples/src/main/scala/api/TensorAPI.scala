@@ -82,12 +82,12 @@ def tensorAPI(): Unit =
     println("BROADCASTING")
     opBlock("Axes broadcasting backward: ABCD + BCD") {
       py.exec("res = abcd + bcd")
-      BCD +: ABCD
-      ABCD :+ BCD
+      BCD +! ABCD
+      ABCD +! BCD
     }
     opBlock("Scalar broadcast: ABCD + Scalar") {
       py.exec("res = abcd + 5")
-      ABCD :+ 5f
+      ABCD +! 5f
     }
     opBlock("Axes broadcasting backward: ABCD + CD") {
       py.exec("cd = jnp.ones((4,5))")
@@ -99,7 +99,7 @@ def tensorAPI(): Unit =
         ),
         VType[Float]
       )
-      ABCD :+ CD
+      ABCD +! CD
     }
     opBlock("Dim broadcast: ABC1 to ABCD") {
       //
@@ -126,7 +126,7 @@ def tensorAPI(): Unit =
       catch
         case e: PythonException =>
           py.exec("res = 'Not Supported by JAX'")
-          ABCD :+ AB
+          ABCD +! AB
     }
     opBlock("Axes broadcasting forward and backward: : ABCD + BC") { // Axes broadcasting (forward and backward)
       try
@@ -135,7 +135,7 @@ def tensorAPI(): Unit =
       catch
         case e: PythonException =>
           py.exec("res = 'Not Supported by JAX'")
-          ABCD :+ BC
+          ABCD +! BC
     }
 
     /** ELEMENT-WISE OPERATIONS

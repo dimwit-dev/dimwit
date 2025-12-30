@@ -4,27 +4,28 @@ import scala.util.NotGiven
 
 object TupleHelpers:
 
-  trait Subset[T <: Tuple, SubsetT <: Tuple]:
-    type Out <: Tuple
+  trait StrictSubset[S <: Tuple, T <: Tuple]
+
+  object StrictSubset:
+    given derive[S <: Tuple, T <: Tuple](using
+        ev: Subset[S, T],
+        notEq: NotGiven[S =:= T]
+    ): StrictSubset[S, T] with {}
+
+  trait Subset[S <: Tuple, T <: Tuple]
 
   object Subset:
+    given empty[T <: Tuple]: Subset[EmptyTuple, T] with {}
 
-    given empty[T <: Tuple]: Subset[T, EmptyTuple] with
-      type Out = EmptyTuple
+    given head[H, STail <: Tuple, T <: Tuple](using
+        evH: SetMember[H, T],
+        evT: Subset[STail, T]
+    ): Subset[H *: STail, T] with {}
 
-    given chain[T <: Tuple, K1, K2, Rest <: Tuple, Inter <: Tuple, O <: Tuple](using
-        s1: Subset[T, K1 *: EmptyTuple] { type Out = Inter },
-        s2: Subset[Inter, K2 *: Rest] { type Out = O }
-    ): Subset[T, K1 *: K2 *: Rest] with
-      type Out = s2.Out
-
-    given singleFound[K, Tail <: Tuple]: Subset[K *: Tail, K *: EmptyTuple] with
-      type Out = Tail
-
-    given singleSearch[H, Tail <: Tuple, K, TailOut <: Tuple](using
-        next: Subset[Tail, K *: EmptyTuple] { type Out = TailOut }
-    ): Subset[H *: Tail, K *: EmptyTuple] with
-      type Out = H *: TailOut
+  trait SetMember[K, T <: Tuple]
+  object SetMember:
+    given found[K, T <: Tuple]: SetMember[K, K *: T] with {}
+    given search[K, H, T <: Tuple](using ev: SetMember[K, T]): SetMember[K, H *: T] with {}
 
   type Remover[T <: Tuple, ToRemoveElement] = RemoverAll[T, ToRemoveElement *: EmptyTuple]
 

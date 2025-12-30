@@ -14,18 +14,28 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 import org.scalatest.matchers.{Matcher, MatchResult}
+import scala.compiletime.error
 
 object TestUtil:
 
-  def approxEqual[T <: Tuple: Labels](right: Tensor[T, Float]): Matcher[Tensor[T, Float]] =
-    new Matcher[Tensor[T, Float]]:
-      def apply(left: Tensor[T, Float]): MatchResult =
-        val areEqual = (left `approxEquals` right).item
+  def approxEqual[T <: Tuple: Labels, V](right: Tensor[T, V])(using ev: MustBeFloat[V]): Matcher[Tensor[T, V]] =
+    new Matcher[Tensor[T, V]]:
+      def apply(left: Tensor[T, V]): MatchResult =
+        val leftF = left.asInstanceOf[Tensor[T, Float]]
+        val rightF = right.asInstanceOf[Tensor[T, Float]]
 
-        lazy val diffMsg = if areEqual then "" else s"Max diff: ${(left - right).abs.max}"
+        val areEqual = (leftF `approxEquals` rightF).item
+        lazy val diffMsg = if areEqual then "" else s"Max diff: ${(leftF - rightF).abs.max}"
 
         MatchResult(
           areEqual,
-          s"Tensors did not match ($diffMsg).\nLeft (Py): $left\nRight (Sc): $right",
+          s"Tensors did not match ($diffMsg).\nLeft: $left\nRight: $right",
           s"Tensors matched, but they shouldn't have."
         )
+
+  trait MustBeFloat[V]
+  object MustBeFloat:
+    given MustBeFloat[Float] with {}
+
+    transparent inline given [V]: MustBeFloat[V] =
+      error("approxEqual can only be used with Float tensors. For Int tensors, use 'equal(...)'.")
