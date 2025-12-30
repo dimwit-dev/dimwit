@@ -13,7 +13,7 @@ import me.shadaj.scalapy.py.SeqConverters
 import dimwit.tensor.TupleHelpers.PrimeConcat
 import dimwit.{~, `|*|`}
 
-import dimwit.tensor.TensorOps.Structural.lift
+import dimwit.tensor.TensorOps.Structural.broadcast_to
 import me.shadaj.scalapy.readwrite.Writer
 import me.shadaj.scalapy.readwrite.Reader
 
@@ -37,7 +37,7 @@ object Join extends JoinLowPriority:
     type Out = T1
     val labelsOut = summon[Labels[T1]]
     def broadcast(t1: Tensor[T1, V], t2: Tensor[T2, V]) =
-      (t1, t2.lift[T1](t1.shape))
+      (t1, t2.broadcast_to[T1](t1.shape))
 
 trait JoinLowPriority:
   given joinRight[T1 <: Tuple: Labels, T2 <: Tuple: Labels, V](using
@@ -46,7 +46,7 @@ trait JoinLowPriority:
     type Out = T2
     val labelsOut = summon[Labels[T2]]
     def broadcast(t1: Tensor[T1, V], t2: Tensor[T2, V]) =
-      (t1.lift[T2](t2.shape), t2)
+      (t1.broadcast_to[T2](t2.shape), t2)
 
 object TensorOps:
 
@@ -142,6 +142,8 @@ object TensorOps:
 
       def all: Tensor0[Boolean] = Tensor0(Jax.jnp.all(t.jaxValue))
       def any: Tensor0[Boolean] = Tensor0(Jax.jnp.any(t.jaxValue))
+
+      def unary_! : Tensor[T, Boolean] = Tensor(Jax.jnp.logical_not(t.jaxValue))
 
     extension [T <: Tuple: Labels, V](t: Tensor[T, V])
 
@@ -410,6 +412,9 @@ object TensorOps:
     def triu[T <: Tuple: Labels, V](tensor: Tensor[T, V], k: Int = 0): Tensor[T, V] =
       Tensor(Jax.jnp.triu(tensor.jaxValue, k = k))
 
+    def tril[T <: Tuple: Labels, V](tensor: Tensor[T, V], k: Int = 0): Tensor[T, V] =
+      Tensor(Jax.jnp.tril(tensor.jaxValue, k = k))
+
     def stack[L: Label, T <: Tuple: Labels, V](
         tensors: Seq[Tensor[T, V]],
         newAxis: Axis[L]
@@ -597,7 +602,7 @@ object TensorOps:
           )
         )
 
-      def lift[O <: Tuple: Labels](newShape: Shape[O])(using
+      def broadcast_to[O <: Tuple: Labels](newShape: Shape[O])(using
           ev: StrictSubset[T, O] // Ensures T's axes are all present in O
       ): Tensor[O, V] =
         val t = tensor
