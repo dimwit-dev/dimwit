@@ -2,6 +2,7 @@ package dimwit.tensor
 
 import scala.util.NotGiven
 
+/* Helpers for manipulating Tuple types */
 object TupleHelpers:
 
   trait StrictSubset[S <: Tuple, T <: Tuple]
@@ -75,12 +76,14 @@ object TupleHelpers:
 
   object Replacer extends ReplacerLowPriority:
 
+    type Aux[T <: Tuple, Target, Replacement, O <: Tuple] = Replacer[T, Target, Replacement] { type Out = O }
+
     given found[Target, Tail <: Tuple, Replacement]: Replacer[Target *: Tail, Target, Replacement] with
       type Out = Replacement *: Tail
 
   trait ReplacerLowPriority:
     given recurse[Head, Tail <: Tuple, Target, Replacement, TailOut <: Tuple](using
-        next: Replacer[Tail, Target, Replacement] { type Out = TailOut }
+        next: Replacer.Aux[Tail, Target, Replacement, TailOut]
     ): Replacer[Head *: Tail, Target, Replacement] with
       type Out = Head *: TailOut
 
