@@ -15,6 +15,7 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 import org.scalatest.matchers.{Matcher, MatchResult}
 import scala.compiletime.error
+import scala.annotation.implicitNotFound
 
 object TestUtil:
 
@@ -33,9 +34,7 @@ object TestUtil:
           s"Tensors matched, but they shouldn't have."
         )
 
+  @implicitNotFound("approxEqual can only be used with Float tensors. For Int tensors, use 'equal(...)'.")
   trait MustBeFloat[V]
   object MustBeFloat:
-    given MustBeFloat[Float] with {}
-
-    transparent inline given [V]: MustBeFloat[V] =
-      error("approxEqual can only be used with Float tensors. For Int tensors, use 'equal(...)'.")
+    given ev[V <: Float]: MustBeFloat[V] with {}

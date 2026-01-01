@@ -15,7 +15,7 @@ class Normal[T <: Tuple: Labels](
 
   require(loc.shape == scale.shape, "loc and scale must have the same shape")
 
-  override def logProb(x: Tensor[T, Float]): Tensor[T, Float] =
+  override def logProbElements(x: Tensor[T, Float]): Tensor[T, LogProb] = LogProb:
     Tensor.fromPy(VType[Float])(jstats.norm.logpdf(x.jaxValue, loc = loc.jaxValue, scale = scale.jaxValue))
 
   override def sample(key: Random.Key): Tensor[T, Float] =
@@ -34,7 +34,7 @@ class Uniform[T <: Tuple: Labels](
 ) extends IndependentDistribution[T, Float]:
   require(low.shape == high.shape, "Low and high must have the same shape")
 
-  override def logProb(x: Tensor[T, Float]): Tensor[T, Float] =
+  override def logProbElements(x: Tensor[T, Float]): Tensor[T, LogProb] = LogProb:
     Tensor.fromPy(VType[Float])(jstats.uniform(loc = low.jaxValue, scale = (high - low).jaxValue).logpdf(x.jaxValue))
 
   override def sample(key: Random.Key): Tensor[T, Float] =
@@ -44,22 +44,20 @@ class Uniform[T <: Tuple: Labels](
 
 class Bernoulli[T <: Tuple: Labels](
     val probs: Tensor[T, Float]
-) extends IndependentDistribution[T, Int]:
+) extends IndependentDistribution[T, Boolean]:
 
-  override def logProb(x: Tensor[T, Int]): Tensor[T, Float] =
+  override def logProbElements(x: Tensor[T, Boolean]): Tensor[T, LogProb] = LogProb:
     Tensor.fromPy(VType[Float])(jstats.bernoulli(p = probs.jaxValue).logpmf(x.jaxValue))
 
-  override def sample(key: Random.Key): Tensor[T, Int] =
-    Tensor.fromPy(VType[Int])(Jax.jrandom.bernoulli(key.jaxKey, p = probs.jaxValue))
+  override def sample(key: Random.Key): Tensor[T, Boolean] =
+    Tensor.fromPy(VType[Boolean])(Jax.jrandom.bernoulli(key.jaxKey, p = probs.jaxValue))
 
 class Multinomial[L: Label](
     val n: Int,
     val probs: Tensor1[L, Float]
 ) extends IndependentDistribution[Tuple1[L], Int]:
 
-  private lazy val logProbs: Tensor1[L, Float] = probs.log
-
-  override def logProb(x: Tensor1[L, Int]): Tensor1[L, Float] =
+  override def logProbElements(x: Tensor1[L, Int]): Tensor1[L, LogProb] = LogProb:
     Tensor.fromPy(VType[Float])(jstats.multinomial(n = n, p = probs.jaxValue).logpmf(x.jaxValue))
 
   override def sample(key: Random.Key): Tensor1[L, Int] =
@@ -76,7 +74,7 @@ class Categorical[L: Label](val probs: Tensor1[L, Float]) extends IndependentDis
   private val numCategories = probs.shape.dimensions(0)
   private val logProbs = probs.log
 
-  override def logProb(x: Tensor0[Int]): Tensor0[Float] =
+  override def logProbElements(x: Tensor0[Int]): Tensor0[LogProb] = LogProb:
     Tensor.fromPy(VType[Float]) {
       val indices = py.Dynamic.global.`range`(numCategories)
       jstats.rv_discrete(values = indices, probs.jaxValue).logpmf(x.jaxValue)
@@ -90,7 +88,7 @@ class Cauchy[T <: Tuple: Labels](
 ) extends IndependentDistribution[T, Float]:
   require(loc.shape == scale.shape, "Location and scale must have the same shape")
 
-  override def logProb(x: Tensor[T, Float]): Tensor[T, Float] =
+  override def logProbElements(x: Tensor[T, Float]): Tensor[T, LogProb] = LogProb:
     Tensor.fromPy(VType[Float])(jstats.cauchy(loc = loc.jaxValue, scale = scale.jaxValue).logpdf(x.jaxValue))
 
   override def sample(k: Random.Key): Tensor[T, Float] =
@@ -103,7 +101,7 @@ class HalfNormal[T <: Tuple: Labels](
 
   require(loc.shape == scale.shape, "Mean and scale must have the same shape")
 
-  override def logProb(x: Tensor[T, Float]): Tensor[T, Float] =
+  override def logProbElements(x: Tensor[T, Float]): Tensor[T, LogProb] = LogProb:
     Tensor.fromPy(VType[Float])(jstats.halfnorm(loc = loc.jaxValue, scale = scale.jaxValue).logpdf(x.jaxValue))
 
   override def sample(k: Random.Key): Tensor[T, Float] =
@@ -116,7 +114,7 @@ class StudentT[T <: Tuple: Labels](
 ) extends IndependentDistribution[T, Float]:
   require(loc.shape == scale.shape, "loc, and scale must have the same shape")
 
-  override def logProb(x: Tensor[T, Float]): Tensor[T, Float] =
+  override def logProbElements(x: Tensor[T, Float]): Tensor[T, LogProb] = LogProb:
     Tensor.fromPy(VType[Float])(jstats.t(df = df, loc = loc.jaxValue, scale = scale.jaxValue).logpdf(x.jaxValue))
 
   override def sample(k: Random.Key): Tensor[T, Float] =

@@ -22,11 +22,11 @@ class DistributionSuite extends AnyFunSuite with Matchers:
     val x = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.5f, 1.5f, -1.0f))
 
     val dist = Normal(loc, scale)
-    val scalaLogProb = dist.logProb(x)
+    val scalaLogProb = dist.logProbElements(x)
     val jaxLogProb = Tensor.fromPy[Tuple1[A], Float](VType[Float])(
       jstats.norm.logpdf(x.jaxValue, loc = loc.jaxValue, scale = scale.jaxValue)
     )
-    scalaLogProb should approxEqual(jaxLogProb)
+    scalaLogProb.asFloat should approxEqual(jaxLogProb)
 
   test("Normal sample mean approximates mean"):
     val normal = Normal(
@@ -38,3 +38,14 @@ class DistributionSuite extends AnyFunSuite with Matchers:
     val sampleMean = samples.mean(Axis["Samples"])
     val expectedMean = normal.loc
     sampleMean should approxEqual(expectedMean, 0.2f)
+
+  test(""):
+    val normal = Normal(
+      Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(0.0f, 1.0f)),
+      Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(1.0f, 0.5f))
+    )
+    val x1 = normal.logProbElements(normal.loc)
+    val x2 = normal.probElements(normal.loc)
+    val x3 = x1 + x1
+    val x4 = x2 * x2
+    val x5 = x1 + x2
