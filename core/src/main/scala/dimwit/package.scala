@@ -1,4 +1,7 @@
 import scala.annotation.targetName
+
+import dimwit.jax.Jax
+
 package object dimwit:
 
   import scala.compiletime.ops.string.+
@@ -23,6 +26,10 @@ package object dimwit:
             val oldLabels = summon[Labels[T]]
             oldLabels.names.toList.map(_.replace("'", ""))
         Tensor[RemovePrimes[T], V](tensor.jaxValue)
+
+  def gc(): Unit =
+    System.gc()
+    Jax.gc()
 
   @targetName("On")
   infix trait ~[A, B]
