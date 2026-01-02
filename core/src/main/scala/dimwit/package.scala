@@ -49,12 +49,6 @@ package object dimwit:
   export dimwit.tensor.{DType, Device}
   export dimwit.tensor.{VType, ExecutionType, Label, Labels, Axis, AxisIndex, AxisIndices, Dim}
 
-  // Export type helpers
-  export dimwit.tensor.Axis.UnwrapAxes
-  export dimwit.tensor.TupleHelpers.*
-  export dimwit.tensor.Join
-  export Prime.*
-
   // Export operations
   export dimwit.tensor.TensorOps.*
 

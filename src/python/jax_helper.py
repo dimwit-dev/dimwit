@@ -16,13 +16,16 @@ def vmap(f, dims):
     jax will crash upon inspection.
     """
                 
-    # Wrap the ScalaPy function in a pure Python wrapper
     def python_wrapper(x):
         return f(x)
             
-    # Create vmap with the wrapper
     return jax.vmap(python_wrapper, in_axes=dims)
-            
+           
+def zipvmap(f, dims):
+    def python_wrapper(*args):
+        return f(args)
+    return lambda jax_inputs_tuple: jax.vmap(python_wrapper, in_axes=dims)(*jax_inputs_tuple)
+
 def apply_over_axes(f, axis):
     """
     Applies a function `f` over specified axes using JAX's vmap functionality.

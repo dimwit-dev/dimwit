@@ -16,10 +16,14 @@ trait C derives Label
 
 @main def playground(): Unit =
 
+  trait Batch derives Label
+  trait Batch2 derives Label
+  trait Features derives Label
+
   val t = Tensor.zeros(
     Shape(
-      Axis["Batch"] -> 4,
-      Axis["Features"] -> 8
+      Axis[Batch] -> 4,
+      Axis[Features] -> 8
     ),
     VType[Y]
   )
@@ -419,7 +423,7 @@ trait C derives Label
     }
     println(res.shape)
 
-    val res2 = zipvmap(Axis[Batch])(x, y, z) { (xi, yi, zi) =>
+    val res2 = zipvmap(Axis[Batch])(x, y, z) { case (xi, yi, zi) =>
       xi.sum + yi.sum + zi.sum
     }
     println(res2.shape)
@@ -574,15 +578,6 @@ trait C derives Label
     val axis1 = Axis[A |*| B]
     val axis2 = Axis[B |*| A]
 
-    type axisType = Axis[A | B]
-    val axis3: axisType = Axis[A | B]
-    val axis4: axisType = Axis[B | A] // <-- This should not work as A | B != B | A for rearrange
-
-    val contractAxis = Axis[B | C]
-    val res = ab.contract(contractAxis)(cd)
-    val cab1 = ab.contract(Axis[A])(ba)
-    val cab2 = ab.contract(Axis[A | B])(ba)
-    val cab3 = ab.contract(Axis[B | A])(ba)
     // type axisT = Axis[A] | Axis[B]
     // val axis: axisT = Axis[A]
     // val cab4 = ab.contract(axis)(ba)

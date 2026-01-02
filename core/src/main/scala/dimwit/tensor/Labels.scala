@@ -1,9 +1,7 @@
 package dimwit.tensor
 
-import dimwit.tensor.TupleHelpers.{RemoverAll, Replacer}
 import scala.compiletime.*
 import scala.quoted.*
-import dimwit.tensor.TupleHelpers.PrimeConcat
 
 trait Label[T]:
   def name: String
@@ -53,34 +51,8 @@ object Labels extends LabelsLowPriority:
     v.name :: t.names
   )
 
-  given derivedReplacer[T <: Tuple, ToReplace, OutAxis, O <: Tuple](using
-      replacer: Replacer[T, ToReplace, OutAxis] { type Out = O },
-      labels: Labels[T],
-      toReplaceLabels: Label[ToReplace],
-      outAxisValue: Label[OutAxis]
-  ): Labels[O] =
-    val toReplaceNames = List(toReplaceLabels.name)
-    LabelsImpl[O](
-      labels.names.map { name =>
-        if toReplaceNames.contains(name) then outAxisValue.name else name
-      }
-    )
-
   object ForConcat:
-
     given [T1 <: Tuple, T2 <: Tuple](using
         n1: Labels[T1],
         n2: Labels[T2]
     ): Labels[Tuple.Concat[T1, T2]] = new LabelsImpl(n1.names ++ n2.names)
-
-  object ForPrimeConcat:
-    given derivePrimeConcat[T1 <: Tuple, T2 <: Tuple](using
-        primeConcat: PrimeConcat[T1, T2],
-        n1: Labels[T1],
-        n2: Labels[T2]
-    ): Labels[primeConcat.Out] =
-      val n1Names = n1.names.toSet
-      val newN2Names = n2.names.map { name =>
-        if n1Names.contains(name) then s"${name}'" else name
-      }
-      new LabelsImpl(n1.names ++ newN2Names)
