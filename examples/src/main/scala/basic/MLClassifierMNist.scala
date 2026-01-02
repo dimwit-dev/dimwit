@@ -172,7 +172,7 @@ object MLPClassifierMNist:
         targets: Tensor1[Sample, Int]
     ): Tensor0[Float] =
       val matches = zipvmap(Axis[Sample])(predictions, targets)(_ === _)
-      matches.mean
+      matches.asFloat.mean
 
     def gradientStep(
         imageBatch: Tensor[(TrainSample, Height, Width), Float],

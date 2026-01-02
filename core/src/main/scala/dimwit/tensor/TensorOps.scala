@@ -66,8 +66,8 @@ object TensorOps:
     def divideScalar[T <: Tuple: Labels](t1: Tensor[T, V], t2: Tensor0[V]): Tensor[T, Float] = Tensor(Jax.jnp.divide(t1.jaxValue, t2.jaxValue))
 
   object IsNumber:
-    given IsNumber[Float] = summon[IsFloat[Float]]
-    given IsNumber[Int] = summon[IsInt[Int]]
+    given [V](using isFloat: IsFloat[V]): IsNumber[V] = isFloat
+    given [V](using isInt: IsInt[V]): IsNumber[V] = isInt
 
   @implicitNotFound("Operation only valid for Float tensors.")
   trait IsFloat[V] extends IsNumber[V]
@@ -174,16 +174,6 @@ object TensorOps:
       def sum[L: Label, R <: Tuple](axis: Axis[L])(using axisIndex: AxisIndex[T, L], remover: Remover.Aux[T, L, R], labels: Labels[R]): Tensor[R, V] = Tensor(Jax.jnp.sum(t.jaxValue, axis = axisIndex.value))
       def sum[Inputs <: Tuple, R <: Tuple](axes: Inputs)(using remover: RemoverAll.Aux[T, UnwrapAxes[Inputs], R], axesIndices: AxisIndices[T, UnwrapAxes[Inputs]], labels: Labels[R]): Tensor[R, V] = Tensor(Jax.jnp.sum(t.jaxValue, axis = axesIndices.values.toPythonProxy))
 
-      // --- Mean ---
-      def mean: Tensor0[Float] = Tensor0(Jax.jnp.mean(t.asFloat.jaxValue))
-      def mean[L: Label, R <: Tuple](axis: Axis[L])(using axisIndex: AxisIndex[T, L], remover: Remover.Aux[T, L, R], labels: Labels[R]): Tensor[R, V] = Tensor(Jax.jnp.mean(t.jaxValue, axis = axisIndex.value))
-      def mean[Inputs <: Tuple, R <: Tuple](axes: Inputs)(using remover: RemoverAll.Aux[T, UnwrapAxes[Inputs], R], axesIndices: AxisIndices[T, UnwrapAxes[Inputs]], labels: Labels[R]): Tensor[R, V] = Tensor(Jax.jnp.mean(t.jaxValue, axis = axesIndices.values.toPythonProxy))
-
-      // --- Std ---
-      def std: Tensor0[V] = Tensor0(Jax.jnp.std(t.jaxValue))
-      def std[L: Label, R <: Tuple](axis: Axis[L])(using axisIndex: AxisIndex[T, L], remover: Remover.Aux[T, L, R], labels: Labels[R]): Tensor[R, V] = Tensor(Jax.jnp.std(t.jaxValue, axis = axisIndex.value))
-      def std[Inputs <: Tuple, R <: Tuple](axes: Inputs)(using remover: RemoverAll.Aux[T, UnwrapAxes[Inputs], R], axesIndices: AxisIndices[T, UnwrapAxes[Inputs]], labels: Labels[R]): Tensor[R, V] = Tensor(Jax.jnp.std(t.jaxValue, axis = axesIndices.values.toPythonProxy))
-
       // --- Max ---
       def max: Tensor0[V] = Tensor0(Jax.jnp.max(t.jaxValue))
       def max[L: Label, R <: Tuple](axis: Axis[L])(using axisIndex: AxisIndex[T, L], remover: Remover.Aux[T, L, R], labels: Labels[R]): Tensor[R, V] = Tensor(Jax.jnp.max(t.jaxValue, axis = axisIndex.value))
@@ -201,6 +191,18 @@ object TensorOps:
       // --- Argmin ---
       def argmin: Tensor0[Int] = Tensor0(Jax.jnp.argmin(t.jaxValue))
       def argmin[L: Label, R <: Tuple](axis: Axis[L])(using axisIndex: AxisIndex[T, L], remover: Remover.Aux[T, L, R], labels: Labels[R]): Tensor[R, Int] = Tensor(Jax.jnp.argmin(t.jaxValue, axis = axisIndex.value))
+
+    extension [T <: Tuple: Labels, V: IsFloat](t: Tensor[T, V])
+
+      // --- Mean ---
+      def mean: Tensor0[Float] = Tensor0(Jax.jnp.mean(t.asFloat.jaxValue))
+      def mean[L: Label, R <: Tuple](axis: Axis[L])(using axisIndex: AxisIndex[T, L], remover: Remover.Aux[T, L, R], labels: Labels[R]): Tensor[R, V] = Tensor(Jax.jnp.mean(t.jaxValue, axis = axisIndex.value))
+      def mean[Inputs <: Tuple, R <: Tuple](axes: Inputs)(using remover: RemoverAll.Aux[T, UnwrapAxes[Inputs], R], axesIndices: AxisIndices[T, UnwrapAxes[Inputs]], labels: Labels[R]): Tensor[R, V] = Tensor(Jax.jnp.mean(t.jaxValue, axis = axesIndices.values.toPythonProxy))
+
+      // --- Std ---
+      def std: Tensor0[V] = Tensor0(Jax.jnp.std(t.jaxValue))
+      def std[L: Label, R <: Tuple](axis: Axis[L])(using axisIndex: AxisIndex[T, L], remover: Remover.Aux[T, L, R], labels: Labels[R]): Tensor[R, V] = Tensor(Jax.jnp.std(t.jaxValue, axis = axisIndex.value))
+      def std[Inputs <: Tuple, R <: Tuple](axes: Inputs)(using remover: RemoverAll.Aux[T, UnwrapAxes[Inputs], R], axesIndices: AxisIndices[T, UnwrapAxes[Inputs]], labels: Labels[R]): Tensor[R, V] = Tensor(Jax.jnp.std(t.jaxValue, axis = axesIndices.values.toPythonProxy))
 
   end Reduction
 
@@ -269,7 +271,7 @@ object TensorOps:
 
   object LinearAlgebra:
 
-    extension [T <: Tuple: Labels, V](t: Tensor[T, V])
+    extension [T <: Tuple: Labels, V: IsFloat](t: Tensor[T, V])
       def norm: Tensor0[V] = Tensor0(Jax.jnp.linalg.norm(t.jaxValue))
       def inv: Tensor[T, V] = Tensor(Jax.jnp.linalg.inv(t.jaxValue))
 
@@ -287,6 +289,7 @@ object TensorOps:
         )
         Tensor(Jax.jnp.linalg.det(moved))
 
+    extension [T <: Tuple: Labels, V: IsNumber](t: Tensor[T, V])
       def trace[L1: Label, L2: Label](axis1: Axis[L1], axis2: Axis[L2], offset: Int = 0)(using
           idx1: AxisIndex[T, L1],
           idx2: AxisIndex[T, L2],
@@ -294,6 +297,7 @@ object TensorOps:
           labels: Labels[remover.Out]
       ): Tensor[remover.Out, V] = Tensor(Jax.jnp.trace(t.jaxValue, offset = offset, axis1 = idx1.value, axis2 = idx2.value))
 
+    extension [T <: Tuple: Labels, V](t: Tensor[T, V])
       def diagonal[L1: Label, L2: Label](axis1: Axis[L1], axis2: Axis[L2], offset: Int = 0)(using
           idx1: AxisIndex[T, L1],
           idx2: AxisIndex[T, L2],
@@ -301,10 +305,11 @@ object TensorOps:
           labels: Labels[remover.Out]
       ): Tensor[remover.Out *: L1 *: EmptyTuple, V] = Tensor(Jax.jnp.diagonal(t.jaxValue, offset = offset, axis1 = idx1.value, axis2 = idx2.value))
 
-    extension [L1: Label, L2: Label, V](t: Tensor2[L1, L2, V])
-      def det: Tensor0[V] = Tensor0(Jax.jnp.linalg.det(t.jaxValue))
+    extension [L1: Label, L2: Label, V: IsFloat](t: Tensor2[L1, L2, V]) def det: Tensor0[V] = Tensor0(Jax.jnp.linalg.det(t.jaxValue))
+    extension [L1: Label, L2: Label, V: IsNumber](t: Tensor2[L1, L2, V])
       def trace: Tensor0[V] = t.trace(0)
       def trace(offset: Int): Tensor0[V] = Tensor0(Jax.jnp.trace(t.jaxValue, offset = offset))
+    extension [L1: Label, L2: Label, V](t: Tensor2[L1, L2, V])
       def diagonal: Tensor1[L1, V] = t.diagonal(0)
       def diagonal(offset: Int): Tensor1[L1, V] = Tensor(Jax.jnp.diagonal(t.jaxValue, offset = offset))
 

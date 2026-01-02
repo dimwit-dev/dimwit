@@ -101,8 +101,8 @@ object LogisticRegression:
           println(
             List(
               "epoch: " + index,
-              "trainAcc: " + (1f - (trainPreds.asInt - trainLabels.asInt).abs.mean),
-              "valAcc: " + (1f - (valPreds.asInt - valLabels.asInt).abs.mean)
+              "trainAcc: " + (1f - (trainPreds.asFloat - trainLabels.asFloat).abs.mean),
+              "valAcc: " + (1f - (valPreds.asFloat - valLabels.asFloat).abs.mean)
             ).mkString(", ")
           )
       .map((params, _) => params)

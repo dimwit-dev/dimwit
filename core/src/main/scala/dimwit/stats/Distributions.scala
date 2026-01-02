@@ -8,6 +8,9 @@ opaque type LogProb <: Float = Float
 opaque type LinearProb <: Float = Float
 
 object LogProb:
+
+  given IsFloat[LogProb] with {}
+
   def apply[T <: Tuple: Labels](t: Tensor[T, Float]): Tensor[T, LogProb] = t
 
   extension [T <: Tuple: Labels](t: Tensor[T, LogProb])
@@ -16,6 +19,9 @@ object LogProb:
     def log: Tensor[T, Float] = TensorOps.log(t) // Lose LogProb if we log again
 
 object LinearProb:
+
+  given IsFloat[LinearProb] with {}
+
   def apply[T <: Tuple: Labels](t: Tensor[T, Float]): Tensor[T, LinearProb] = t
 
   extension [T <: Tuple: Labels](t: Tensor[T, LinearProb])

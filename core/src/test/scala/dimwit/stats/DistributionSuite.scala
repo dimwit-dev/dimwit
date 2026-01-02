@@ -39,13 +39,13 @@ class DistributionSuite extends AnyFunSuite with Matchers:
     val expectedMean = normal.loc
     sampleMean should approxEqual(expectedMean, 0.2f)
 
-  test(""):
+  test("LogProb and LinearProb types prevent mixing"):
     val normal = Normal(
       Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(0.0f, 1.0f)),
       Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(1.0f, 0.5f))
     )
     val x1 = normal.logProbElements(normal.loc)
     val x2 = normal.probElements(normal.loc)
-    val x3 = x1 + x1
-    val x4 = x2 * x2
-    val x5 = x1 + x2
+    "x1 + x1" should compile
+    "x2 * x2" should compile
+    "x1 + x2" shouldNot compile
