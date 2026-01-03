@@ -52,40 +52,6 @@ class Bernoulli[T <: Tuple: Labels](
   override def sample(key: Random.Key): Tensor[T, Int] =
     Tensor.fromPy(VType[Int])(Jax.jrandom.bernoulli(key.jaxKey, p = probs.jaxValue))
 
-class Multinomial[L: Label](
-    val n: Int,
-    val probs: Tensor1[L, Prob]
-) extends IndependentDistribution[Tuple1[L], Int]:
-
-  private lazy val logProbs: Tensor1[L, LogProb] = probs.log
-
-  override def logProb(x: Tensor1[L, Int]): Tensor1[L, LogProb] =
-    Tensor.fromPy(VType[LogProb])(jstats.multinomial.logpmf(x.jaxValue, n = n, p = probs.jaxValue))
-
-  override def sample(key: Random.Key): Tensor1[L, Int] =
-    // Sample from categorical n times using vmap, then bincount
-    val splitKeys = Jax.jrandom.split(key.jaxKey, n)
-    // Use vmap to apply categorical to all keys
-    val vmapCategorical = Jax.jax.vmap(
-      py.Dynamic.global.eval("lambda k, lp: __import__('jax').random.categorical(k, lp)"),
-      in_axes = (0, py.None)
-    )
-    val samples = vmapCategorical(splitKeys, logProbs.jaxValue)
-    Tensor.fromPy(VType[Int])(
-      Jax.jnp.bincount(samples, length = probs.shape.dimensions(0))
-    )
-
-class Categorical[L: Label](val probs: Tensor1[L, Float]) extends IndependentDistribution[EmptyTuple, Int]:
-
-  private val numCategories = probs.shape.dimensions(0)
-  private val logProbs = probs.log
-
-  override def logProb(x: Tensor0[Int]): Tensor0[LogProb] =
-    // Log probability is simply log(probs[x])
-    Tensor.fromPy(VType[LogProb])(logProbs.jaxValue.__getitem__(x.jaxValue))
-  override def sample(key: Random.Key): Tensor0[Int] =
-    Tensor.fromPy(VType[Int])(Jax.jrandom.categorical(key.jaxKey, logProbs.jaxValue))
-
 class Cauchy[T <: Tuple: Labels](
     val loc: Tensor[T, Float],
     val scale: Tensor[T, Float]

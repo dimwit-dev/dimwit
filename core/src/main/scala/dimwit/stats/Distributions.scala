@@ -17,7 +17,6 @@ object LogProb:
 
     def exp: Tensor[T, Prob] = TensorOps.exp(t)
     def log: Tensor[T, Float] = TensorOps.log(t) // Lose LogProb if we log again
-    def toFloat: Tensor[T, Float] = t
 
 object Prob:
   def apply[T <: Tuple: Labels](t: Tensor[T, Float]): Tensor[T, Prob] = t
@@ -26,7 +25,6 @@ object Prob:
 
     def exp: Tensor[T, Float] = TensorOps.exp(t) // Lose Prob if we exp again
     def log: Tensor[T, LogProb] = TensorOps.log(t)
-    def toFloat: Tensor[T, Float] = t
 
 /** Independent Distributions over all the given dimensions
   */
