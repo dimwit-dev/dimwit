@@ -204,6 +204,16 @@ object TensorOps:
       def std[L: Label, R <: Tuple](axis: Axis[L])(using ev: AxisRemover[T, L, R], l: Labels[R]): Tensor[R, V] = Tensor(Jax.jnp.std(t.jaxValue, axis = ev.index))
       def std[Inputs <: Tuple, R <: Tuple](axes: Inputs)(using ev: AxesRemover[T, UnwrapAxes[Inputs], R], l: Labels[R]): Tensor[R, V] = Tensor(Jax.jnp.std(t.jaxValue, axis = ev.indices.toPythonProxy))
 
+      // --- Quantile ---
+      def quantile(q: Float): Tensor0[V] = Tensor0(Jax.jnp.quantile(t.jaxValue, q))
+      def quantile[L: Label, R <: Tuple](q: Float, axis: Axis[L])(using ev: AxisRemover[T, L, R], l: Labels[R]): Tensor[R, V] = Tensor(Jax.jnp.quantile(t.jaxValue, q, axis = ev.index))
+      def quantile[Inputs <: Tuple, R <: Tuple](q: Float, axes: Inputs)(using ev: AxesRemover[T, UnwrapAxes[Inputs], R], l: Labels[R]): Tensor[R, V] = Tensor(Jax.jnp.quantile(t.jaxValue, q, axis = ev.indices.toPythonProxy))
+
+      // --- Median ---
+      def median: Tensor0[V] = Tensor0(Jax.jnp.median(t.jaxValue))
+      def median[L: Label, R <: Tuple](axis: Axis[L])(using ev: AxisRemover[T, L, R], l: Labels[R]): Tensor[R, V] = Tensor(Jax.jnp.median(t.jaxValue, axis = ev.index))
+      def median[Inputs <: Tuple, R <: Tuple](axes: Inputs)(using ev: AxesRemover[T, UnwrapAxes[Inputs], R], l: Labels[R]): Tensor[R, V] = Tensor(Jax.jnp.median(t.jaxValue, axis = ev.indices.toPythonProxy))
+
   end Reduction
 
   object Contraction:
