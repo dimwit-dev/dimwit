@@ -13,12 +13,8 @@ class MVNormal[L: Label](
 ) extends MultivariateDistribution[Tuple1[L], Float]:
 
   override def logProb(x: Tensor1[L, Float]): Tensor0[LogProb] =
-    Tensor.fromPy(VType[LogProb])(jstats.multivariate_normal(mean = mean.jaxValue, cov = covariance.jaxValue).logpdf(x.jaxValue))
+    Tensor.fromPy(VType[LogProb])(jstats.multivariate_normal.logpdf(x.jaxValue, mean = mean.jaxValue, cov = covariance.jaxValue))
 
-  override val jaxDist: Jax.PyDynamic = jstats.multivariate_normal(
-    mean = mean.jaxValue,
-    cov = covariance.jaxValue
-  )
   override def sample(k: Random.Key): Tensor[Tuple1[L], Float] =
     Tensor.fromPy(VType[Float])(
       Jax.jrandom.multivariate_normal(
@@ -33,11 +29,7 @@ class Dirichlet[L: Label](
 ) extends MultivariateDistribution[Tuple1[L], Float]:
 
   override def logProb(x: Tensor1[L, Float]): Tensor0[LogProb] =
-    Tensor.fromPy(VType[LogProb])(jstats.dirichlet(alpha = concentration.jaxValue).logpdf(x.jaxValue))
-
-  override val jaxDist: Jax.PyDynamic = jstats.dirichlet(
-    alpha = concentration.jaxValue
-  )
+    Tensor.fromPy(VType[LogProb])(jstats.dirichlet.logpdf(x.jaxValue, alpha = concentration.jaxValue))
 
   override def sample(k: Random.Key): Tensor1[L, Float] =
     Tensor.fromPy(VType[Float])(

@@ -40,7 +40,6 @@ trait IndependentDistribution[T <: Tuple: Labels, V]:
   def sample(k: Random.Key): Tensor[T, V]
 
 trait MultivariateDistribution[T <: Tuple, V]:
-  protected def jaxDist: Jax.PyDynamic
 
   def prob(x: Tensor[T, V]): Tensor0[Prob] =
     logProb(x).exp

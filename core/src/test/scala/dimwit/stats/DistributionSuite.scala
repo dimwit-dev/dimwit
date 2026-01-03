@@ -38,3 +38,222 @@ class DistributionSuite extends AnyFunSuite with Matchers:
     val sampleMean = samples.mean(Axis["Samples"])
     val expectedMean = normal.loc
     sampleMean should approxEqual(expectedMean, 0.2f)
+
+  test("Uniform logProb matches JAX"):
+    val low = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.0f, -1.0f, 2.0f))
+    val high = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(1.0f, 1.0f, 5.0f))
+    val x = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.5f, 0.0f, 3.0f))
+
+    val dist = Uniform(low, high)
+    val scalaLogProb = dist.logProb(x)
+    val jaxLogProb = Tensor.fromPy[Tuple1[A], Float](VType[Float])(
+      jstats.uniform.logpdf(x.jaxValue, loc = low.jaxValue, scale = (high - low).jaxValue)
+    )
+    scalaLogProb.toFloat should approxEqual(jaxLogProb)
+
+  test("Uniform sample mean approximates mean"):
+    val uniform = Uniform(
+      Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(-1.0f, 0.0f)),
+      Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(1.0f, 2.0f))
+    )
+    val key = Random.Key(42)
+    val samples = key.splitvmap(Axis["Samples"], 10000)(k => uniform.sample(k))
+    val sampleMean = samples.mean(Axis["Samples"])
+    val expectedMean = (uniform.low + uniform.high) *! 0.5f
+    sampleMean should approxEqual(expectedMean, 0.2f)
+
+  test("Bernoulli logProb matches JAX"):
+    val probs = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.3f, 0.5f, 0.8f))
+    val x = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Int])(Array(0, 1, 1))
+
+    val dist = Bernoulli(probs)
+    val scalaLogProb = dist.logProb(x)
+    val jaxLogProb = Tensor.fromPy[Tuple1[A], Float](VType[Float])(
+      jstats.bernoulli.logpmf(x.jaxValue, p = probs.jaxValue)
+    )
+    scalaLogProb.toFloat should approxEqual(jaxLogProb)
+
+  test("Bernoulli sample mean approximates probability"):
+    val bernoulli = Bernoulli(
+      Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(0.3f, 0.7f))
+    )
+    val key = Random.Key(42)
+    val samples = key.splitvmap(Axis["Samples"], 10000)(k => bernoulli.sample(k))
+    val sampleMean = samples.asFloat.mean(Axis["Samples"])
+    val expectedMean = bernoulli.probs
+    sampleMean should approxEqual(expectedMean, 0.2f)
+
+  test("Multinomial logProb matches JAX"):
+    val probsFloat = Tensor.fromArray(Shape(Axis[A] -> 4), VType[Float])(Array(0.1f, 0.2f, 0.3f, 0.4f))
+    val probs = Prob(probsFloat)
+    val x = Tensor.fromArray(Shape(Axis[A] -> 4), VType[Int])(Array(2, 1, 3, 4))
+    val n = 10
+
+    val dist = Multinomial[A](n, probs)
+    val scalaLogProb = dist.logProb(x)
+    val jaxLogProb = Tensor.fromPy[Tuple1[A], Float](VType[Float])(
+      jstats.multinomial.logpmf(x.jaxValue, n = n, p = probs.jaxValue)
+    )
+    scalaLogProb.toFloat should approxEqual(jaxLogProb)
+
+  test("Multinomial sample frequencies match probabilities"):
+    val probsFloat = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.2f, 0.5f, 0.3f))
+    val probs = Prob(probsFloat)
+    val n = 100
+    val multinomial = Multinomial[A](n, probs)
+    val key = Random.Key(42)
+    val samples = key.splitvmap(Axis["Samples"], 10000)(k => multinomial.sample(k))
+    val sampleMean = samples.asFloat.mean(Axis["Samples"]) *! (1.0f / n)
+    val expectedProbs = multinomial.probs.toFloat
+    sampleMean should approxEqual(expectedProbs, 0.2f)
+
+  test("Categorical logProb matches expected value"):
+    val probs = Tensor.fromArray(Shape(Axis[A] -> 4), VType[Float])(Array(0.1f, 0.2f, 0.3f, 0.4f))
+    val x = Tensor0(2)
+
+    val dist = Categorical(probs)
+    val scalaLogProb = dist.logProb(x)
+    // Expected log probability is log(probs[2]) = log(0.3)
+    val expectedLogProb = Tensor0(math.log(0.3f).toFloat)
+    scalaLogProb.toFloat should approxEqual(expectedLogProb)
+
+  test("Categorical sample distribution matches probabilities"):
+    val probs = Tensor.fromArray(Shape(Axis[A] -> 4), VType[Float])(Array(0.1f, 0.2f, 0.3f, 0.4f))
+    val categorical = Categorical(probs)
+    val key = Random.Key(42)
+    val samples = key.splitvmap(Axis["Samples"], 10000)(k => categorical.sample(k))
+    // Count frequencies for each category using JAX bincount
+    val counts = Tensor.fromPy[Tuple1[A], Float](VType[Float])(
+      Jax.jnp.bincount(samples.jaxValue, minlength = 4).astype(Jax.jnp.float32)
+    )
+    val frequencies = counts *! (1.0f / 10000.0f)
+    frequencies should approxEqual(probs, 0.2f)
+
+  test("Cauchy logProb matches JAX"):
+    val loc = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.0f, 1.0f, -0.5f))
+    val scale = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(1.0f, 0.5f, 2.0f))
+    val x = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.5f, 1.5f, -1.0f))
+
+    val dist = Cauchy(loc, scale)
+    val scalaLogProb = dist.logProb(x)
+    val jaxLogProb = Tensor.fromPy[Tuple1[A], Float](VType[Float])(
+      jstats.cauchy.logpdf(x.jaxValue, loc = loc.jaxValue, scale = scale.jaxValue)
+    )
+    scalaLogProb.toFloat should approxEqual(jaxLogProb)
+
+  test("Cauchy sample median approximates location"):
+    val cauchy = Cauchy(
+      Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(0.0f, 2.0f)),
+      Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(1.0f, 0.5f))
+    )
+    val key = Random.Key(42)
+    val samples = key.splitvmap(Axis["Samples"], 50000)(k => cauchy.sample(k))
+    // Use percentile to compute median since median method doesn't exist yet
+    val sampleMedian = Tensor.fromPy[Tuple1[A], Float](VType[Float])(
+      Jax.jnp.percentile(samples.jaxValue, 50, axis = 0)
+    )
+    val expectedMedian = cauchy.loc
+    sampleMedian should approxEqual(expectedMedian, 0.5f)
+
+  test("HalfNormal logProb computed correctly"):
+    val loc = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.0f, 0.0f, 0.0f))
+    val scale = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(1.0f, 0.5f, 2.0f))
+    val x = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.5f, 1.0f, 0.8f))
+
+    val dist = HalfNormal(loc, scale)
+    val scalaLogProb = dist.logProb(x)
+    // Compute expected manually: log(2) + norm.logpdf for x >= loc
+    val expectedLogProb = Tensor.fromPy[Tuple1[A], Float](VType[Float])(
+      Jax.jnp.log(2.0) + jstats.norm.logpdf(x.jaxValue, loc = loc.jaxValue, scale = scale.jaxValue)
+    )
+    scalaLogProb.toFloat should approxEqual(expectedLogProb)
+
+  test("HalfNormal sample mean approximates expected mean"):
+    val halfNormal = HalfNormal(
+      Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(0.0f, 0.0f)),
+      Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(1.0f, 2.0f))
+    )
+    val key = Random.Key(42)
+    val samples = key.splitvmap(Axis["Samples"], 10000)(k => halfNormal.sample(k))
+    val sampleMean = samples.mean(Axis["Samples"])
+    // Mean of half-normal is scale * sqrt(2/pi) + loc
+    val sqrtTwoOverPi = math.sqrt(2.0 / math.Pi).toFloat
+    val expectedMean = halfNormal.scale *! sqrtTwoOverPi +! halfNormal.loc
+    sampleMean should approxEqual(expectedMean, 0.2f)
+
+  test("StudentT logProb matches JAX"):
+    val df = 5
+    val loc = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.0f, 1.0f, -0.5f))
+    val scale = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(1.0f, 0.5f, 2.0f))
+    val x = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.5f, 1.5f, -1.0f))
+
+    val dist = StudentT(df, loc, scale)
+    val scalaLogProb = dist.logProb(x)
+    val jaxLogProb = Tensor.fromPy[Tuple1[A], Float](VType[Float])(
+      jstats.t.logpdf(x.jaxValue, df = df, loc = loc.jaxValue, scale = scale.jaxValue)
+    )
+    scalaLogProb.toFloat should approxEqual(jaxLogProb)
+
+  test("StudentT sample mean approximates location"):
+    val studentT = StudentT(
+      df = 5,
+      loc = Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(0.0f, 2.0f)),
+      scale = Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(1.0f, 0.5f))
+    )
+    val key = Random.Key(42)
+    val samples = key.splitvmap(Axis["Samples"], 10000)(k => studentT.sample(k))
+    val sampleMean = samples.mean(Axis["Samples"])
+    val expectedMean = studentT.loc
+    sampleMean should approxEqual(expectedMean, 0.2f)
+
+  test("MVNormal logProb matches JAX"):
+    val mean = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.0f, 1.0f, 2.0f))
+    val cov = Tensor.fromArray(Shape(Axis[A] -> 3, Axis[Prime[A]] -> 3), VType[Float])(
+      Array(
+        1.0f, 0.5f, 0.2f,
+        0.5f, 2.0f, 0.3f,
+        0.2f, 0.3f, 1.5f
+      )
+    )
+    val x = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.5f, 1.5f, 2.2f))
+
+    val dist = MVNormal(mean, cov)
+    val scalaLogProb = dist.logProb(x)
+    val jaxLogProb = Tensor.fromPy[EmptyTuple, Float](VType[Float])(
+      jstats.multivariate_normal.logpdf(x.jaxValue, mean = mean.jaxValue, cov = cov.jaxValue)
+    )
+    scalaLogProb.toFloat should approxEqual(jaxLogProb)
+
+  test("MVNormal sample mean approximates mean"):
+    val mean = Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(1.0f, 2.0f))
+    val cov = Tensor.fromArray(Shape(Axis[A] -> 2, Axis[Prime[A]] -> 2), VType[Float])(
+      Array(1.0f, 0.3f, 0.3f, 1.0f)
+    )
+    val mvNormal = MVNormal(mean, cov)
+    val key = Random.Key(42)
+    val samples = key.splitvmap(Axis["Samples"], 10000)(k => mvNormal.sample(k))
+    val sampleMean = samples.mean(Axis["Samples"])
+    val expectedMean = mvNormal.mean
+    sampleMean should approxEqual(expectedMean, 0.2f)
+
+  test("Dirichlet logProb matches JAX"):
+    val concentration = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(2.0f, 3.0f, 5.0f))
+    val x = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.2f, 0.3f, 0.5f))
+
+    val dist = Dirichlet(concentration)
+    val scalaLogProb = dist.logProb(x)
+    val jaxLogProb = Tensor.fromPy[EmptyTuple, Float](VType[Float])(
+      jstats.dirichlet.logpdf(x.jaxValue, alpha = concentration.jaxValue)
+    )
+    scalaLogProb.toFloat should approxEqual(jaxLogProb)
+
+  test("Dirichlet sample mean approximates expected mean"):
+    val concentration = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(2.0f, 5.0f, 3.0f))
+    val dirichlet = Dirichlet(concentration)
+    val key = Random.Key(42)
+    val samples = key.splitvmap(Axis["Samples"], 10000)(k => dirichlet.sample(k))
+    val sampleMean = samples.mean(Axis["Samples"])
+    // Expected mean for Dirichlet is concentration / sum(concentration)
+    // For [2.0, 5.0, 3.0], sum=10.0, so expected is [0.2, 0.5, 0.3]
+    val expectedMean = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.2f, 0.5f, 0.3f))
+    sampleMean should approxEqual(expectedMean, 0.2f)
