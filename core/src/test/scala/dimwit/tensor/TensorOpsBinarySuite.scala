@@ -117,13 +117,6 @@ class TensorOpsBinarySuite extends AnyFunSpec with ScalaCheckPropertyChecks with
       checkBinary2Int(twoTensor2Gen(VType[Int]))("t1 * t2", _ * _)
       checkBinary2Int(twoTensor3Gen(VType[Int]))("t1 * t2", _ * _)
 
-    describe("Division /"):
-      val (min, max) = (1, 100) // guarantee no division by zero
-      checkBinary2Float(twoTensor0Gen(min, max))("t1 / t2", _ / _)
-      checkBinary2Float(twoTensor1Gen(min, max))("t1 / t2", _ / _)
-      checkBinary2Float(twoTensor2Gen(min, max))("t1 / t2", _ / _)
-      checkBinary2Float(twoTensor3Gen(min, max))("t1 / t2", _ / _)
-
     describe("Less than <"):
       checkBinary2Bool(twoTensor0Gen(VType[Int]))("t1 < t2", _ < _)
       checkBinary2Bool(twoTensor1Gen(VType[Int]))("t1 < t2", _ < _)

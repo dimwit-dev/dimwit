@@ -294,11 +294,6 @@ def tensorAPI(): Unit =
       py.exec("res = jnp.tensordot(abcd, abcd, axes=(2, 2))") // pure JAX variant
       ABCD.contract(Axis[C])(ABCD)
     }
-    opBlock("matmul ab.T @ ac") {
-      // note there are some matrix specific contraction
-      py.exec("res = jnp.matmul(ab.T, ac)")
-      AB.transpose.matmul(AC)
-    }
 
     /** OUTER PRODUCT (contract over zero axes) Analog to JAX outer product, i.e., no axes to contract
       */
@@ -608,12 +603,14 @@ def tensorAPI(): Unit =
       AB.norm
     }
     opBlock("inv AB") {
-      val a1a2 = Tensor2.fromArray(Axis["A1"], Axis["A2"], VType[Float])(
-        Array(
-          Array(2f, 0f),
-          Array(0f, 2f)
+      val a1a2 = Tensor2
+        .fromArray(Axis["A1"], Axis["A2"], VType[Float])(
+          Array(
+            Array(2f, 0f),
+            Array(0f, 2f)
+          )
         )
-      )
+        .toDevice(Device.CPU)
       py.exec("a1a2 = jnp.array([[2, 0],[0, 2]])")
       py.exec("res = jnp.linalg.inv(a1a2)")
       a1a2.inv
