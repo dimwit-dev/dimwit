@@ -94,6 +94,18 @@ class TensorOpsReductionSuite extends AnyFunSpec with ScalaCheckPropertyChecks w
     checkReductionOpsFloatToInt(tensor2Gen(VType[Float]))("jnp.argmin(t)", _.argmin)
     checkReductionOpsFloatToInt(tensor3Gen(VType[Float]))("jnp.argmin(t)", _.argmin)
 
+  describe("median"):
+    checkReductionOpsFloatToFloat(tensor0Gen(VType[Float]))("jnp.median(t)", _.median)
+    checkReductionOpsFloatToFloat(tensor1Gen(VType[Float]))("jnp.median(t)", _.median)
+    checkReductionOpsFloatToFloat(tensor2Gen(VType[Float]))("jnp.median(t)", _.median)
+    checkReductionOpsFloatToFloat(tensor3Gen(VType[Float]))("jnp.median(t)", _.median)
+
+  describe("quantile"):
+    checkReductionOpsFloatToFloat(tensor0Gen(VType[Float]))("jnp.quantile(t, 0.25)", _.quantile(0.25f))
+    checkReductionOpsFloatToFloat(tensor1Gen(VType[Float]))("jnp.quantile(t, 0.5)", _.quantile(0.5f))
+    checkReductionOpsFloatToFloat(tensor2Gen(VType[Float]))("jnp.quantile(t, 0.75)", _.quantile(0.75f))
+    checkReductionOpsFloatToFloat(tensor3Gen(VType[Float]))("jnp.quantile(t, 0.9)", _.quantile(0.9f))
+
   describe("all"):
     checkReductionOpsBoolToBool(tensor0Gen(VType[Boolean]))("jnp.all(t)", _.all)
     checkReductionOpsBoolToBool(tensor1Gen(VType[Boolean]))("jnp.all(t)", _.all)

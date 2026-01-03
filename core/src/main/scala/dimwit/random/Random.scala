@@ -18,18 +18,35 @@ object Random:
 
   /** A random key for generating random numbers */
   case class Key(jaxKey: Jax.PyDynamic):
+
     /** Split this key into multiple independent keys */
     def split(num: Int): Seq[Key] =
       val splitKeys = Jax.jrandom.split(jaxKey, num)
       (0 until num).map(i => Key(splitKeys.__getitem__(i)))
+
+    /** Split this key into multiple independent keys stored in a tensor */
+    def splitToTensor[L: Label](axis: Axis[L], num: Int): Tensor1[L, Key] =
+      val splitKeys = Jax.jrandom.split(jaxKey, num)
+      Tensor[Tuple1[L], Key](splitKeys)
 
     /** Split into exactly 2 keys (common case) */
     def split2(): (Key, Key) =
       val keys = split(2)
       (keys(0), keys(1))
 
+    /** Generate a tensor of samples by splitting the key along the given axis and applying f to each sub-key ^ */
+    def splitvmap[L: Label, T <: Tuple: Labels, V](axis: Axis[L], n: Int)(f: Key => Tensor[T, V]): Tensor[L *: T, V] =
+      this.splitToTensor(axis, n).vmap(axis)(k => f(k.item))
+
     /** Generate a new key by splitting */
     def next(): Key = split2()._2
+
+    override def equals(other: Any): Boolean =
+      other match
+        case that: Key => Jax.jnp.array_equal(this.jaxKey, that.jaxKey).item().as[Boolean]
+        case _         => false
+
+    override def hashCode(): Int = jaxKey.tobytes().hashCode()
 
   object Key:
     /** Create a random key from an integer seed */
@@ -41,57 +58,9 @@ object Random:
     /** Create a random key from Scala's random */
     def random(): Key = Key(scala.util.Random.nextInt())
 
-  object Normal:
-
-    class NormalFactory[T <: Tuple: Labels](shape: Shape[T]):
-      def apply(
-          key: Key
-      )(using
-          executionType: ExecutionType[Float]
-      ): Tensor[T, Float] = this(key, Tensor0.zero(VType[Float]), Tensor0.one(VType[Float]))
-
-      def apply(
-          key: Key,
-          mean: Tensor0[Float],
-          std: Tensor0[Float]
-      )(using
-          executionType: ExecutionType[Float]
-      ): Tensor[T, Float] =
-        val jaxValues = Jax.jrandom.normal(
-          key.jaxKey,
-          shape.dimensions.toPythonProxy,
-          dtype = executionType.dtype.jaxType
-        )
-        val standardNormal = Tensor[T, Float](jaxValues)
-        standardNormal *! std +! mean
-
-    def apply[T <: Tuple: Labels](shape: Shape[T]) = new NormalFactory[T](shape)
-
-  class Uniform:
-
-    class UniformFactory[T <: Tuple: Labels](shape: Shape[T]):
-
-      def apply(
-          key: Key
-      )(using
-          executionType: ExecutionType[Float]
-      ): Tensor[T, Float] = this(key, Tensor0.zero(VType[Float]), Tensor0.one(VType[Float]))
-
-      /** Uniform distribution in [minval, maxval) */
-      def apply(
-          key: Key,
-          minval: Tensor0[Float],
-          maxval: Tensor0[Float]
-      )(using
-          executionType: ExecutionType[Float]
-      ): Tensor[T, Float] =
-        val jaxValues = Jax.jrandom.uniform(
-          key.jaxKey,
-          shape.dimensions.toPythonProxy,
-          minval = minval.jaxValue,
-          maxval = maxval.jaxValue,
-          dtype = executionType.dtype.jaxType
-        )
-        Tensor(jaxValues)
-
-    def apply[T <: Tuple: Labels](shape: Shape[T]) = new UniformFactory[T](shape)
+  // Enable .item on Tensor0[Key] to extract the Key
+  // Note that implementing a Reader instance and using
+  // the standard jax.item does not work, as Key is
+  // not a primitive type in  JAX.
+  extension (tensorKey: Tensor0[Key])
+    def item: Key = Key(tensorKey.jaxValue)

@@ -3,6 +3,7 @@ package examples.basic
 import dimwit.*
 import scala.util.NotGiven
 import dimwit.random.Random
+import dimwit.stats.Normal
 
 abstract class As[V, BaseType](using base: ExecutionType[BaseType]) extends ExecutionType[V]:
   def dtype: DType = base.dtype
@@ -618,6 +619,6 @@ trait C derives Label
     println(t4.shape)
   }
   {
-    val x = Random.Normal(Shape(Axis["A"] -> 3, Axis["B"] -> 4))
+    val x = Normal.standardNormal(Shape(Axis["A"] -> 3, Axis["B"] -> 4))
     println(x)
   }

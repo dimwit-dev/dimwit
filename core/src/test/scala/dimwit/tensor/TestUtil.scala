@@ -18,13 +18,13 @@ import scala.compiletime.error
 
 object TestUtil:
 
-  def approxEqual[T <: Tuple: Labels, V](right: Tensor[T, V])(using ev: MustBeFloat[V]): Matcher[Tensor[T, V]] =
+  def approxEqual[T <: Tuple: Labels, V](right: Tensor[T, V], tolerance: Float = 1e-6f)(using ev: MustBeFloat[V]): Matcher[Tensor[T, V]] =
     new Matcher[Tensor[T, V]]:
       def apply(left: Tensor[T, V]): MatchResult =
         val leftF = left.asInstanceOf[Tensor[T, Float]]
         val rightF = right.asInstanceOf[Tensor[T, Float]]
 
-        val areEqual = (leftF `approxEquals` rightF).item
+        val areEqual = (leftF `approxEquals` (rightF, tolerance)).item
         lazy val diffMsg = if areEqual then "" else s"Max diff: ${(leftF - rightF).abs.max}"
 
         MatchResult(

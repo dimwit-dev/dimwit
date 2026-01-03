@@ -1,5 +1,8 @@
 package dimwit.tensor
 
+import dimwit.stats.Prob
+import dimwit.stats.LogProb
+
 trait ExecutionType[V]:
   def dtype: DType
 
@@ -11,6 +14,12 @@ object ExecutionType:
     def dtype: DType = DType.Int32
   given booleanValue: ExecutionType[Boolean] with
     def dtype: DType = DType.Bool
+
+  given prob: ExecutionType[Prob] with
+    def dtype: DType = summon[ExecutionType[Float]].dtype
+
+  given logProb: ExecutionType[LogProb] with
+    def dtype: DType = summon[ExecutionType[Float]].dtype
 
 object VType:
   def apply[V](tensor: Tensor[?, V]): VType[V] = new OfImpl[V](tensor.dtype)
