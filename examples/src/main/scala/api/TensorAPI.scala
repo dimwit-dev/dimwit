@@ -354,9 +354,9 @@ def tensorAPI(): Unit =
     opBlock("gather ab axis=1") {
       py.exec("indices = jnp.array([0,2])")
       py.exec("res = jnp.take(ab, indices, axis=1)")
-      val res = AB.gather(
+      val res = AB.take(Axis[B])(
         Tensor1.fromArray(
-          Axis[B],
+          Axis[C],
           VType[Int]
         )(
           Array(0, 2)

@@ -37,11 +37,25 @@ package object dimwit:
     given [A, B](using labelA: Label[A], labelB: Label[B]): Label[A ~ B] with
       val name: String = s"${labelA.name}_on_${labelB.name}"
 
+  /** Combination of dimensions / labels
+    *
+    * Mentally think of this as the "product" of two dimensions.
+    */
   @targetName("Combined")
   infix trait |*|[A, B]
   object `|*|`:
     given [A, B](using labelA: Label[A], labelB: Label[B]): Label[A |*| B] with
       val name: String = s"${labelA.name}*${labelB.name}"
+
+  /** Concatenation of dimensions / labels
+    *
+    * Mentally think of this as the "sum" of two dimensions.
+    */
+  @targetName("Concatenated")
+  infix trait |+|[A, B]
+  object `|+|`:
+    given [A, B](using labelA: Label[A], labelB: Label[B]): Label[A |+| B] with
+      val name: String = s"${labelA.name}+${labelB.name}"
 
   // Export tensor and related types
   export dimwit.tensor.{Tensor, Tensor0, Tensor1, Tensor2, Tensor3}

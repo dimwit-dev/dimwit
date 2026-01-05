@@ -181,6 +181,19 @@ class TensorOpsStructureSuite extends AnyFunSpec with ScalaCheckPropertyChecks w
       val (cName, dName) = (summon[Label[C]].name, summon[Label[D]].name)
       cd.shape.toString should equal(s"Shape($cName -> ${cd.shape(Axis[C])}, $dName -> ${cd.shape(Axis[D])})")
 
+  it("concatenate and deconcatenate should be identity"):
+    forAll(for
+      a <- Gen.choose(2, 5)
+      b <- Gen.choose(2, 5)
+      c <- Gen.choose(2, 5)
+      ab <- tensor2GenWithShape(VType[Float])(a, b)
+      ac <- tensor2GenWithShape(VType[Float])(a, c).map(_.relabel(Axis[B] -> Axis[C]))
+    yield (b, c, ab, ac)): (b, c, ab, ac) =>
+      val concat = concatenate(ab, ac)
+      val (left, right) = concat.deconcatenate(Axis[B |+| C], (Axis[B] -> b, Axis[C] -> c))
+      left should approxEqual(ab)
+      right should approxEqual(ac)
+
   // TODO remove swap or implement it with type classes so type can be reduced
   // it("swap A and B"):
   //    forAll(tensor2Gen(VType[Float])): ab =>

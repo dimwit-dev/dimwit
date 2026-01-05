@@ -9,7 +9,7 @@ import dimwit.tensor.{Label, Labels}
 import dimwit.tensor.Axis.UnwrapAxes
 import dimwit.tensor.TupleHelpers.{Subset, StrictSubset, PrimeConcat}
 import dimwit.tensor.ShapeTypeHelpers.{AxisRemover, AxesRemover, SharedAxisRemover, AxisReplacer, AxesConditionalRemover}
-import dimwit.{~, `|*|`}
+import dimwit.{~, `|*|`, `|+|`}
 
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
@@ -148,6 +148,8 @@ object TensorOps:
 
       def all: Tensor0[Boolean] = Tensor0(Jax.jnp.all(t.jaxValue))
       def any: Tensor0[Boolean] = Tensor0(Jax.jnp.any(t.jaxValue))
+
+      def unary_! : Tensor[T, Boolean] = Tensor(Jax.jnp.logical_not(t.jaxValue))
 
   end Elementwise
 
@@ -420,6 +422,12 @@ object TensorOps:
 
     export TensorWhere.where
 
+    def triu[T <: Tuple: Labels, V](tensor: Tensor[T, V], k: Int = 0): Tensor[T, V] =
+      Tensor(Jax.jnp.triu(tensor.jaxValue, k = k))
+
+    def tril[T <: Tuple: Labels, V](tensor: Tensor[T, V], k: Int = 0): Tensor[T, V] =
+      Tensor(Jax.jnp.tril(tensor.jaxValue, k = k))
+
     def stack[L: Label, T <: Tuple: Labels, V](
         tensors: Seq[Tensor[T, V]],
         newAxis: Axis[L]
@@ -459,7 +467,110 @@ object TensorOps:
       val concatenatedJaxValue = Jax.jnp.concatenate(jaxValuesSeq, axis = axisIdx)
       Tensor(concatenatedJaxValue)
 
+    trait ValidConcat[T1 <: Tuple, T2 <: Tuple]:
+      type Out <: Tuple
+      def index: Int
+
+    object ValidConcat:
+      type Aux[T1 <: Tuple, T2 <: Tuple, O <: Tuple] = ValidConcat[T1, T2] { type Out = O }
+
+      given recursive[H, T1Tail <: Tuple, T2Tail <: Tuple, OutTail <: Tuple](using
+          next: ValidConcat.Aux[T1Tail, T2Tail, OutTail]
+      ): ValidConcat[H *: T1Tail, H *: T2Tail] with
+        type Out = H *: OutTail
+        def index: Int = next.index + 1
+
+      given concatAxis[H1, H2, Tail <: Tuple](using
+          isDifferent: NotGiven[H1 =:= H2]
+      ): ValidConcat[H1 *: Tail, H2 *: Tail] with
+        type Out = (H1 |+| H2) *: Tail
+        def index: Int = 0
+
+    def concatenate[T1 <: Tuple, T2 <: Tuple, V, R <: Tuple](
+        t1: Tensor[T1, V],
+        t2: Tensor[T2, V]
+    )(using
+        canConcat: ValidConcat.Aux[T1, T2, R],
+        label: Labels[R]
+    ): Tensor[R, V] =
+      val jaxValues = List(t1.jaxValue, t2.jaxValue).toPythonProxy
+      Tensor(Jax.jnp.concatenate(jaxValues, axis = canConcat.index))
+
+    trait Deconcatenator[L]:
+      type Components <: Tuple
+      def labels: List[Label[?]]
+
+    object Deconcatenator extends DeconcatenatorLowPriority:
+      type Aux[L, C <: Tuple] = Deconcatenator[L] { type Components = C }
+
+      given recursive[A, B, CA <: Tuple, CB <: Tuple](using
+          da: Aux[A, CA],
+          db: Aux[B, CB]
+      ): Aux[A |+| B, Tuple.Concat[CA, CB]] =
+        new Deconcatenator[A |+| B]:
+          type Components = Tuple.Concat[CA, CB]
+          def labels = da.labels ++ db.labels
+
+    trait DeconcatenatorLowPriority:
+      given base[L](using l: Label[L]): Deconcatenator.Aux[L, L *: EmptyTuple] =
+        new Deconcatenator[L]:
+          type Components = L *: EmptyTuple
+          def labels = List(l)
+
+    trait TensorTupleMaker[Components <: Tuple, FullShape <: Tuple, SplitAxis, V]:
+      type Out <: Tuple
+      def apply(arrays: Seq[Jax.PyDynamic], compLabels: List[Label[?]], originalLabels: Seq[String], splitIndex: Int): Out
+
+    object TensorTupleMaker:
+      type Aux[C <: Tuple, F <: Tuple, S, V, O <: Tuple] =
+        TensorTupleMaker[C, F, S, V] { type Out = O }
+
+      given empty[F <: Tuple, S, V]: Aux[EmptyTuple, F, S, V, EmptyTuple] =
+        new TensorTupleMaker[EmptyTuple, F, S, V]:
+          type Out = EmptyTuple
+          def apply(a: Seq[Jax.PyDynamic], c: List[Label[?]], o: Seq[String], i: Int) = EmptyTuple
+
+      given cons[Head, Tail <: Tuple, F <: Tuple, S, V, NewShape <: Tuple](using
+          replacer: TupleHelpers.Replacer[F, S, Head] { type Out = NewShape },
+          tailMaker: TensorTupleMaker[Tail, F, S, V]
+      ): Aux[Head *: Tail, F, S, V, Tensor[NewShape, V] *: tailMaker.Out] =
+
+        new TensorTupleMaker[Head *: Tail, F, S, V]:
+          type Out = Tensor[NewShape, V] *: tailMaker.Out
+
+          def apply(arrays: Seq[Jax.PyDynamic], compLabels: List[Label[?]], originalLabels: Seq[String], splitIndex: Int): Out =
+            val currentArr = arrays.head
+            val currentLabel = compLabels.head
+            val newNames = originalLabels.updated(splitIndex, currentLabel.name).toList
+            val newLabelsWitness = new Labels[NewShape]:
+              val names = newNames
+            val headTensor = Tensor[NewShape, V](currentArr)(using newLabelsWitness)
+            headTensor *: tailMaker(arrays.tail, compLabels.tail, originalLabels, splitIndex)
+
     extension [T <: Tuple: Labels, V](tensor: Tensor[T, V])
+
+      def deconcatenate[L, Dims <: Tuple, Comps <: Tuple, Result](
+          axis: Axis[L],
+          dims: Dims
+      )(using
+          axisIndex: AxisIndex[T, L],
+          decon: Deconcatenator.Aux[L, Comps],
+          extractor: DimExtractor[Dims],
+          maker: TensorTupleMaker[Comps, T, L, V]
+      ): maker.Out =
+        val orderedSizes = dims.toList.asInstanceOf[List[Any]].map {
+          case (a: Axis[?], i: Int) => i
+          case _                    => throw new IllegalArgumentException("Invalid dims format")
+        }
+
+        require(orderedSizes.size == decon.labels.size, s"Provided ${orderedSizes.size} sizes but axis has ${decon.labels.size} components")
+
+        val splitIndices = orderedSizes.scanLeft(0)(_ + _).tail.init
+        val pyIndices = me.shadaj.scalapy.py.Dynamic.global.list(splitIndices.toPythonProxy)
+        val splitArrays = Jax.jnp.split(tensor.jaxValue, pyIndices, axis = axisIndex.value).as[Seq[Jax.PyDynamic]]
+        val originalNames = summon[Labels[T]].names.toSeq
+
+        maker.apply(splitArrays, decon.labels, originalNames, axisIndex.value)
 
       private def calcPyIndices[Inputs <: Tuple](
           inputs: Inputs,
@@ -535,12 +646,17 @@ object TensorOps:
           labels: Labels[R]
       ): Tensor[R, V] = slice(Tuple1(axisWithSliceIndex))
 
-      def gather[L](
-          indices: Tensor1[L, Int]
+      def take[L1, L2: Label, R <: Tuple](
+          axis: Axis[L1]
+      )(
+          indices: Tensor1[L2, Int]
       )(using
-          axesIndex: AxisIndex[T, L]
-      ): Tensor[T, V] =
-        Tensor(Jax.jnp.take(tensor.jaxValue, indices.jaxValue, axis = axesIndex.value))
+          ev: AxisRemover[T, L1, R],
+          labels: Labels[R]
+      ): Tensor[Tuple.Concat[Tuple1[L2], R], V] =
+        import Labels.ForConcat.given
+        val result = Jax.jnp.take(tensor.jaxValue, indices.jaxValue, axis = ev.index)
+        Tensor(result)
 
       def set[Inputs <: Tuple, R <: Tuple](
           inputs: Inputs
@@ -592,7 +708,7 @@ object TensorOps:
           )
         )
 
-      def lift[O <: Tuple: Labels](newShape: Shape[O])(using
+      def broadcast_to[O <: Tuple: Labels](newShape: Shape[O])(using
           ev: StrictSubset[T, O] // Ensures T's axes are all present in O
       ): Tensor[O, V] =
         val t = tensor
@@ -859,7 +975,7 @@ end TensorOps
 
 object TensorOpsUtil:
 
-  import TensorOps.Structural.lift
+  import TensorOps.Structural.broadcast_to
 
   sealed trait Broadcast[T1 <: Tuple, T2 <: Tuple, V]:
     type Out <: Tuple
@@ -881,7 +997,7 @@ object TensorOpsUtil:
       type Out = T1
       val labelsOut = summon[Labels[T1]]
       def broadcast(t1: Tensor[T1, V], t2: Tensor[T2, V]) =
-        (t1, t2.lift[T1](t1.shape))
+        (t1, t2.broadcast_to[T1](t1.shape))
 
   trait BroadcastLowPriority:
     given broadcastRight[T1 <: Tuple: Labels, T2 <: Tuple: Labels, V](using
@@ -890,6 +1006,6 @@ object TensorOpsUtil:
       type Out = T2
       val labelsOut = summon[Labels[T2]]
       def broadcast(t1: Tensor[T1, V], t2: Tensor[T2, V]) =
-        (t1.lift[T2](t2.shape), t2)
+        (t1.broadcast_to[T2](t2.shape), t2)
 
 end TensorOpsUtil
