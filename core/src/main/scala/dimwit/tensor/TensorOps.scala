@@ -828,7 +828,7 @@ object TensorOps:
       ): Tensor[L *: OutShape, OutV] =
         // allows us to ignore labels for the intermediate sliced tensors
         val dummyLabels = new Labels[Nothing]:
-          val names = "dummy" :: Nil
+          val names = Nil
 
         val fpy = (args: py.Dynamic) =>
           val tensorList = args.as[Seq[py.Dynamic]].zipWithIndex.map { (jaxArr, i) =>

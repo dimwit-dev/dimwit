@@ -237,11 +237,17 @@ trait C derives Label
     )
     val x2 = Tensor.ones(
       Shape(
-        Axis[B] -> 1,
+        Axis[B] -> 4,
         Axis[C] -> 2
       ),
       VType[Float]
     )
+    println("vmap - println in vmap")
+    val res = x2.vmap(Axis[B]) { xi2 =>
+      println(s"\t ${xi2}")
+      xi2
+    }
+    println(res)
   }
   {
     def f[L1: Label, L2: Label, L3: Label, V](x: Tensor[(L1, L2), Float], y: Tensor[(L2, L3), Float]) =
