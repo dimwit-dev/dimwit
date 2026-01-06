@@ -14,16 +14,18 @@ import me.shadaj.scalapy.readwrite.Writer
 import scala.reflect.ClassTag
 import scala.annotation.unchecked.uncheckedVariance
 
-enum Device(val jaxDevice: PyDynamic):
-  case CPU extends Device(Jax.devices("cpu").head.as[PyDynamic])
-  case GPU extends Device(Jax.devices("gpu").head.as[PyDynamic])
-  case Other(pyDevice: PyDynamic) extends Device(pyDevice)
+enum Device(val platform: String):
+  case CPU extends Device("cpu")
+  case GPU extends Device("gpu")
+  case Other extends Device("other")
 
 object Device:
   val default: Device = Device.CPU
-  val values: Seq[Device] = Seq(
-    Device.CPU
-  )
+  extension (device: Device)
+    def toJaxDevice: Jax.PyDynamic =
+      val devices = Jax.devices(device.platform)
+      require(devices.nonEmpty, s"No JAX devices found for platform: ${device.platform}")
+      devices.head
 
 class Tensor[+T <: Tuple: Labels, V] private[tensor] (
     val jaxValue: Jax.PyDynamic
@@ -34,25 +36,36 @@ class Tensor[+T <: Tuple: Labels, V] private[tensor] (
   lazy val shape: Shape[T] = Shape.fromList[T](jaxValue.shape.as[Seq[Int]].toList)
   lazy val vtype: VType[V] = VType(this)
 
-  lazy val device: Device = Device.values.find(d => Jax.device_get(jaxValue).equals(d.jaxDevice)).getOrElse(Device.Other(Jax.device_get(jaxValue)))
+  lazy val device: Device =
+    val jaxDevice = Jax.device_get(jaxValue)
+    jaxDevice.platform.as[String] match
+      case "cpu" => Device.CPU
+      case "gpu" => Device.GPU
+      case _     => Device.Other
 
   def asType[V2](vtype: VType[V2]): Tensor[T, V2] = new Tensor(Jax.jnp.astype(jaxValue, JaxDType.jaxDtype(vtype.dtype)))
 
-  def toDevice(newDevice: Device): Tensor[T, V] = new Tensor(jaxValue = Jax.device_put(jaxValue, newDevice.jaxDevice))
+  def toDevice(newDevice: Device): Tensor[T, V] = new Tensor(jaxValue = Jax.device_put(jaxValue, newDevice.toJaxDevice))
 
   override def equals(other: Any): Boolean =
     other match
       case that: Tensor[?, ?] => Jax.jnp.array_equal(this.jaxValue, that.jaxValue).item().as[Boolean]
       case _                  => false
 
-  override def hashCode(): Int = jaxArray.tobytes().hashCode()
+  override def hashCode(): Int = jaxValue.block_until_ready().tobytes().hashCode()
 
-  override def toString: String = jaxArray.toString()
-
-  private def jaxArray: Jax.PyDynamic = jaxValue.block_until_ready()
+  override def toString: String =
+    jaxTypeName match
+      case Jax.ArrayTypeName =>
+        jaxValue.block_until_ready().toString()
+      case Jax.BatchTracerName =>
+        s"TracerTensor(${shape.toString})"
+      case _ => jaxValue.toString()
 
   def dim[L](axis: Axis[L])(using axisIndex: AxisIndex[T @uncheckedVariance, L]): Dim[L] =
     shape.dim(axis)
+
+  private val jaxTypeName: String = py.Dynamic.global.`type`(jaxValue).`__name__`.as[String]
 
 object Tensor:
 

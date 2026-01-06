@@ -6,6 +6,9 @@ import me.shadaj.scalapy.py.PyQuote
 
 object Jax:
 
+  private[dimwit] val ArrayTypeName = "ArrayImpl"
+  private[dimwit] val BatchTracerName = "BatchTracer"
+
   type PyAny = py.Any
   type PyDynamic = py.Dynamic
 
@@ -27,8 +30,10 @@ object Jax:
 
   def devices(deviceType: String): Seq[py.Dynamic] =
     val jaxModule = py.module("jax")
-    val devices = jaxModule.devices(deviceType)
-    devices.as[Seq[py.Dynamic]]
+    try
+      val devices = jaxModule.devices(deviceType)
+      devices.as[Seq[py.Dynamic]]
+    catch case e: me.shadaj.scalapy.py.PythonException => Seq.empty
 
   def device_put(x: py.Dynamic, device: PyDynamic): PyDynamic =
     val jaxModule = py.module("jax")
