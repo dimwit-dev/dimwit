@@ -53,17 +53,54 @@ val normalized: Tensor2[Batch, Feature, Float] =
     t.vmap(Axis[Batch])(normalize)
 ```
 
-## Getting Started
+See [examples](examples/src/main/scala/basic/) for more examples.
 
-To get started with DimWit, check out the [examples](examples/src/main/scala/basic) directory which contains a variety of example programs demonstrating the core concepts and features of the library.
 
-To run the examples, you will need to have SBT, Python and JAX installed. 
-If you don't want to set up the environment manually, you can use the provided Docker image 
+## Using DimWit as a Library
+
+**Note**: DimWit is currently in early development (`0.1.0-SNAPSHOT`) and not yet published to Maven Central.
+
+### Installation
+
+To use dimwit as a library, clone the repository and publish locally:
 
 ```bash
-docker pull ghcr.io/marcelluethi/dimwit-ci:latest
-docker run -it ghcr.io/marcelluethi/dimwit-ci:latest /bin/bash
+git clone https://github.com/dimwit-dev/dimwit.git
+cd dimwit
+sbt publishLocal
 ```
+
+Then add to your `build.sbt`:
+
+```scala
+libraryDependencies ++= Seq(
+  "ch.contrafactus" %% "dimwit-core" % "0.1.0-SNAPSHOT",  // Core tensor library
+  "ch.contrafactus" %% "dimwit-nn" % "0.1.0-SNAPSHOT"     // Neural network components (optional)
+)
+
+resolvers += Resolver.mavenLocal
+```
+
+### Python Environment Setup
+
+DimWit requires **Python 3.9+** and **JAX** since it uses JAX as the backend for tensor operations via ScalaPy.
+
+1. **Install Python and JAX**:
+   ```bash
+   pip install jax jaxlib  # CPU version
+   # or for GPU support:
+   # pip install jax[cuda12]
+   ```
+
+2. **Set ScalaPy environment variables**:
+   ```bash
+   export SCALAPY_PYTHON_PROGRAMNAME=$(which python)
+   export SCALAPY_PYTHON_LIBRARY=python3.9  # or your Python version
+   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(python -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
+   ```
+
+   You can add these to your shell profile or source them before running your application.
+
 
 ## Status 
 

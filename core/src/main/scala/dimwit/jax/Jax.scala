@@ -18,12 +18,6 @@ object Jax:
   // Lazy initialization to avoid errors if JAX is not installed
   lazy val sys = py.module("sys")
 
-  // Configure Python path lazily
-  private lazy val configurePythonPath: Unit =
-    sys.path.append("./src")
-    sys.path.append("./src/python")
-    sys.path.append("../")
-
   def clearCaches(): Unit =
     // Using ScalaPy to call Python JAX
     py.module("jax").clear_caches()
@@ -47,7 +41,7 @@ object Jax:
 
   // Lazy module imports with error handling
   lazy val jax =
-    configurePythonPath
+    PythonSetup.initialize
     try py.module("jax")
     catch
       case e: Exception =>
@@ -57,7 +51,7 @@ object Jax:
         )
 
   lazy val jnp =
-    configurePythonPath
+    PythonSetup.initialize
     try py.module("jax.numpy")
     catch
       case e: Exception =>
@@ -67,7 +61,7 @@ object Jax:
         )
 
   lazy val jnn =
-    configurePythonPath
+    PythonSetup.initialize
     try py.module("jax.nn")
     catch
       case e: Exception =>
@@ -77,7 +71,7 @@ object Jax:
         )
 
   lazy val np =
-    configurePythonPath
+    PythonSetup.initialize
     try py.module("numpy")
     catch
       case e: Exception =>
@@ -87,7 +81,7 @@ object Jax:
         )
 
   lazy val jrandom =
-    configurePythonPath
+    PythonSetup.initialize
     try py.module("jax.random")
     catch
       case e: Exception =>
@@ -97,7 +91,7 @@ object Jax:
         )
 
   lazy val jax_helper =
-    configurePythonPath
+    PythonSetup.initialize
     try py.module("jax_helper")
     catch
       case e: Exception =>
@@ -107,7 +101,7 @@ object Jax:
         )
 
   lazy val scipy_stats =
-    configurePythonPath
+    PythonSetup.initialize
     try py.module("jax.scipy.stats")
     catch
       case e: Exception =>
@@ -117,7 +111,7 @@ object Jax:
         )
 
   lazy val lax =
-    configurePythonPath
+    PythonSetup.initialize
     try py.module("jax.lax")
     catch
       case e: Exception =>
