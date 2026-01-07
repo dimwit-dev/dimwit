@@ -25,8 +25,9 @@ object Random:
       (0 until num).map(i => Key(splitKeys.__getitem__(i)))
 
     /** Split this key into multiple independent keys stored in a tensor */
-    def splitToTensor[L: Label](axis: Axis[L], num: Int): Tensor1[L, Key] =
-      val splitKeys = Jax.jrandom.split(jaxKey, num)
+    def splitToTensor[L: Label](dim: Dim[L]): Tensor1[L, Key] =
+      val (_, n) = dim
+      val splitKeys = Jax.jrandom.split(jaxKey, n)
       Tensor[Tuple1[L], Key](splitKeys)
 
     /** Split into exactly 2 keys (common case) */
@@ -35,8 +36,9 @@ object Random:
       (keys(0), keys(1))
 
     /** Generate a tensor of samples by splitting the key along the given axis and applying f to each sub-key ^ */
-    def splitvmap[L: Label, T <: Tuple: Labels, V](axis: Axis[L], n: Int)(f: Key => Tensor[T, V]): Tensor[L *: T, V] =
-      this.splitToTensor(axis, n).vmap(axis)(k => f(k.item))
+    def splitvmap[L: Label, T <: Tuple: Labels, V](dim: Dim[L])(f: Key => Tensor[T, V]): Tensor[L *: T, V] =
+      val (axis, n) = dim
+      this.splitToTensor(dim).vmap(axis)(k => f(k.item))
 
     /** Generate a new key by splitting */
     def next(): Key = split2()._2

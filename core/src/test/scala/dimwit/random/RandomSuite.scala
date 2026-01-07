@@ -44,7 +44,7 @@ class RandomSuite extends AnyFunSuite with Matchers:
     val n = 3
 
     // Generate random numbers using splitvmap
-    val vmapResults = key.splitvmap(Axis[Samples], n) { k =>
+    val vmapResults = key.splitvmap(Axis[Samples] -> n) { k =>
       Tensor0.randn(k)
     }
 

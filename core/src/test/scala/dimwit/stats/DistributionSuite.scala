@@ -34,7 +34,7 @@ class DistributionSuite extends AnyFunSuite with Matchers:
       Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(1.0f, 0.5f))
     )
     val key = Random.Key(42)
-    val samples = key.splitvmap(Axis["Samples"], 10000)(k => normal.sample(k))
+    val samples = key.splitvmap(Axis["Samples"] -> 10000)(k => normal.sample(k))
     val sampleMeans = samples.mean(Axis["Samples"])
     val expectedMeans = normal.loc
     sampleMeans should approxEqual(expectedMeans, 0.2f)
@@ -57,7 +57,7 @@ class DistributionSuite extends AnyFunSuite with Matchers:
       Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(1.0f, 2.0f))
     )
     val key = Random.Key(42)
-    val samples = key.splitvmap(Axis["Samples"], 10000)(k => uniform.sample(k))
+    val samples = key.splitvmap(Axis["Samples"] -> 10000)(k => uniform.sample(k))
     val sampleMeans = samples.mean(Axis["Samples"])
     val expectedMeans = (uniform.low + uniform.high) *! 0.5f
     sampleMeans should approxEqual(expectedMeans, 0.2f)
@@ -78,7 +78,7 @@ class DistributionSuite extends AnyFunSuite with Matchers:
       Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(0.3f, 0.7f))
     )
     val key = Random.Key(42)
-    val samples = key.splitvmap(Axis["Samples"], 1000)(k => bernoulli.sample(k))
+    val samples = key.splitvmap(Axis["Samples"] -> 1000)(k => bernoulli.sample(k))
     val sampleMeans = samples.asFloat.mean(Axis["Samples"])
     val expectedMeans = bernoulli.probs
     sampleMeans should approxEqual(expectedMeans, 0.1f)
@@ -101,7 +101,7 @@ class DistributionSuite extends AnyFunSuite with Matchers:
       Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(1.0f, 0.5f))
     )
     val key = Random.Key(42)
-    val samples = key.splitvmap(Axis["Samples"], 50000)(k => cauchy.sample(k))
+    val samples = key.splitvmap(Axis["Samples"] -> 50000)(k => cauchy.sample(k))
     val sampleMedian = samples.median(Axis["Samples"])
     val expectedMedian = cauchy.loc
     sampleMedian should approxEqual(expectedMedian, 0.5f)
@@ -125,7 +125,7 @@ class DistributionSuite extends AnyFunSuite with Matchers:
       Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(1.0f, 2.0f))
     )
     val key = Random.Key(42)
-    val samples = key.splitvmap(Axis["Samples"], 10000)(k => halfNormal.sample(k))
+    val samples = key.splitvmap(Axis["Samples"] -> 10000)(k => halfNormal.sample(k))
     val sampleMeans = samples.mean(Axis["Samples"])
     // Mean of half-normal is scale * sqrt(2/pi) + loc
     val sqrtTwoOverPi = math.sqrt(2.0 / math.Pi).toFloat
@@ -152,7 +152,7 @@ class DistributionSuite extends AnyFunSuite with Matchers:
       scale = Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(1.0f, 0.5f))
     )
     val key = Random.Key(42)
-    val samples = key.splitvmap(Axis["Samples"], 10000)(k => studentT.sample(k))
+    val samples = key.splitvmap(Axis["Samples"] -> 10000)(k => studentT.sample(k))
     val sampleMean = samples.mean(Axis["Samples"])
     val expectedMean = studentT.loc
     sampleMean should approxEqual(expectedMean, 0.2f)
@@ -182,7 +182,7 @@ class DistributionSuite extends AnyFunSuite with Matchers:
     )
     val mvNormal = MVNormal(mean, cov)
     val key = Random.Key(42)
-    val samples = key.splitvmap(Axis["Samples"], 10000)(k => mvNormal.sample(k))
+    val samples = key.splitvmap(Axis["Samples"] -> 10000)(k => mvNormal.sample(k))
     val sampleMean = samples.mean(Axis["Samples"])
     val expectedMean = mvNormal.mean
     sampleMean should approxEqual(expectedMean, 0.2f)
@@ -202,7 +202,7 @@ class DistributionSuite extends AnyFunSuite with Matchers:
     val concentration = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(2.0f, 5.0f, 3.0f))
     val dirichlet = Dirichlet(concentration)
     val key = Random.Key(42)
-    val samples = key.splitvmap(Axis["Samples"], 10000)(k => dirichlet.sample(k))
+    val samples = key.splitvmap(Axis["Samples"] -> 10000)(k => dirichlet.sample(k))
     val sampleMean = samples.mean(Axis["Samples"])
     // Expected mean for Dirichlet is concentration / sum(concentration)
     // For [2.0, 5.0, 3.0], sum=10.0, so expected is [0.2, 0.5, 0.3]
@@ -228,7 +228,7 @@ class DistributionSuite extends AnyFunSuite with Matchers:
     val n = 100
     val multinomial = Multinomial[A](n, probs)
     val key = Random.Key(42)
-    val samples = key.splitvmap(Axis["Samples"], 10000)(k => multinomial.sample(k))
+    val samples = key.splitvmap(Axis["Samples"] -> 10000)(k => multinomial.sample(k))
     val sampleMean = samples.asFloat.mean(Axis["Samples"])
     // Expected mean counts are n * probs
     val expectedMean = multinomial.probs.asFloat *! n.toFloat
@@ -248,7 +248,7 @@ class DistributionSuite extends AnyFunSuite with Matchers:
     val categorical = Categorical(probs)
     val key = Random.Key(42)
     val numSamples = 10000
-    val samples = key.splitvmap(Axis["Samples"], numSamples)(k => categorical.sample(k))
+    val samples = key.splitvmap(Axis["Samples"] -> numSamples)(k => categorical.sample(k))
     val counts = Tensor.fromPy[Tuple1[A], Float](VType[Float])(
       Jax.jnp.bincount(samples.jaxValue, minlength = 4).astype(Jax.jnp.float32)
     )
