@@ -2,13 +2,13 @@ package dimwit.jax
 
 import dimwit.*
 import dimwit.Conversions.given
-import org.scalatest.propspec.AnyPropSpec
+import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 import me.shadaj.scalapy.py
 
-class JitSuite extends AnyPropSpec with Matchers:
+class JitSuite extends AnyFunSpec with Matchers:
 
-  property("JIT compilation example: Speedup for jitted function"):
+  it("JIT compilation example: Speedup for jitted function"):
     def timeFn[T](fn: T => Any, input: T, runs: Int = 100): Long =
       val start = System.nanoTime()
       for _ <- 0 until runs do fn(input)

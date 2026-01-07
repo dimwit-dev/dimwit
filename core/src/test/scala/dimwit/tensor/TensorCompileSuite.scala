@@ -4,10 +4,9 @@ import dimwit.*
 import org.scalatest.propspec.AnyPropSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.funspec.AnyFunSpec
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scala.compiletime.testing.typeCheckErrors
 
-class TensorCompileSuite extends AnyFunSpec with ScalaCheckPropertyChecks with Matchers:
+class TensorCompileSuite extends AnyFunSpec with Matchers:
 
   it("Nice error message when axis not found in tensor for sum"):
     val t = Tensor.zeros(Shape(Axis[A] -> 1, Axis[B] -> 2), VType[Float])

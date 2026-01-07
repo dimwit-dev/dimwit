@@ -1,18 +1,12 @@
 package dimwit.tensor
 
-import scala.compiletime.{constValue, erasedValue}
-import scala.compiletime.error
+import scala.compiletime.{constValue, erasedValue, summonInline}
 
 type Dim[T] = (Axis[T], Int)
 
 object Axis:
-  def apply[A]: Axis[A] =
-    new AxisImpl[A]()
 
-  type UnwrapAxes[T <: Tuple] <: Tuple = T match
-    case EmptyTuple      => EmptyTuple
-    case Axis[a] *: tail => a *: UnwrapAxes[tail]
-    case h *: tail       => h *: UnwrapAxes[tail]
+  def apply[A]: Axis[A] = new AxisImpl[A]()
 
 /** Represents an axis with A. This maps the type-level to a runtime representation.
   */
@@ -46,7 +40,6 @@ object AxisIndex:
 sealed trait AxisIndices[T <: Tuple, Axiss <: Tuple]:
   def values: List[Int]
 
-import scala.compiletime.{constValue, erasedValue, summonInline}
 object AxisIndices:
 
   class AxisIndicesImpl[T <: Tuple, Axiss <: Tuple](val values: List[Int]) extends AxisIndices[T, Axiss]

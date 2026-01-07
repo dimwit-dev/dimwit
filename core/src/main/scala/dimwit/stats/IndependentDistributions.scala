@@ -20,7 +20,7 @@ class Normal[T <: Tuple: Labels](
 
   override def sample(key: Random.Key): Tensor[T, Float] =
     val standardNormal = Tensor.fromPy[T, Float](VType[Float])(Jax.jrandom.normal(key.jaxKey, loc.shape.dimensions.toPythonProxy))
-    standardNormal *! scale +! loc
+    standardNormal * scale + loc
 
 object Normal:
   def standardNormal[T <: Tuple: Labels](shape: Shape[T]) = new Normal(
@@ -62,7 +62,7 @@ class Cauchy[T <: Tuple: Labels](
     Tensor.fromPy(VType[LogProb])(jstats.cauchy.logpdf(x.jaxValue, loc = loc.jaxValue, scale = scale.jaxValue))
 
   override def sample(k: Random.Key): Tensor[T, Float] =
-    Tensor.fromPy(VType[Float])(Jax.jrandom.cauchy(k.jaxKey, shape = loc.shape.dimensions.toPythonProxy)) *! scale +! loc
+    Tensor.fromPy(VType[Float])(Jax.jrandom.cauchy(k.jaxKey, shape = loc.shape.dimensions.toPythonProxy)) * scale + loc
 
 class HalfNormal[T <: Tuple: Labels](
     val loc: Tensor[T, Float],
@@ -80,7 +80,7 @@ class HalfNormal[T <: Tuple: Labels](
   override def sample(k: Random.Key): Tensor[T, Float] =
     // Half-normal: sample from normal and take absolute value
     val normal = Tensor.fromPy[T, Float](VType[Float])(Jax.jrandom.normal(k.jaxKey, shape = loc.shape.dimensions.toPythonProxy))
-    (normal *! scale +! loc).abs
+    (normal * scale + loc).abs
 
 class StudentT[T <: Tuple: Labels](
     val df: Int,
@@ -95,4 +95,4 @@ class StudentT[T <: Tuple: Labels](
   override def sample(k: Random.Key): Tensor[T, Float] =
     Tensor.fromPy(VType[Float])(
       Jax.jrandom.t(k.jaxKey, df = df, shape = loc.shape.dimensions.toPythonProxy)
-    ) *! scale +! loc
+    ) * scale + loc

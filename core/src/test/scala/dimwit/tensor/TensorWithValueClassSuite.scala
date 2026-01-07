@@ -4,12 +4,11 @@ import dimwit.*
 import org.scalatest.propspec.AnyPropSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.funspec.AnyFunSpec
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scala.compiletime.testing.typeCheckErrors
 
-class TensorWithValueClassSuite extends AnyFunSpec with ScalaCheckPropertyChecks with Matchers:
+class TensorWithValueClassSuite extends AnyFunSpec with Matchers:
 
-  it("Nice error message when axis not found in tensor for sum"):
+  it("Value class support for more specific types in tensors"):
     object ValueClassScope:
       opaque type V1 = Float
       opaque type V2 = Float

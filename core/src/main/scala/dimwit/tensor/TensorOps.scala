@@ -6,9 +6,8 @@ import scala.util.NotGiven
 
 import dimwit.jax.{Jax, Einops}
 import dimwit.tensor.{Label, Labels}
-import dimwit.tensor.Axis.UnwrapAxes
 import dimwit.tensor.TupleHelpers.{Subset, StrictSubset, PrimeConcat}
-import dimwit.tensor.ShapeTypeHelpers.{AxisRemover, AxesRemover, SharedAxisRemover, AxisReplacer, AxesConditionalRemover}
+import dimwit.tensor.ShapeTypeHelpers.{AxisRemover, AxesRemover, SharedAxisRemover, AxisReplacer, AxesConditionalRemover, UnwrapAxes}
 import dimwit.{~, `|*|`, `|+|`}
 
 import me.shadaj.scalapy.py
@@ -95,14 +94,14 @@ object TensorOps:
     extension [T <: Tuple: Labels, V: IsNumber](t: Tensor[T, V])
 
       def +(other: Tensor[T, V]): Tensor[T, V] = add(t, other)
-      def +![O <: Tuple](other: Tensor[O, V])(using join: Broadcast[T, O, V]): Tensor[join.Out, V] = join.applyTo(t, other)(add)
+      def +![O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, V] = bc.applyTo(t, other)(add)
 
       def unary_- : Tensor[T, V] = negate(t)
       def -(other: Tensor[T, V]): Tensor[T, V] = subtract(t, other)
-      def -![O <: Tuple](other: Tensor[O, V])(using join: Broadcast[T, O, V]): Tensor[join.Out, V] = join.applyTo(t, other)(subtract)
+      def -![O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, V] = bc.applyTo(t, other)(subtract)
 
       def *(other: Tensor[T, V]): Tensor[T, V] = multiply(t, other)
-      def *![O <: Tuple](other: Tensor[O, V])(using join: Broadcast[T, O, V]): Tensor[join.Out, V] = join.applyTo(t, other)(multiply)
+      def *![O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, V] = bc.applyTo(t, other)(multiply)
       def scale(other: Tensor0[V]): Tensor[T, V] = multiplyScalar(t, other)
 
       def abs: Tensor[T, V] = Tensor(Jax.jnp.abs(t.jaxValue))
@@ -432,11 +431,11 @@ object TensorOps:
 
     export TensorWhere.where
 
-    def triu[T <: Tuple: Labels, V](tensor: Tensor[T, V], k: Int = 0): Tensor[T, V] =
-      Tensor(Jax.jnp.triu(tensor.jaxValue, k = k))
+    def triu[T <: Tuple: Labels, V](tensor: Tensor[T, V], kthDiagonal: Int = 0): Tensor[T, V] =
+      Tensor(Jax.jnp.triu(tensor.jaxValue, k = kthDiagonal))
 
-    def tril[T <: Tuple: Labels, V](tensor: Tensor[T, V], k: Int = 0): Tensor[T, V] =
-      Tensor(Jax.jnp.tril(tensor.jaxValue, k = k))
+    def tril[T <: Tuple: Labels, V](tensor: Tensor[T, V], kthDiagonal: Int = 0): Tensor[T, V] =
+      Tensor(Jax.jnp.tril(tensor.jaxValue, k = kthDiagonal))
 
     def stack[L: Label, T <: Tuple: Labels, V](
         tensors: Seq[Tensor[T, V]],
@@ -476,6 +475,14 @@ object TensorOps:
       val jaxValuesSeq = tensors.map(_.jaxValue).toPythonProxy
       val concatenatedJaxValue = Jax.jnp.concatenate(jaxValuesSeq, axis = axisIdx)
       Tensor(concatenatedJaxValue)
+
+    def concatenate[L: Label, T <: Tuple: Labels, V](
+        t1: Tensor[T, V],
+        t2: Tensor[T, V],
+        concatAxis: Axis[L]
+    )(using
+        axisIndex: AxisIndex[T, L]
+    ): Tensor[T, V] = concatenate(Seq(t1, t2), concatAxis)
 
     trait ValidConcat[T1 <: Tuple, T2 <: Tuple]:
       type Out <: Tuple
@@ -609,14 +616,14 @@ object TensorOps:
 
         Jax.Dynamic.global.tuple(indicesBuffer.toSeq.toPythonProxy)
 
-      def split[newL, splitL](newAxis: Axis[newL], splitAxis: Axis[splitL], interval: Int)(using
-          newLabel: Label[newL],
+      def split[NewL, splitL](newAxis: Axis[NewL], splitAxis: Axis[splitL], interval: Int)(using
+          newLabel: Label[NewL],
           axisIndex: AxisIndex[T, splitL]
-      ): Tensor[InsertBefore[T, splitL, newL], V] =
+      ): Tensor[InsertBefore[T, splitL, NewL], V] =
         val splitIdx = axisIndex.value
         val names = summon[Labels[T]].names
         val newNames = names.take(splitIdx) ++ Seq(newLabel.name) ++ names.drop(splitIdx)
-        given Labels[InsertBefore[T, splitL, newL]] with
+        given Labels[InsertBefore[T, splitL, NewL]] with
           val names = newNames.toSeq
         val (before, after) = tensor.shape.dimensions.splitAt(splitIdx)
         val newShape = before ++ Seq(interval, after.head / interval) ++ after.drop(1)
@@ -694,17 +701,23 @@ object TensorOps:
           extractor: DimExtractor[Dims]
       ): Tensor[UnwrapAxes[Axes], V] =
         def createEinopsPattern(fromPattern: String, toPattern: String): String =
-          def cleanPattern(pattern: String): String =
+          def cleanPatternStar(pattern: String): String =
             // to replace all a*b*c in pattern with (a b c), example:
             // "a*b*c d e f*g h" -> "(a b c) d e (f g) h"
             val regex = raw"([a-zA-Z0-9_]+(\*[a-zA-Z0-9_]+)+)".r
             regex.replaceAllIn(
               pattern,
-              m =>
-                val group = m.group(1)
-                val replaced = group.split("\\*").mkString("(", " ", ")")
-                replaced
+              _.group(1).split("\\*").mkString("(", " ", ")")
             )
+          def cleanPatternPlus(pattern: String): String =
+            // Support dimwit.|+| by replacing + with underlines
+            val regex = raw"([a-zA-Z0-9_]+(\+[a-zA-Z0-9_]+)+)".r
+            regex.replaceAllIn(
+              pattern,
+              _.group(1).replace("+", "_")
+            )
+          def cleanPattern(pattern: String): String =
+            cleanPatternPlus(cleanPatternStar(pattern))
           s"${cleanPattern(fromPattern)} -> ${cleanPattern(toPattern)}"
         val fromPattern = tensor.shape.labels.mkString(" ")
         val toPattern = newLabels.names.mkString(" ")
@@ -718,9 +731,26 @@ object TensorOps:
           )
         )
 
-      def broadcast_to[O <: Tuple: Labels](newShape: Shape[O])(using
-          ev: StrictSubset[T, O] // Ensures T's axes are all present in O
+      def broadcastTo[O <: Tuple: Labels](newShape: Shape[O])(using
+          ev: StrictSubset[T, O]
       ): Tensor[O, V] =
+        /* Disallow implicit broadcasting where an *existing* axis changes size (implicitly).
+         * dimwit broadcasting only adds missing axes, never changes existing ones.
+         * 
+         * This is a required check to prevent implicit broadcasting across dimwit.
+         * If this check is not explicitly present, Jax.jnp.broadcast_to would implicit broadcast.*/
+        def disallowImplicitShapeBroadcasting(): Unit =
+          val tAxesDims = tensor.axes.zip(tensor.shape.dimensions).toMap
+          val newShapeAxesDims = newShape.labels.zip(newShape.dimensions).toMap
+          tensor.axes.foreach(axisName =>
+            require(
+              tAxesDims(axisName) == newShapeAxesDims(axisName),
+              s"Broadcasting only adds missing axes. Present axes must have the same size. Axis ${axisName} has size ${tAxesDims(axisName)} in the current tensor but size ${newShapeAxesDims(axisName)} in the target shape."
+            )
+          )
+
+        disallowImplicitShapeBroadcasting() // Make dimwit coders, good coders :)
+
         val t = tensor
 
         val currentNames = summon[Labels[T]].names
@@ -800,7 +830,7 @@ object TensorOps:
       ): Tensor[R, V] =
         require(
           tensor.shape.dimensions(ev.index) == 1,
-          s"Cannot squeeze axis ${axis} of size ${tensor.shape.dimensions(ev.index)}"
+          s"Cannot squeeze axis ${summon[Label[L]].name} of size ${tensor.shape.dimensions(ev.index)}"
         )
         Tensor(Jax.jnp.squeeze(tensor.jaxValue, axis = ev.index))
 
@@ -939,15 +969,17 @@ object TensorOps:
 
   object ValueOps:
 
+    import Elementwise.+!
+
     extension [V: IsNumber: Writer](scalar: V)
 
-      def +![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] = addScalar(t, Tensor0.const(t.vtype)(scalar))
-      def -![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] = subtractScalar(t, Tensor0.const(t.vtype)(scalar))
-      def *![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] = multiplyScalar(t, Tensor0.const(t.vtype)(scalar))
+      def +![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] = Tensor0.const(t.vtype)(scalar).broadcastTo(t.shape) + t
+      def -![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] = Tensor0.const(t.vtype)(scalar).broadcastTo(t.shape) - t
+      def *![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] = Tensor0.const(t.vtype)(scalar).broadcastTo(t.shape) * t
 
     extension [V: IsFloat: Writer](scalar: V)
 
-      def /![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] = divideScalar(t, Tensor0.const(t.vtype)(scalar))
+      def /![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] = Tensor0.const(t.vtype)(scalar).broadcastTo(t.shape) / t
 
   object Tensor1Ops:
 
@@ -985,8 +1017,9 @@ end TensorOps
 
 object TensorOpsUtil:
 
-  import TensorOps.Structural.broadcast_to
+  import TensorOps.Structural.broadcastTo
 
+  @implicitNotFound("Cannot broadcast tensors of shapes ${T1} and ${T2}. If same shape no broadcasting allowed!")
   sealed trait Broadcast[T1 <: Tuple, T2 <: Tuple, V]:
     type Out <: Tuple
     given labelsOut: Labels[Out]
@@ -996,10 +1029,6 @@ object TensorOpsUtil:
       f(bt1, bt2)
 
   object Broadcast extends BroadcastLowPriority:
-    given identity[T <: Tuple: Labels, V]: Broadcast[T, T, V] with
-      type Out = T
-      val labelsOut = summon[Labels[T]]
-      def broadcast(t1: Tensor[T, V], t2: Tensor[T, V]) = (t1, t2)
 
     given broadcastLeft[T1 <: Tuple: Labels, T2 <: Tuple: Labels, V](using
         StrictSubset[T2, T1]
@@ -1007,7 +1036,7 @@ object TensorOpsUtil:
       type Out = T1
       val labelsOut = summon[Labels[T1]]
       def broadcast(t1: Tensor[T1, V], t2: Tensor[T2, V]) =
-        (t1, t2.broadcast_to[T1](t1.shape))
+        (t1, t2.broadcastTo[T1](t1.shape))
 
   trait BroadcastLowPriority:
     given broadcastRight[T1 <: Tuple: Labels, T2 <: Tuple: Labels, V](using
@@ -1016,6 +1045,6 @@ object TensorOpsUtil:
       type Out = T2
       val labelsOut = summon[Labels[T2]]
       def broadcast(t1: Tensor[T1, V], t2: Tensor[T2, V]) =
-        (t1.broadcast_to[T2](t2.shape), t2)
+        (t1.broadcastTo[T2](t2.shape), t2)
 
 end TensorOpsUtil

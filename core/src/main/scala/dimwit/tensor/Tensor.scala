@@ -33,7 +33,7 @@ class Tensor[+T <: Tuple: Labels, V] private[tensor] (
 
   lazy val axes: List[String] = shape.labels
   lazy val dtype: DType = JaxDType.fromJaxDtype(jaxValue.dtype)
-  lazy val shape: Shape[T] = Shape.fromList[T](jaxValue.shape.as[Seq[Int]].toList)
+  lazy val shape: Shape[T] = Shape.fromSeq[T](jaxValue.shape.as[Seq[Int]])
   lazy val vtype: VType[V] = VType(this)
 
   lazy val device: Device =
@@ -141,3 +141,19 @@ object Tensor2:
 
   def eye[L: Label, V](dim: Dim[L], vtype: VType[V]): Tensor2[L, L, V] = Tensor(Jax.jnp.eye(dim._2, dtype = vtype.dtype.jaxType))
   def diag[L: Label, V](diag: Tensor1[L, V]): Tensor2[L, L, V] = Tensor(Jax.jnp.diag(diag.jaxValue))
+
+object Tensor3:
+
+  def fromArray[L1: Label, L2: Label, L3: Label, V](
+      axis1: Axis[L1],
+      axis2: Axis[L2],
+      axis3: Axis[L3],
+      vtype: VType[V]
+  )(
+      values: Array[Array[Array[V]]]
+  )(using
+      py.ConvertableToSeqElem[V],
+      ClassTag[V]
+  ): Tensor3[L1, L2, L3, V] =
+    val dims = (axis1 -> values.length, axis2 -> values.head.length, axis3 -> values.head.head.length)
+    Tensor.fromArray(Shape(dims), vtype)(values.flatten.flatten)

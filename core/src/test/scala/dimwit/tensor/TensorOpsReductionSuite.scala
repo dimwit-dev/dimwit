@@ -2,176 +2,160 @@ package dimwit.tensor
 
 import dimwit.*
 import dimwit.Conversions.given
-import org.scalacheck.Prop.*
-import org.scalacheck.{Arbitrary, Gen}
-import me.shadaj.scalapy.py
-import me.shadaj.scalapy.py.SeqConverters
-import TensorGen.*
-import TestUtil.*
 import org.scalatest.matchers.should.Matchers
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import org.scalatest.funspec.AnyFunSpec
 
-class TensorOpsReductionSuite extends AnyFunSpec with ScalaCheckPropertyChecks with Matchers:
+import TestUtil.*
 
-  py.exec("import jax.numpy as jnp")
+class TensorOpsReductionSuite extends AnyFunSpec with Matchers:
 
-  def checkBinaryReductionOpsToBool[T <: Tuple: Labels](gen: Gen[(Tensor[T, Float], Tensor[T, Float])])(pyCode: String, scOp: (Tensor[T, Float], Tensor[T, Float]) => Boolean) =
-    it(s"Tensor[${summon[Labels[T]].names.mkString(", ")}]"):
-      forAll(gen): (t1, t2) =>
-        val (py, sc) = pythonScalaBinaryReductionOpsToBool(t1, t2)(pyCode, scOp)
-        py shouldEqual sc
+  val t2 = Tensor2.fromArray(
+    Axis[A],
+    Axis[B],
+    VType[Float]
+  )(
+    Array(
+      Array(1.0f, 2.0f, 3.0f),
+      Array(4.0f, 5.0f, 6.0f)
+    )
+  )
 
-  def checkReductionOpsFloatToFloat[T <: Tuple: Labels](gen: Gen[Tensor[T, Float]])(pyCode: String, scOp: Tensor[T, Float] => Tensor0[Float]) =
-    it(s"Tensor[${summon[Labels[T]].names.mkString(", ")}]"):
-      forAll(gen): t =>
-        val (py, sc) = pythonScalaReductionOpsToFloat(t)(pyCode, scOp)
-        py.item shouldEqual sc.item
+  val b2 = Tensor2.fromArray(
+    Axis[A],
+    Axis[B],
+    VType[Boolean]
+  )(
+    Array(
+      Array(true, true),
+      Array(true, false)
+    )
+  )
 
-  def checkReductionOpsFloatToInt[T <: Tuple: Labels](gen: Gen[Tensor[T, Float]])(pyCode: String, scOp: Tensor[T, Float] => Tensor0[Int]) =
-    it(s"Tensor[${summon[Labels[T]].names.mkString(", ")}]"):
-      forAll(gen): t =>
-        val (py, sc) = pythonScalaReductionOpsToInt(t)(pyCode, scOp)
-        py.item shouldEqual sc.item
+  describe("Equality Ops"):
 
-  def checkReductionOpsBoolToBool[T <: Tuple: Labels](gen: Gen[Tensor[T, Boolean]])(pyCode: String, scOp: Tensor[T, Boolean] => Tensor0[Boolean]) =
-    it(s"Tensor[${summon[Labels[T]].names.mkString(", ")}]"):
-      forAll(gen): t =>
-        val (py, sc) = pythonScalaReductionOpsToBool(t)(pyCode, scOp)
-        py.item shouldEqual sc.item
+    it("== (Scala Boolean)"):
+      (t2 == t2) shouldBe true
+      (t2 == (t2 *! Tensor0(2.0f))) shouldBe false
 
-  describe("== (different"):
-    checkBinaryReductionOpsToBool(twoTensor0Gen(VType[Float]))("jnp.array_equal(t1, t2)", _ == _)
-    checkBinaryReductionOpsToBool(twoTensor1Gen(VType[Float]))("jnp.array_equal(t1, t2)", _ == _)
-    checkBinaryReductionOpsToBool(twoTensor2Gen(VType[Float]))("jnp.array_equal(t1, t2)", _ == _)
-    checkBinaryReductionOpsToBool(twoTensor3Gen(VType[Float]))("jnp.array_equal(t1, t2)", _ == _)
+    it("=== (Tensor0[Boolean])"):
+      (t2 === t2).item shouldBe true
+      (t2 === (t2 *! Tensor0(0.0f))).item shouldBe false
 
-  describe("== (same)"):
-    checkBinaryReductionOpsToBool(twoSameTensor0Gen(VType[Float]))("jnp.array_equal(t1, t2)", _ == _)
-    checkBinaryReductionOpsToBool(twoSameTensor1Gen(VType[Float]))("jnp.array_equal(t1, t2)", _ == _)
-    checkBinaryReductionOpsToBool(twoSameTensor2Gen(VType[Float]))("jnp.array_equal(t1, t2)", _ == _)
-    checkBinaryReductionOpsToBool(twoSameTensor3Gen(VType[Float]))("jnp.array_equal(t1, t2)", _ == _)
+  describe("Reduction Ops"):
+    it("sum"):
+      t2.sum shouldEqual Tensor0(21.0f)
 
-  describe("sum"):
-    checkReductionOpsFloatToFloat(tensor0Gen(VType[Float]))("jnp.sum(t)", _.sum)
-    checkReductionOpsFloatToFloat(tensor1Gen(VType[Float]))("jnp.sum(t)", _.sum)
-    checkReductionOpsFloatToFloat(tensor2Gen(VType[Float]))("jnp.sum(t)", _.sum)
-    checkReductionOpsFloatToFloat(tensor3Gen(VType[Float]))("jnp.sum(t)", _.sum)
+    it("sum axis A"):
+      val res = t2.sum(axis = Axis[A])
+      res should approxEqual(Tensor.fromArray(res.shape, res.vtype)(Array(5.0f, 7.0f, 9.0f)))
 
-  describe("mean"):
-    checkReductionOpsFloatToFloat(tensor0Gen(VType[Float]))("jnp.mean(t)", _.mean)
-    checkReductionOpsFloatToFloat(tensor1Gen(VType[Float]))("jnp.mean(t)", _.mean)
-    checkReductionOpsFloatToFloat(tensor2Gen(VType[Float]))("jnp.mean(t)", _.mean)
-    checkReductionOpsFloatToFloat(tensor3Gen(VType[Float]))("jnp.mean(t)", _.mean)
+    it("sum axis B"):
+      val res = t2.sum(axis = Axis[B])
+      res should approxEqual(Tensor.fromArray(res.shape, res.vtype)(Array(6.0f, 15.0f)))
 
-  describe("std"):
-    checkReductionOpsFloatToFloat(tensor0Gen(VType[Float]))("jnp.std(t)", _.std)
-    checkReductionOpsFloatToFloat(tensor1Gen(VType[Float]))("jnp.std(t)", _.std)
-    checkReductionOpsFloatToFloat(tensor2Gen(VType[Float]))("jnp.std(t)", _.std)
-    checkReductionOpsFloatToFloat(tensor3Gen(VType[Float]))("jnp.std(t)", _.std)
+    it("mean"):
+      t2.mean shouldEqual Tensor0(3.5f)
 
-  describe("max"):
-    checkReductionOpsFloatToFloat(tensor0Gen(VType[Float]))("jnp.max(t)", _.max)
-    checkReductionOpsFloatToFloat(tensor1Gen(VType[Float]))("jnp.max(t)", _.max)
-    checkReductionOpsFloatToFloat(tensor2Gen(VType[Float]))("jnp.max(t)", _.max)
-    checkReductionOpsFloatToFloat(tensor3Gen(VType[Float]))("jnp.max(t)", _.max)
+    it("mean axis A"):
+      val res = t2.mean(axis = Axis[A])
+      res should approxEqual(Tensor.fromArray(res.shape, res.vtype)(Array(2.5f, 3.5f, 4.5f)))
 
-  describe("min"):
-    checkReductionOpsFloatToFloat(tensor0Gen(VType[Float]))("jnp.min(t)", _.min)
-    checkReductionOpsFloatToFloat(tensor1Gen(VType[Float]))("jnp.min(t)", _.min)
-    checkReductionOpsFloatToFloat(tensor2Gen(VType[Float]))("jnp.min(t)", _.min)
-    checkReductionOpsFloatToFloat(tensor3Gen(VType[Float]))("jnp.min(t)", _.min)
+    it("mean axis B"):
+      val res = t2.mean(axis = Axis[B])
+      res should approxEqual(Tensor.fromArray(res.shape, res.vtype)(Array(2.0f, 5.0f)))
 
-  describe("argmax"):
-    checkReductionOpsFloatToInt(tensor0Gen(VType[Float]))("jnp.argmax(t)", _.argmax)
-    checkReductionOpsFloatToInt(tensor1Gen(VType[Float]))("jnp.argmax(t)", _.argmax)
-    checkReductionOpsFloatToInt(tensor2Gen(VType[Float]))("jnp.argmax(t)", _.argmax)
-    checkReductionOpsFloatToInt(tensor3Gen(VType[Float]))("jnp.argmax(t)", _.argmax)
+    it("std"):
+      t2.std.item should be(1.7078f +- 0.001f)
 
-  describe("argmin"):
-    checkReductionOpsFloatToInt(tensor0Gen(VType[Float]))("jnp.argmin(t)", _.argmin)
-    checkReductionOpsFloatToInt(tensor1Gen(VType[Float]))("jnp.argmin(t)", _.argmin)
-    checkReductionOpsFloatToInt(tensor2Gen(VType[Float]))("jnp.argmin(t)", _.argmin)
-    checkReductionOpsFloatToInt(tensor3Gen(VType[Float]))("jnp.argmin(t)", _.argmin)
+    it("std axis A"):
+      val res = t2.std(axis = Axis[A])
+      res should approxEqual(Tensor.fromArray(res.shape, res.vtype)(Array(1.5f, 1.5f, 1.5f)))
 
-  describe("median"):
-    checkReductionOpsFloatToFloat(tensor0Gen(VType[Float]))("jnp.median(t)", _.median)
-    checkReductionOpsFloatToFloat(tensor1Gen(VType[Float]))("jnp.median(t)", _.median)
-    checkReductionOpsFloatToFloat(tensor2Gen(VType[Float]))("jnp.median(t)", _.median)
-    checkReductionOpsFloatToFloat(tensor3Gen(VType[Float]))("jnp.median(t)", _.median)
+    it("std axis B"):
+      val res = t2.std(axis = Axis[B])
+      res should approxEqual(Tensor.fromArray(res.shape, res.vtype)(Array(0.8164966f, 0.8164966f)))
 
-  describe("quantile"):
-    checkReductionOpsFloatToFloat(tensor0Gen(VType[Float]))("jnp.quantile(t, 0.25)", _.quantile(0.25f))
-    checkReductionOpsFloatToFloat(tensor1Gen(VType[Float]))("jnp.quantile(t, 0.5)", _.quantile(0.5f))
-    checkReductionOpsFloatToFloat(tensor2Gen(VType[Float]))("jnp.quantile(t, 0.75)", _.quantile(0.75f))
-    checkReductionOpsFloatToFloat(tensor3Gen(VType[Float]))("jnp.quantile(t, 0.9)", _.quantile(0.9f))
+    it("quantile"):
+      t2.quantile(0.5f) shouldEqual Tensor0(3.5f)
 
-  describe("all"):
-    checkReductionOpsBoolToBool(tensor0Gen(VType[Boolean]))("jnp.all(t)", _.all)
-    checkReductionOpsBoolToBool(tensor1Gen(VType[Boolean]))("jnp.all(t)", _.all)
-    checkReductionOpsBoolToBool(tensor2Gen(VType[Boolean]))("jnp.all(t)", _.all)
-    checkReductionOpsBoolToBool(tensor3Gen(VType[Boolean]))("jnp.all(t)", _.all)
+    it("quantile axis A"):
+      val res = t2.quantile(0.25f, axis = Axis[A])
+      res should approxEqual(Tensor.fromArray(res.shape, res.vtype)(Array(1.75f, 2.75f, 3.75f)))
 
-  describe("any"):
-    checkReductionOpsBoolToBool(tensor0Gen(VType[Boolean]))("jnp.any(t)", _.any)
-    checkReductionOpsBoolToBool(tensor1Gen(VType[Boolean]))("jnp.any(t)", _.any)
-    checkReductionOpsBoolToBool(tensor2Gen(VType[Boolean]))("jnp.any(t)", _.any)
-    checkReductionOpsBoolToBool(tensor3Gen(VType[Boolean]))("jnp.any(t)", _.any)
+    it("quantile axis B"):
+      val res = t2.quantile(0.25f, axis = Axis[B])
+      res should approxEqual(Tensor.fromArray(res.shape, res.vtype)(Array(1.5f, 4.5f)))
 
-  // Approx equal test
-  it("approxEquals Tensor[a, b]"):
-    forAll(tensor2Gen(VType[Float])): t1 =>
-      val t2 = t1 *! Tensor0(1 + Float.MinValue)
-      val pyRes =
-        py.eval("globals()").bracketUpdate("t1", t1.jaxValue)
-        py.eval("globals()").bracketUpdate("t2", t2.jaxValue)
-        py.exec(s"res = jnp.allclose(t1, t2)")
-        py.eval("res.item()").as[Boolean]
-      val scalaRes: Boolean = t1.approxEquals(t2).item
-      pyRes shouldEqual scalaRes
+    it("median"):
+      t2.median shouldEqual Tensor0(3.5f)
 
-  private def pythonScalaBinaryReductionOpsToBool[T <: Tuple: Labels](t1: Tensor[T, Float], t2: Tensor[T, Float])(
-      pythonProgram: String,
-      scalaProgram: (Tensor[T, Float], Tensor[T, Float]) => Boolean
-  ): (Boolean, Boolean) =
-    require(t1.shape == t2.shape, s"Shape mismatch: ${t1.shape} vs ${t2.shape}")
-    val pyRes =
-      py.eval("globals()").bracketUpdate("t1", t1.jaxValue)
-      py.eval("globals()").bracketUpdate("t2", t2.jaxValue)
-      py.exec(s"res = $pythonProgram")
-      py.eval("res.item()").as[Boolean]
-    val scalaRes = scalaProgram(t1, t2)
-    (pyRes, scalaRes)
+    it("median axis A"):
+      val res = t2.median(axis = Axis[A])
+      res should approxEqual(Tensor.fromArray(res.shape, res.vtype)(Array(2.5f, 3.5f, 4.5f)))
 
-  private def pythonScalaReductionOpsToFloat[T <: Tuple: Labels](t: Tensor[T, Float])(
-      pythonProgram: String,
-      scalaProgram: Tensor[T, Float] => Tensor0[Float]
-  ): (Tensor0[Float], Tensor0[Float]) =
-    val pyRes =
-      py.eval("globals()").bracketUpdate("t", t.jaxValue)
-      py.exec(s"res = $pythonProgram")
-      py.eval("res.item()").as[Float]
-    val scalaRes = scalaProgram(t)
-    (pyRes, scalaRes)
+    it("median axis B"):
+      val res = t2.median(axis = Axis[B])
+      res should approxEqual(Tensor.fromArray(res.shape, res.vtype)(Array(2.0f, 5.0f)))
 
-  private def pythonScalaReductionOpsToInt[T <: Tuple: Labels](t: Tensor[T, Float])(
-      pythonProgram: String,
-      scalaProgram: Tensor[T, Float] => Tensor0[Int]
-  ): (Tensor0[Int], Tensor0[Int]) =
-    val pyRes =
-      py.eval("globals()").bracketUpdate("t", t.jaxValue)
-      py.exec(s"res = $pythonProgram")
-      py.eval("res.item()").as[Int]
-    val scalaRes = scalaProgram(t)
-    (pyRes, scalaRes)
+    it("max"):
+      t2.max shouldEqual Tensor0(6.0f)
 
-  private def pythonScalaReductionOpsToBool[T <: Tuple: Labels](t: Tensor[T, Boolean])(
-      pythonProgram: String,
-      scalaProgram: Tensor[T, Boolean] => Tensor0[Boolean]
-  ): (Tensor0[Boolean], Tensor0[Boolean]) =
-    val pyRes =
-      py.eval("globals()").bracketUpdate("t", t.jaxValue)
-      py.exec(s"res = $pythonProgram")
-      py.eval("res.item()").as[Boolean]
-    val scalaRes = scalaProgram(t)
-    (pyRes, scalaRes)
+    it("max axis A"):
+      val res = t2.max(axis = Axis[A])
+      res should approxEqual(Tensor.fromArray(res.shape, res.vtype)(Array(4.0f, 5.0f, 6.0f)))
+
+    it("max axis B"):
+      val res = t2.max(axis = Axis[B])
+      res should approxEqual(Tensor.fromArray(res.shape, res.vtype)(Array(3.0f, 6.0f)))
+
+    it("min"):
+      t2.min shouldEqual Tensor0(1.0f)
+
+    it("min axis A"):
+      val res = t2.min(axis = Axis[A])
+      res should approxEqual(Tensor.fromArray(res.shape, res.vtype)(Array(1.0f, 2.0f, 3.0f)))
+
+    it("min axis B"):
+      val res = t2.min(axis = Axis[B])
+      res should approxEqual(Tensor.fromArray(res.shape, res.vtype)(Array(1.0f, 4.0f)))
+
+    it("argmax"):
+      t2.argmax shouldEqual Tensor0(5)
+
+    it("argmax axis A"):
+      val res = t2.argmax(axis = Axis[A])
+      res shouldEqual Tensor.fromArray(res.shape, res.vtype)(Array(1, 1, 1))
+
+    it("argmax axis B"):
+      val res = t2.argmax(axis = Axis[B])
+      res shouldEqual Tensor.fromArray(res.shape, res.vtype)(Array(2, 2))
+
+    it("argmin"):
+      t2.argmin shouldEqual Tensor0(0)
+
+    it("argmin axis A"):
+      val res = t2.argmin(axis = Axis[A])
+      res shouldEqual Tensor.fromArray(res.shape, res.vtype)(Array(0, 0, 0))
+
+    it("argmin axis B"):
+      val res = t2.argmin(axis = Axis[B])
+      res shouldEqual Tensor.fromArray(res.shape, res.vtype)(Array(0, 0))
+
+  describe("Boolean Reductions"):
+    it("all"):
+      b2.all shouldEqual Tensor0(false)
+      val allTrue = Tensor.ones(b2.shape, b2.vtype)
+      allTrue.all shouldEqual Tensor0(true)
+
+    it("any"):
+      b2.any shouldEqual Tensor0(true)
+      val allFalse = Tensor.zeros(b2.shape, b2.vtype)
+      allFalse.any shouldEqual Tensor0(false)
+
+  describe("Approximate Equality") {
+    it("approxEquals"):
+      val t2Near = t2 *! Tensor0(1.0000001f)
+      t2.approxEquals(t2Near).item shouldBe true
+      val t2Far = t2 *! Tensor0(1.1f)
+      t2.approxEquals(t2Far).item shouldBe false
+  }

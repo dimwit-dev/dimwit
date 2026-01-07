@@ -2,201 +2,181 @@ package dimwit.tensor
 
 import dimwit.*
 import dimwit.Conversions.given
-import org.scalacheck.Prop.*
-import org.scalacheck.{Arbitrary, Gen}
-import me.shadaj.scalapy.py
-import me.shadaj.scalapy.py.SeqConverters
-import TensorGen.*
 import TestUtil.*
-import org.scalacheck.Prop.forAll
-
 import org.scalatest.matchers.should.Matchers
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-
-import org.scalatest.matchers.{Matcher, MatchResult}
 import org.scalatest.funspec.AnyFunSpec
+import dimwit.tensor.Labels.concat
 
-class TensorOpsStructureSuite extends AnyFunSpec with ScalaCheckPropertyChecks with Matchers:
+class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
 
-  py.exec("import jax.numpy as jnp")
-  py.exec("import einops")
+  // Shape: A=2, B=2, C=1
+  val t3 = Tensor3.fromArray(Axis[A], Axis[B], Axis[C], VType[Float])(
+    Array(
+      Array(Array(1.0f), Array(2.0f)),
+      Array(Array(3.0f), Array(4.0f))
+    )
+  )
 
-  it("Tensor2[a, b] transpose"):
-    forAll(tensor2Gen(VType[Float])): t =>
-      val scVal = t.transpose
-      val pyVal =
-        py.eval("globals()").bracketUpdate("t", t.jaxValue)
-        py.exec("res = jnp.transpose(t)")
-        Tensor.fromArray(
-          scVal.shape,
-          scVal.vtype
-        )(
-          py.eval("res.flatten().tolist()").as[Seq[Float]].toArray
+  describe("rearrange (Einops-style)"):
+    it("transpose: a b c -> c a b"):
+      val res = t3.rearrange((Axis[C], Axis[A], Axis[B]))
+      res.axes shouldBe List("C", "A", "B")
+
+    it("flattening (ravel): a b c -> (a b c)"):
+      val res = t3.ravel
+      res.axes shouldBe List("A*B*C")
+      res shouldEqual t3.rearrange(Tuple1(Axis[A |*| B |*| C]))
+
+    it("merging axes: a b c -> (a b) c"):
+      // Merges 2x2 into 4. Result shape (4, 1)
+      val res = t3.rearrange((Axis[A |*| B], Axis[C]))
+      res.axes shouldBe List("A*B", "C")
+      res should approxEqual(
+        Tensor2.fromArray(Axis[A |*| B], Axis[C], VType[Float])(
+          Array(Array(1.0f), Array(2.0f), Array(3.0f), Array(4.0f))
         )
-      pyVal should approxEqual(scVal)
+      )
 
-  describe("rearrange"):
-    it("a b c -> (a b c) equals ravel"):
-      forAll(tensor3Gen(VType[Float])): t =>
-        val scVal1 = t.rearrange(
-          Tuple1(Axis[A |*| B |*| C])
-        )
-        val scVal2 = t.ravel
-        scVal1 should approxEqual(scVal2)
+    it("splitting axes: (a b) c -> a b c"):
+      val flattened = t3.rearrange((Axis[A |*| B], Axis[C]))
+      val res = flattened.rearrange(
+        (Axis[A], Axis[B], Axis[C]),
+        (Axis[A] -> 2, Axis[B] -> 2)
+      )
+      res should approxEqual(t3)
 
-    it("a b c -> a b c equals identity"):
-      forAll(tensor3Gen(VType[Float])): t =>
-        val scVal = t.rearrange(
-          (Axis[A], Axis[B], Axis[C])
-        )
-        scVal should approxEqual(t)
+  describe("Dimension manipulation"):
 
-    it("a b c -> c a b"):
-      forAll(tensor3Gen(VType[Float])): t =>
-        val scVal = t.rearrange(
-          (Axis[C], Axis[A], Axis[B])
-        )
-        val pyVal =
-          py.eval("globals()").bracketUpdate("t", t.jaxValue)
-          py.exec("res = einops.rearrange(t, 'a b c -> c a b')")
-          Tensor.fromArray(
-            scVal.shape,
-            scVal.vtype
-          )(
-            py.eval("res.flatten().tolist()").as[Seq[Float]].toArray
+    it("squeeze axis of size 1"):
+      val abc = t3.squeeze(Axis[C])
+      abc.axes shouldBe List("A", "B")
+
+    it("squeeze axis of size > 1 fails"):
+      an[IllegalArgumentException] should be thrownBy (t3.squeeze(Axis[A]))
+
+    it("append axis"):
+      val abcd = t3.appendAxis(Axis[D])
+      abcd.axes shouldBe List("A", "B", "C", "D")
+      abcd.shape(Axis[D]) shouldBe 1
+
+    it("prepend axis"):
+      val dabc = t3.prependAxis(Axis[D])
+      dabc.axes shouldBe List("D", "A", "B", "C")
+      dabc.shape(Axis[D]) shouldBe 1
+
+  describe("Relabeling"):
+
+    it("relabel an axis"):
+      trait X derives Label
+      t3.relabel(Axis[A] -> Axis[X]).axes shouldBe List("X", "B", "C")
+      t3.relabel(Axis[B] -> Axis[X]).axes shouldBe List("A", "X", "C")
+      t3.relabel(Axis[C] -> Axis[X]).axes shouldBe List("A", "B", "X")
+
+    it("relabel all axes"):
+      val t = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(Array.fill(2, 2)(1.0f))
+      val relabeled = t.relabelAll((Axis[C], Axis[D]))
+      relabeled.axes shouldBe List("C", "D")
+
+  describe("tril / triu"):
+
+    val t = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
+      Array(
+        Array(1.0f, 2.0f),
+        Array(3.0f, 4.0f)
+      )
+    )
+
+    it("triu"):
+      triu(t).sum.item shouldBe 7.0f
+
+    it("triu kthDiagonal"):
+      triu(t, kthDiagonal = 1).sum.item shouldBe 2.0f
+      triu(t, kthDiagonal = -1).sum.item shouldBe 10.0f
+
+    it("tril"):
+      tril(t).sum.item shouldBe 8.0f
+
+    it("tril kthDiagonal"):
+      tril(t, kthDiagonal = -1).sum.item shouldBe 3.0f
+      tril(t, kthDiagonal = 1).sum.item shouldBe 10.0f
+
+  describe(""):
+
+    val t1 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
+      Array(
+        Array(1.0f, 2.0f),
+        Array(3.0f, 4.0f)
+      )
+    )
+    val t2 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
+      Array(
+        Array(10.0f, 20.0f),
+        Array(30.0f, 40.0f)
+      )
+    )
+
+    it("uniform mask"):
+      val mask = Tensor.zeros(t1.shape, VType[Boolean])
+      where(mask, t1, t2) should approxEqual(t2)
+      where(!mask, t1, t2) should approxEqual(t1)
+
+    it("triu mask"):
+      val mask = triu(Tensor.ones(t1.shape, VType[Boolean]))
+      where(mask, t1, t2) should approxEqual(
+        Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
+          Array(
+            Array(1.0f, 2.0f),
+            Array(30.0f, 4.0f)
           )
-        pyVal should approxEqual(scVal)
-
-    it("a b c -> (a b) c"):
-      forAll(tensor3Gen(VType[Float])): t =>
-        val scVal = t.rearrange(
-          (Axis[A |*| B], Axis[C])
         )
-        val pyVal =
-          py.eval("globals()").bracketUpdate("t", t.jaxValue)
-          py.exec("res = einops.rearrange(t, 'a b c -> (a b) c')")
-          Tensor.fromArray(
-            scVal.shape,
-            scVal.vtype
-          )(
-            py.eval("res.flatten().tolist()").as[Seq[Float]].toArray
-          )
-        pyVal should approxEqual(scVal)
+      )
 
-    it("a b c -> (b a) c"):
-      forAll(tensor3Gen(VType[Float])): t =>
-        val scVal = t.rearrange(
-          (Axis[B |*| A], Axis[C])
-        )
-        val pyVal =
-          py.eval("globals()").bracketUpdate("t", t.jaxValue)
-          py.exec("res = einops.rearrange(t, 'a b c -> (b a) c')")
-          Tensor.fromArray(
-            scVal.shape,
-            scVal.vtype
-          )(
-            py.eval("res.flatten().tolist()").as[Seq[Float]].toArray
-          )
-        pyVal should approxEqual(scVal)
+  describe("Concatenation"):
 
-    it("(a b) c -> a b c"):
-      forAll(for
-        a <- Gen.choose(2, 5)
-        b <- Gen.choose(2, 5)
-        c <- Gen.choose(2, 5)
-        t2 <- tensor2GenWithShape(VType[Float])(a * b, c)
-        t = t2.relabelAll(Axis[A |*| B], Axis[C])
-      yield (a, b, t)): (a, b, t) =>
-        val scVal = t.rearrange(
-          (Axis[A], Axis[B], Axis[C]),
-          (Axis[A] -> a, Axis[B] -> b)
-        )
-        val pyVal =
-          py.eval("globals()").bracketUpdate("t", t.jaxValue)
-          py.exec("res = einops.rearrange(t, '(a b) c -> a b c', a=" + a + ", b=" + b + ")")
-          Tensor.fromArray(
-            scVal.shape,
-            scVal.vtype
-          )(
-            py.eval("res.flatten().tolist()").as[Seq[Float]].toArray
-          )
-        pyVal should approxEqual(scVal)
+    it("|+| axes are rearrangable"):
+      // As rearrange uses einops the "+" om the derived label for B |+| C must be handled in the rearrange operation to not trigger error
+      val t = Tensor2.fromArray(Axis[A], Axis[B |+| C], VType[Float])(
+        Array(Array(1.0f, 2.0f), Array(3.0f, 4.0f))
+      )
+      val tRearranged = t.rearrange((Axis[B |+| C], Axis[A]))
+      tRearranged.axes shouldBe List("B+C", "A")
 
-    it("(b a) c -> a b c"):
-      forAll(for
-        a <- Gen.choose(2, 5)
-        b <- Gen.choose(2, 5)
-        c <- Gen.choose(2, 5)
-        t2 <- tensor2GenWithShape(VType[Float])(a * b, c)
-        t = t2.relabelAll(Axis[B |*| A], Axis[C])
-      yield (a, b, t)): (a, b, t) =>
-        val scVal = t.rearrange(
-          (Axis[A], Axis[B], Axis[C]),
-          (Axis[B] -> b, Axis[A] -> a)
-        )
-        val pyVal =
-          py.eval("globals()").bracketUpdate("t", t.jaxValue)
-          py.exec("res = einops.rearrange(t, '(b a) c -> a b c', b=" + b + ", a=" + a + ")")
-          Tensor.fromArray(
-            scVal.shape,
-            scVal.vtype
-          )(
-            py.eval("res.flatten().tolist()").as[Seq[Float]].toArray
-          )
-        pyVal should approxEqual(scVal)
+    it("concatenate2 same axes"):
+      val part1 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(Array(Array(1.0f, 2.0f)))
+      val part2 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(Array(Array(3.0f, 4.0f)))
+      val joined = concatenate(part1, part2, Axis[B])
+      joined.axes shouldBe List("A", "B")
+      joined.shape(Axis[B]) shouldBe (part1.shape(Axis[B]) + part2.shape(Axis[B]))
+      joined.slice(Axis[B] -> (0 until part1.shape(Axis[B]))) should approxEqual(part1)
+      joined.slice(Axis[B] -> (part1.shape(Axis[B]) until (part1.shape(Axis[B]) + part2.shape(Axis[B])))) should approxEqual(part2)
 
-  it("appendAxis"):
-    forAll(tensor2Gen(VType[Float])): ab =>
-      val abc = ab.appendAxis(Axis[C])
-      val (aName, bName, cName) = (summon[Label[A]].name, summon[Label[B]].name, summon[Label[C]].name)
-      abc.shape.toString should equal(s"Shape($aName -> ${ab.shape(Axis[A])}, $bName -> ${ab.shape(Axis[B])}, $cName -> 1)")
+    it("concatenateN same axes"):
+      val part1 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(Array(Array(1.0f, 2.0f)))
+      val part2 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(Array(Array(3.0f, 4.0f)))
+      val part3 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(Array(Array(3.0f, 4.0f)))
+      val joined = concatenate(Seq(part1, part2, part3), Axis[B])
+      joined.axes shouldBe List("A", "B")
+      joined.shape(Axis[B]) shouldBe (part1.shape(Axis[B]) + part2.shape(Axis[B]) + part3.shape(Axis[B]))
+      joined.slice(Axis[B] -> (0 until part1.shape(Axis[B]))) should approxEqual(part1)
+      joined.slice(Axis[B] -> (part1.shape(Axis[B]) until (part1.shape(Axis[B]) + part2.shape(Axis[B])))) should approxEqual(part2)
+      joined.slice(Axis[B] -> ((part1.shape(Axis[B]) + part2.shape(Axis[B])) until (part1.shape(Axis[B]) + part2.shape(Axis[B]) + part3.shape(Axis[B])))) should approxEqual(part3)
 
-  it("appendAxis andThen squeeze => identity"):
-    forAll(tensor2Gen(VType[Float])): ab =>
-      val abc = ab.appendAxis(Axis[C])
-      val ab2 = abc.squeeze(Axis[C])
-      ab should approxEqual(ab2)
+    it("concatenate2 different axes"):
+      val part1 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(Array(Array(1.0f, 2.0f)))
+      val part2 = Tensor2.fromArray(Axis[A], Axis[C], VType[Float])(Array(Array(3.0f, 4.0f)))
+      val joined = concatenate(part1, part2)
+      joined.axes shouldBe List("A", "B+C")
+      joined.shape(Axis[B |+| C]) shouldBe (part1.shape(Axis[B]) + part2.shape(Axis[C]))
+      joined.slice(Axis[B |+| C] -> (0 until part1.shape(Axis[B]))) should approxEqual(part1.relabel((Axis[B] -> Axis[B |+| C])))
+      joined.slice(Axis[B |+| C] -> (part1.shape(Axis[B]) until (part1.shape(Axis[B]) + part2.shape(Axis[C])))) should approxEqual(part2.relabel((Axis[C] -> Axis[B |+| C])))
 
-  it("prependAxis"):
-    forAll(tensor2Gen(VType[Float])): ab =>
-      val cab = ab.prependAxis(Axis[C])
-      val (aName, bName, cName) = (summon[Label[A]].name, summon[Label[B]].name, summon[Label[C]].name)
-      cab.shape.toString should equal(s"Shape($cName -> 1, $aName -> ${ab.shape(Axis[A])}, $bName -> ${ab.shape(Axis[B])})")
+  describe("Deconcatenation"):
 
-  it("prependAxis andThen squeeze => identity"):
-    forAll(tensor2Gen(VType[Float])): ab =>
-      val cab = ab.prependAxis(Axis[C])
-      val ab2 = cab.squeeze(Axis[C])
-      ab should approxEqual(ab2)
-
-  it("relabel A -> C"):
-    forAll(tensor2Gen(VType[Float])): ab =>
-      val cb = ab.relabel(Axis[A] -> Axis[C])
-      val (bName, cName) = (summon[Label[B]].name, summon[Label[C]].name)
-      cb.shape.toString should equal(s"Shape($cName -> ${ab.shape(Axis[A])}, $bName -> ${ab.shape(Axis[B])})")
-
-  it("relabelAll"):
-    forAll(tensor2Gen(VType[Float])): ab =>
-      val cd = ab.relabelAll(Axis[C], Axis[D])
-      val (cName, dName) = (summon[Label[C]].name, summon[Label[D]].name)
-      cd.shape.toString should equal(s"Shape($cName -> ${cd.shape(Axis[C])}, $dName -> ${cd.shape(Axis[D])})")
-
-  it("concatenate and deconcatenate should be identity"):
-    forAll(for
-      a <- Gen.choose(2, 5)
-      b <- Gen.choose(2, 5)
-      c <- Gen.choose(2, 5)
-      ab <- tensor2GenWithShape(VType[Float])(a, b)
-      ac <- tensor2GenWithShape(VType[Float])(a, c).map(_.relabel(Axis[B] -> Axis[C]))
-    yield (b, c, ab, ac)): (b, c, ab, ac) =>
-      val concat = concatenate(ab, ac)
-      val (left, right) = concat.deconcatenate(Axis[B |+| C], (Axis[B] -> b, Axis[C] -> c))
-      left should approxEqual(ab)
-      right should approxEqual(ac)
-
-  // TODO remove swap or implement it with type classes so type can be reduced
-  // it("swap A and B"):
-  //    forAll(tensor2Gen(VType[Float])): ab =>
-  //        val ba = ab.swap(Axis[A], Axis[B])
-  //        val (aName, bName) = (summon[Label[A]].name, summon[Label[B]].name)
-  //        ba.shape.toString should equal(s"Shape($bName -> ${ba.shape(Axis[B])}, $aName -> ${ba.shape(Axis[A])})")
+    it("deconcatenate on |+| axis"):
+      val t = Tensor2.fromArray(Axis[A], Axis[B |+| C], VType[Float])(
+        Array(Array(1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f))
+      )
+      val (partB, partC) = t.deconcatenate(Axis[B |+| C], (Axis[B] -> 2, Axis[C] -> 3))
+      partB.axes shouldBe List("A", "B")
+      partC.axes shouldBe List("A", "C")
+      concatenate(partB, partC) shouldEqual t

@@ -7,6 +7,11 @@ object ShapeTypeHelpers:
 
   import TupleHelpers.*
 
+  type UnwrapAxes[T <: Tuple] <: Tuple = T match
+    case EmptyTuple      => EmptyTuple
+    case Axis[a] *: tail => a *: UnwrapAxes[tail]
+    case h *: tail       => h *: UnwrapAxes[tail]
+
   @implicitNotFound("Axis[${Axis}] not found in Tensor[${TensorShape}]")
   trait AxisInTensor[TensorShape <: Tuple, Axis]:
     def index: Int

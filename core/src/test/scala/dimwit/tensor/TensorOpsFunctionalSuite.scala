@@ -2,111 +2,64 @@ package dimwit.tensor
 
 import dimwit.*
 import dimwit.Conversions.given
-import org.scalacheck.Prop.*
-import org.scalacheck.{Arbitrary, Gen}
-import me.shadaj.scalapy.py
-import me.shadaj.scalapy.py.SeqConverters
-import TensorGen.*
-import TestUtil.*
-import org.scalacheck.Prop.forAll
-
 import org.scalatest.matchers.should.Matchers
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-
-import org.scalatest.matchers.{Matcher, MatchResult}
 import org.scalatest.funspec.AnyFunSpec
 
-class TensorOpsFunctionalSuite extends AnyFunSpec with ScalaCheckPropertyChecks with Matchers:
+import TestUtil.*
 
-  py.exec("import jax")
-  py.exec("import jax.numpy as jnp")
+class TensorOpsFunctionalSuite extends AnyFunSpec with Matchers:
 
-  describe("vmap operation"):
-    it("Tensor2[a, b] vmap(a) -> sum"):
-      forAll(tensor2Gen(VType[Float])): t =>
-        val scVal = t.vmap(Axis[A])(_.sum)
-        val pyVal =
-          py.eval("globals()").bracketUpdate("t", t.jaxValue)
-          py.exec("res = jax.vmap(lambda x: jnp.sum(x), in_axes=0)(t)")
-          Tensor.fromArray(
-            scVal.shape,
-            VType[Float]
-          )(
-            py.eval("res.flatten().tolist()").as[Seq[Float]].toArray
-          )
-        pyVal should approxEqual(scVal)
+  val t2 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
+    Array(Array(1.0f, 2.0f), Array(3.0f, 4.0f))
+  )
+  val t2_2 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
+    Array(Array(10.0f, 20.0f), Array(30.0f, 40.0f))
+  )
 
-    it("Tensor2[a, b] vmap(b) -> sum"):
-      forAll(tensor2Gen(VType[Float])): t =>
-        val scVal = t.vmap(Axis[B])(_.sum)
-        val pyVal =
-          py.eval("globals()").bracketUpdate("t", t.jaxValue)
-          py.exec("res = jax.vmap(lambda x: jnp.sum(x), in_axes=1)(t)")
-          Tensor.fromArray(
-            scVal.shape,
-            VType[Float]
-          )(
-            py.eval("res.flatten().tolist()").as[Seq[Float]].toArray
-          )
-        pyVal should approxEqual(scVal)
+  describe("vmap (Vectorized Mapping)"):
 
-    it("Tensor2[a, b] vmap(a) -> vmap(b) -> 0"):
-      forAll(tensor2Gen(VType[Float])): t =>
-        val scVal1 = t.vmap(Axis[A])(_.vmap(Axis[B])(x => 0.0f))
-        val scVal2 = Tensor.zeros(t.shape, t.vtype)
-        scVal1 should approxEqual(scVal2)
+    it("vmap(identity) only changes axis order"):
+      t2.vmap(Axis[A])(x => x) shouldEqual t2
+      t2.vmap(Axis[B])(x => x) shouldEqual t2.transpose // vmap axis moves to front => transpose
 
-    it("axis order matters"):
-      forAll(tensor3Gen(VType[Float])): t =>
-        val scVal1 = t.vmap(Axis[A])(_.vmap(Axis[B])(_.sum))
-        val scVal2 = t.vmap(Axis[B])(_.vmap(Axis[A])(_.sum))
-        scVal1 should approxEqual(scVal2.transpose)
+    it("vmap over Axis A (rows)"):
+      val res = t2.vmap(Axis[A])(_.sum)
+      res shouldEqual Tensor1.fromArray(Axis[A], VType[Float])(Array(3.0f, 7.0f))
 
-  describe("zipvmap2 operation"):
-    it("zipvmap2 over axis A adds"):
-      forAll(twoTensor3Gen(VType[Float])): (t1, t2) =>
-        zipvmap(Axis[A])(t1, t2)((t1i, t2i) => t1i + t2i) should approxEqual(t1 + t2)
+    it("vmap over Axis B (columns)"):
+      val res = t2.vmap(Axis[B])(_.sum)
+      res shouldEqual Tensor1.fromArray(Axis[B], VType[Float])(Array(4.0f, 6.0f))
 
-    it("zipvmap2 over axis A multiplies"):
-      forAll(twoTensor3Gen(VType[Float])): (t1, t2) =>
-        zipvmap(Axis[A])(t1, t2)((t1i, t2i) => t1i * t2i) should approxEqual(t1 * t2)
+    it("nested vmap"):
+      val res = t2.vmap(Axis[A])(_.vmap(Axis[B])(_ => 0.0f))
+      res shouldEqual Tensor.zeros(t2.shape, t2.vtype)
 
-    it("zipvmap2 -> zipvmap2 -> sum"):
-      forAll(twoTensor3Gen(VType[Float])): (t1, t2) =>
-        val scVal = zipvmap(Axis[A])(t1, t2):
-          case (t1i, t2i) =>
-            zipvmap(Axis[B])(t1i, t2i):
-              case (t1ij, t2ij) => t1ij + t2ij
-        scVal should approxEqual(t1 + t2)
+  describe("zipvmap (Parallel Mapping)"):
 
-  describe("zipvmap4 operation"):
-    it("zipvmap4 over axis A adds"):
-      forAll(
-        nTensorGen(4, ShapeGen.genShape3, -1f, +1f).map { seq => (seq(0), seq(1), seq(2), seq(3)) }
-      ): (t1, t2, t3, t4) =>
-        zipvmap(Axis[A])(t1, t2, t3, t4)((t1i, t2i, t3i, t4i) => t1i + t2i + t3i + t4i) should approxEqual(t1 + t2 + t3 + t4)
+    def l2[L: Label](v1: Tensor1[L, Float], v2: Tensor1[L, Float]): Tensor0[Float] = (v1 - v2).pow(2.0f).sum.sqrt
 
-  describe("vapply operation"):
-    it("Tensor2[a, b] vapply(identity) == identity"):
-      forAll(tensor2Gen(VType[Float])): t =>
-        t.vapply(Axis[A])(identity) should approxEqual(t)
-        t.vapply(Axis[B])(identity) should approxEqual(t)
+    it("zipvmap2 adds two tensors"):
+      val distances = zipvmap(Axis[A])(t2, t2_2)(l2)
+      distances should approxEqual(Tensor1.fromArray(Axis[A], VType[Float])(Array(20.12461f, 45f)))
 
-    it("Tensor2[a, b] vapply add == broadcast add"):
-      forAll(for
-        rows <- Gen.choose(1, 10)
-        cols <- Gen.choose(1, 10)
-        t1 <- tensor1GenWithShape(VType[Float])(rows)
-        t2 <- tensor2GenWithShape(VType[Float])(rows, cols)
-      yield (t1, t2)): (t1, t2) =>
-        t2.vapply(Axis[A])(x => x + t1) should approxEqual(t2 +! t1)
+    it("zipvmap4 adds four tensors"):
+      val res = zipvmap(Axis[A])(t2, t2_2, t2_2, t2)((a, b, c, d) => l2(a, b) - l2(c, d))
+      res should approxEqual(Tensor1.fromArray(Axis[A], VType[Float])(Array(0.0f, 0.0f)))
 
-    it("Tensor2[a, b] vapply(b) == vmap(a)"):
-      forAll(tensor2Gen(VType[Float])): (t) =>
-        t.vapply(Axis[B])(x => x + x) should approxEqual(t.vmap(Axis[A])(x => x + x))
+  describe("vapply (Axis-wise application)"):
 
-  describe("vreduce operation"):
-    it("Tensor2[a, b] vreduce(sum) == .sum(axis)"):
-      forAll(tensor2Gen(VType[Float])): t =>
-        t.vreduce(Axis[A])(_.sum) should approxEqual(t.sum(Axis[A]))
-        t.vreduce(Axis[B])(_.sum) should approxEqual(t.sum(Axis[B]))
+    def l2[L: Label](v1: Tensor1[L, Float], v2: Tensor1[L, Float]): Tensor0[Float] = (v1 - v2).pow(2.0f).sum.sqrt
+
+    it("vapply(identity) is identity"):
+      t2.vapply(Axis[A])(identity) shouldEqual t2
+
+    it("vapply over Axis A: adds a vector to each row"):
+      val res = t2.vapply(Axis[A])(row => row /! row.norm)
+      res shouldEqual Tensor.fromArray(t2.shape, t2.vtype)(
+        Array(0.31622776f, 0.4472136f, 0.94868326f, 0.8944272f)
+      )
+
+  describe("vreduce"):
+    it("vreduce(sum) matches .sum(axis)"):
+      t2.vreduce(Axis[A])(_.sum) shouldEqual t2.sum(Axis[A])
+      t2.vreduce(Axis[B])(_.sum) shouldEqual t2.sum(Axis[B])

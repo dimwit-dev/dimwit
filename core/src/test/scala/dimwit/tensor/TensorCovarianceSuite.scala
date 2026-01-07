@@ -2,14 +2,13 @@ package dimwit.tensor
 
 import dimwit.*
 import dimwit.Conversions.given
-import org.scalatest.propspec.AnyPropSpec
+import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scala.collection.View.Empty
 
-class TensorCovarianceSuite extends AnyPropSpec with ScalaCheckPropertyChecks with Matchers:
+class TensorCovarianceSuite extends AnyFunSpec with Matchers:
 
-  property("Shape type hierarchy example: Concrete function with supertype parameter"):
+  it("Shape type hierarchy example: Concrete function with supertype parameter"):
     trait Parent derives Label
     trait Child1 extends Parent derives Label
     trait Child2 extends Parent derives Label
@@ -23,7 +22,7 @@ class TensorCovarianceSuite extends AnyPropSpec with ScalaCheckPropertyChecks wi
     "concreteFunction(child2)" should compile
     "concreteFunction(noChild)" shouldNot compile
 
-  property("Shape type hierarchy example: Generic function with upper-bounded type parameter"):
+  it("Shape type hierarchy example: Generic function with upper-bounded type parameter"):
     trait Parent derives Label
     trait Child1 extends Parent derives Label
     trait Child2 extends Parent derives Label
@@ -35,7 +34,7 @@ class TensorCovarianceSuite extends AnyPropSpec with ScalaCheckPropertyChecks wi
     "genericFunction(child2)" should compile
     "genericFunction(noChild)" shouldNot compile
 
-  property("Value-types example: Logits cannot be added to Probabilities"):
+  it("Value-types example: Logits cannot be added to Probabilities"):
     trait Classes derives Label
 
     object MLContext:

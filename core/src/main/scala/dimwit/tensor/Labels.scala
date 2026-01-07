@@ -6,11 +6,7 @@ import scala.quoted.*
 trait Label[T]:
   def name: String
 
-private trait LabelLowPriority:
-  given union[A, B](using a: Label[A], b: Label[B]): Label[A | B] with
-    def name: String = a.name + "|" + b.name
-
-object Label extends LabelLowPriority:
+object Label:
   inline def derived[T]: Label[T] = ${ derivedMacro[T] }
 
   private def derivedMacro[T: Type](using Quotes): Expr[Label[T]] =
@@ -21,9 +17,6 @@ object Label extends LabelLowPriority:
       new Label[T]:
         def name: String = ${ Expr(simpleName) }
     }
-
-  given [T](using valueOf: ValueOf[T]): Label[T] with
-    def name: String = valueOf.value.toString
 
 trait Labels[T]:
   def names: List[String]

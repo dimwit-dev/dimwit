@@ -11,7 +11,6 @@ import org.scalacheck.Prop.forAll
 
 import org.scalatest.propspec.AnyPropSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 import org.scalatest.matchers.{Matcher, MatchResult}
 import scala.compiletime.error

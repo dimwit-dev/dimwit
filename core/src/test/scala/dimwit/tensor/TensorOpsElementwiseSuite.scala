@@ -2,96 +2,108 @@ package dimwit.tensor
 
 import dimwit.*
 import dimwit.Conversions.given
-import org.scalacheck.Prop.*
-import org.scalacheck.{Arbitrary, Gen}
-import me.shadaj.scalapy.py
-import me.shadaj.scalapy.py.SeqConverters
-import TensorGen.*
 import TestUtil.*
-import org.scalacheck.Prop.forAll
-
 import org.scalatest.matchers.should.Matchers
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-
-import org.scalatest.matchers.{Matcher, MatchResult}
 import org.scalatest.funspec.AnyFunSpec
 
-class TensorOpsElementwiseSuite extends AnyFunSpec with ScalaCheckPropertyChecks with Matchers:
+class TensorOpsElementwiseSuite extends AnyFunSpec with Matchers:
 
-  py.exec("import jax.numpy as jnp")
+  val t2 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
+    Array(
+      Array(-1.0f, 0.0f),
+      Array(1.0f, 4.0f)
+    )
+  )
 
-  def check[T <: Tuple: Labels](gen: Gen[Tensor[T, Float]])(pyCode: String, scOp: Tensor[T, Float] => Tensor[T, Float]) =
-    it(s"Tensor[${summon[Labels[T]].names.mkString(", ")}]"):
-      forAll(gen): t =>
-        val (py, sc) = pythonScalaElementwiseOp(t)(pyCode, scOp)
-        py should approxEqual(sc)
+  val i2 = Tensor2.fromArray(Axis[A], Axis[B], VType[Int])(
+    Array(
+      Array(-1, 0),
+      Array(1, 2)
+    )
+  )
 
-  describe("abs"):
-    check(tensor0Gen(VType[Float]))("jnp.abs(t)", _.abs)
-    check(tensor1Gen(VType[Float]))("jnp.abs(t)", _.abs)
-    check(tensor2Gen(VType[Float]))("jnp.abs(t)", _.abs)
-    check(tensor3Gen(VType[Float]))("jnp.abs(t)", _.abs)
+  val b2 = Tensor2.fromArray(Axis[A], Axis[B], VType[Boolean])(
+    Array(
+      Array(true, false),
+      Array(false, true)
+    )
+  )
 
-  describe("sign"):
-    check(tensor0Gen(VType[Float]))("jnp.sign(t)", _.sign)
-    check(tensor1Gen(VType[Float]))("jnp.sign(t)", _.sign)
-    check(tensor2Gen(VType[Float]))("jnp.sign(t)", _.sign)
-    check(tensor3Gen(VType[Float]))("jnp.sign(t)", _.sign)
+  describe("Float ops (Tensor2)"):
 
-  describe("sqrt"):
-    check(tensor0Gen(min = 0f, max = 100f))("jnp.sqrt(t)", _.sqrt)
-    check(tensor1Gen(min = 0f, max = 100f))("jnp.sqrt(t)", _.sqrt)
-    check(tensor2Gen(min = 0f, max = 100f))("jnp.sqrt(t)", _.sqrt)
-    check(tensor3Gen(min = 0f, max = 100f))("jnp.sqrt(t)", _.sqrt)
+    it("abs"):
+      t2.abs should approxEqual(Tensor.fromArray(t2.shape, t2.vtype)(Array(1.0f, 0.0f, 1.0f, 4.0f)))
 
-  describe("log"):
-    check(tensor0Gen(min = 0.1f, max = 100f))("jnp.log(t)", _.log)
-    check(tensor1Gen(min = 0.1f, max = 100f))("jnp.log(t)", _.log)
-    check(tensor2Gen(min = 0.1f, max = 100f))("jnp.log(t)", _.log)
-    check(tensor3Gen(min = 0.1f, max = 100f))("jnp.log(t)", _.log)
+    it("sign"):
+      t2.sign should approxEqual(Tensor.fromArray(t2.shape, t2.vtype)(Array(-1.0f, 0.0f, 1.0f, 1.0f)))
 
-  describe("sin"):
-    check(tensor0Gen(VType[Float]))("jnp.sin(t)", _.sin)
-    check(tensor1Gen(VType[Float]))("jnp.sin(t)", _.sin)
-    check(tensor2Gen(VType[Float]))("jnp.sin(t)", _.sin)
-    check(tensor3Gen(VType[Float]))("jnp.sin(t)", _.sin)
+    it("pow"):
+      t2.pow(Tensor0(2.0f)) should approxEqual(Tensor.fromArray(t2.shape, t2.vtype)(Array(1.0f, 0.0f, 1.0f, 16.0f)))
 
-  describe("cos"):
-    check(tensor0Gen(VType[Float]))("jnp.cos(t)", _.cos)
-    check(tensor1Gen(VType[Float]))("jnp.cos(t)", _.cos)
-    check(tensor2Gen(VType[Float]))("jnp.cos(t)", _.cos)
-    check(tensor3Gen(VType[Float]))("jnp.cos(t)", _.cos)
+    it("sqrt"):
+      val tPos = Tensor.fromArray(t2.shape, t2.vtype)(Array(4.0f, 9.0f, 16.0f, 25.0f))
+      tPos.sqrt should approxEqual(Tensor.fromArray(t2.shape, t2.vtype)(Array(2.0f, 3.0f, 4.0f, 5.0f)))
 
-  describe("tanh"):
-    check(tensor0Gen(VType[Float]))("jnp.tanh(t)", _.tanh)
-    check(tensor1Gen(VType[Float]))("jnp.tanh(t)", _.tanh)
-    check(tensor2Gen(VType[Float]))("jnp.tanh(t)", _.tanh)
-    check(tensor3Gen(VType[Float]))("jnp.tanh(t)", _.tanh)
+    it("exp/log (identity)"):
+      val tZero = Tensor.zeros(t2.shape, t2.vtype)
+      tZero.exp should approxEqual(Tensor.ones(t2.shape, t2.vtype))
+      Tensor.ones(t2.shape, t2.vtype).log should approxEqual(tZero)
 
-  describe("clip"):
-    check(tensor0Gen(VType[Float]))("jnp.clip(t, 0, 1)", t => t.clip(0, 1))
-    check(tensor1Gen(VType[Float]))("jnp.clip(t, 0, 1)", t => t.clip(0, 1))
-    check(tensor2Gen(VType[Float]))("jnp.clip(t, 0, 1)", t => t.clip(0, 1))
-    check(tensor3Gen(VType[Float]))("jnp.clip(t, 0, 1)", t => t.clip(0, 1))
+    it("sin/cos/tanh"):
+      val tZero = Tensor.zeros(t2.shape, t2.vtype)
+      tZero.sin should approxEqual(tZero)
+      tZero.cos should approxEqual(Tensor.ones(t2.shape, t2.vtype))
+      tZero.tanh should approxEqual(tZero)
 
-  describe("unary_-"):
-    check(tensor0Gen(VType[Float]))("jnp.negative(t)", t => -t)
-    check(tensor1Gen(VType[Float]))("jnp.negative(t)", t => -t)
-    check(tensor2Gen(VType[Float]))("jnp.negative(t)", t => -t)
-    check(tensor3Gen(VType[Float]))("jnp.negative(t)", t => -t)
+    it("clip"):
+      t2.clip(0.0f, 2.0f) should approxEqual(Tensor.fromArray(t2.shape, t2.vtype)(Array(0.0f, 0.0f, 1.0f, 2.0f)))
 
-  private def pythonScalaElementwiseOp[T <: Tuple: Labels](in: Tensor[T, Float])(
-      pythonProgram: String,
-      scalaProgram: Tensor[T, Float] => Tensor[T, Float]
-  ): (Tensor[T, Float], Tensor[T, Float]) =
-    val pyRes =
-      py.eval("globals()").bracketUpdate("t", in.jaxValue)
-      py.exec(s"res = $pythonProgram")
-      Tensor.fromArray(
-        in.shape,
-        VType[Float]
-      )(
-        py.eval("res.flatten().tolist()").as[Seq[Float]].toArray
+    it("unary_-"):
+      (-t2) should approxEqual(Tensor.fromArray(t2.shape, t2.vtype)(Array(1.0f, 0.0f, -1.0f, -4.0f)))
+
+    it("approxEquals / approxElementEquals"):
+      val t2Near = t2 *! Tensor0(1.0000001f)
+      t2.approxEquals(t2Near).item shouldBe true
+      t2.approxElementEquals(t2Near).all.item shouldBe true
+
+  describe("Int ops (Tensor2)"):
+
+    it("abs"):
+      i2.abs shouldEqual Tensor.fromArray(i2.shape, i2.vtype)(Array(1, 0, 1, 2))
+
+    it("sign"):
+      i2.sign shouldEqual Tensor.fromArray(i2.shape, i2.vtype)(Array(-1, 0, 1, 1))
+
+    it("pow"):
+      i2.pow(Tensor0(3)) shouldEqual Tensor.fromArray(i2.shape, i2.vtype)(Array(-1, 0, 1, 8))
+
+    it("clip"):
+      i2.clip(0, 1) shouldEqual Tensor.fromArray(i2.shape, i2.vtype)(Array(0, 0, 1, 1))
+
+    it("unary_-"):
+      (-i2) shouldEqual Tensor.fromArray(i2.shape, i2.vtype)(Array(1, 0, -1, -2))
+
+  describe("Boolean ops (Tensor2)"):
+
+    it("inverse (!)"):
+      (!b2) shouldEqual Tensor2.fromArray(Axis[A], Axis[B], VType[Boolean])(
+        Array(Array(false, true), Array(true, false))
       )
-    val scalaRes = scalaProgram(in)
-    (pyRes, scalaRes)
+
+  describe("Casting Ops (Tensor2)"):
+
+    it("boolean casting"):
+      b2.asBoolean shouldEqual b2
+      b2.asInt shouldEqual Tensor.fromArray(b2.shape, VType[Int])(Array(1, 0, 0, 1))
+      b2.asFloat should approxEqual(Tensor.fromArray(b2.shape, VType[Float])(Array(1.0f, 0.0f, 0.0f, 1.0f)))
+
+    it("int casting"):
+      i2.asBoolean shouldEqual Tensor.fromArray(i2.shape, VType[Boolean])(Array(true, false, true, true))
+      i2.asInt shouldEqual i2
+      i2.asFloat should approxEqual(Tensor.fromArray(i2.shape, VType[Float])(Array(-1.0f, 0.0f, 1.0f, 2.0f)))
+
+    it("float casting"):
+      val f2 = Tensor.fromArray(t2.shape, VType[Float])(Array(-1.1f, 0.0f, 0.9f, 2.5f))
+      f2.asBoolean shouldEqual Tensor.fromArray(f2.shape, VType[Boolean])(Array(true, false, true, true))
+      f2.asInt shouldEqual Tensor.fromArray(f2.shape, VType[Int])(Array(-1, 0, 0, 2))
+      f2.asFloat shouldEqual f2

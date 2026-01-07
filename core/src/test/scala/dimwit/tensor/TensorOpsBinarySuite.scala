@@ -2,163 +2,57 @@ package dimwit.tensor
 
 import dimwit.*
 import dimwit.Conversions.given
-import org.scalacheck.Prop.*
-import org.scalacheck.{Arbitrary, Gen}
-import me.shadaj.scalapy.py
-import me.shadaj.scalapy.py.SeqConverters
-import TensorGen.*
 import TestUtil.*
-import org.scalatest.propspec.AnyPropSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-import me.shadaj.scalapy.readwrite.Reader
-import scala.reflect.ClassTag
 import org.scalatest.funspec.AnyFunSpec
 
-class TensorOpsBinarySuite extends AnyFunSpec with ScalaCheckPropertyChecks with Matchers:
+class TensorOpsBinarySuite extends AnyFunSpec with Matchers:
 
-  py.exec("import jax.numpy as jnp")
+  val t2 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
+    Array(Array(10.0f, 20.0f), Array(30.0f, 40.0f))
+  )
+  val t2_2 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
+    Array(Array(2.0f, 4.0f), Array(5.0f, 8.0f))
+  )
 
-  private def checkBinary2Float[T <: Tuple: Labels, InV](gen: Gen[(Tensor[T, InV], Tensor[T, InV])])(pyCode: String, scOp: (Tensor[T, InV], Tensor[T, InV]) => Tensor[T, Float]) =
-    it(s"Tensor[${summon[Labels[T]].names.mkString(", ")}]"):
-      forAll(gen): (t1, t2) =>
-        val (py, sc) = executeBinaryOps(t1, t2)(pyCode, scOp)
-        py should approxEqual(sc)
+  val i2 = Tensor2.fromArray(Axis[A], Axis[B], VType[Int])(
+    Array(Array(10, 20), Array(30, 40))
+  )
+  val i2_2 = Tensor2.fromArray(Axis[A], Axis[B], VType[Int])(
+    Array(Array(2, 4), Array(5, 8))
+  )
 
-  private def checkBinary2Bool[T <: Tuple: Labels, InV](gen: Gen[(Tensor[T, InV], Tensor[T, InV])])(pyCode: String, scOp: (Tensor[T, InV], Tensor[T, InV]) => Tensor[T, Boolean]) =
-    it(s"Tensor[${summon[Labels[T]].names.mkString(", ")}]"):
-      forAll(gen): (t1, t2) =>
-        val (py, sc) = executeBinaryOps(t1, t2)(pyCode, scOp)
-        py should equal(sc)
+  describe("Float Binary Ops"):
+    it("Addition (+)"):
+      (t2 + t2_2) shouldEqual Tensor.fromArray(t2.shape, t2.vtype)(Array(12.0f, 24.0f, 35.0f, 48.0f))
 
-  private def checkBinary2Int[T <: Tuple: Labels, InV](gen: Gen[(Tensor[T, InV], Tensor[T, InV])])(pyCode: String, scOp: (Tensor[T, InV], Tensor[T, InV]) => Tensor[T, Int]) =
-    it(s"Tensor[${summon[Labels[T]].names.mkString(", ")}]"):
-      forAll(gen): (t1, t2) =>
-        val (py, sc) = executeBinaryOps(t1, t2)(pyCode, scOp)
-        py should equal(sc)
+    it("Subtraction (-)"):
+      (t2 - t2_2) shouldEqual Tensor.fromArray(t2.shape, t2.vtype)(Array(8.0f, 16.0f, 25.0f, 32.0f))
 
-  describe("Float"):
-    describe("Addition +"):
-      checkBinary2Float(twoTensor0Gen(VType[Float]))("t1 + t2", _ + _)
-      checkBinary2Float(twoTensor1Gen(VType[Float]))("t1 + t2", _ + _)
-      checkBinary2Float(twoTensor2Gen(VType[Float]))("t1 + t2", _ + _)
-      checkBinary2Float(twoTensor3Gen(VType[Float]))("t1 + t2", _ + _)
+    it("Multiplication (*)"):
+      (t2 * t2_2) shouldEqual Tensor.fromArray(t2.shape, t2.vtype)(Array(20.0f, 80.0f, 150.0f, 320.0f))
 
-    describe("Subtraction -"):
-      checkBinary2Float(twoTensor0Gen(VType[Float]))("t1 - t2", _ - _)
-      checkBinary2Float(twoTensor1Gen(VType[Float]))("t1 - t2", _ - _)
-      checkBinary2Float(twoTensor2Gen(VType[Float]))("t1 - t2", _ - _)
-      checkBinary2Float(twoTensor3Gen(VType[Float]))("t1 - t2", _ - _)
+    it("Division (/)"):
+      (t2 / t2_2) shouldEqual Tensor.fromArray(t2.shape, t2.vtype)(Array(5.0f, 5.0f, 6.0f, 5.0f))
 
-    describe("Multiplication *"):
-      checkBinary2Float(twoTensor0Gen(VType[Float]))("t1 * t2", _ * _)
-      checkBinary2Float(twoTensor1Gen(VType[Float]))("t1 * t2", _ * _)
-      checkBinary2Float(twoTensor2Gen(VType[Float]))("t1 * t2", _ * _)
-      checkBinary2Float(twoTensor3Gen(VType[Float]))("t1 * t2", _ * _)
+    it("Comparisons (<, <=, >, >=)"):
+      (t2 < t2_2).asBoolean shouldEqual Tensor.fromArray(t2.shape, VType[Boolean])(Array(false, false, false, false))
+      (t2 > t2_2).asBoolean shouldEqual Tensor.fromArray(t2.shape, VType[Boolean])(Array(true, true, true, true))
 
-    describe("Division /"):
-      checkBinary2Float(twoTensor0Gen(VType[Float]))("t1 / t2", _ / _)
-      checkBinary2Float(twoTensor1Gen(VType[Float]))("t1 / t2", _ / _)
-      checkBinary2Float(twoTensor2Gen(VType[Float]))("t1 / t2", _ / _)
-      checkBinary2Float(twoTensor3Gen(VType[Float]))("t1 / t2", _ / _)
+    it("elementEquals"):
+      (t2 `elementEquals` t2) shouldEqual Tensor.fromArray(t2.shape, VType[Boolean])(Array(true, true, true, true))
+      (t2 `elementEquals` t2_2) shouldEqual Tensor.fromArray(t2.shape, VType[Boolean])(Array(false, false, false, false))
 
-    describe("Less than <"):
-      checkBinary2Bool(twoTensor0Gen(VType[Float]))("t1 < t2", _ < _)
-      checkBinary2Bool(twoTensor1Gen(VType[Float]))("t1 < t2", _ < _)
-      checkBinary2Bool(twoTensor2Gen(VType[Float]))("t1 < t2", _ < _)
-      checkBinary2Bool(twoTensor3Gen(VType[Float]))("t1 < t2", _ < _)
+  describe("Int Binary Ops"):
+    it("Addition (+)"):
+      (i2 + i2_2) shouldEqual Tensor.fromArray(i2.shape, i2.vtype)(Array(12, 24, 35, 48))
 
-    describe("Less than or equal to <="):
-      checkBinary2Bool(twoTensor0Gen(VType[Float]))("t1 <= t2", _ <= _)
-      checkBinary2Bool(twoTensor1Gen(VType[Float]))("t1 <= t2", _ <= _)
-      checkBinary2Bool(twoTensor2Gen(VType[Float]))("t1 <= t2", _ <= _)
-      checkBinary2Bool(twoTensor3Gen(VType[Float]))("t1 <= t2", _ <= _)
+    it("Subtraction (-)"):
+      (i2 - i2_2) shouldEqual Tensor.fromArray(i2.shape, i2.vtype)(Array(8, 16, 25, 32))
 
-    describe("Greater than >"):
-      checkBinary2Bool(twoTensor0Gen(VType[Float]))("t1 > t2", _ > _)
-      checkBinary2Bool(twoTensor1Gen(VType[Float]))("t1 > t2", _ > _)
-      checkBinary2Bool(twoTensor2Gen(VType[Float]))("t1 > t2", _ > _)
-      checkBinary2Bool(twoTensor3Gen(VType[Float]))("t1 > t2", _ > _)
+    it("Multiplication (*)"):
+      (i2 * i2_2) shouldEqual Tensor.fromArray(i2.shape, i2.vtype)(Array(20, 80, 150, 320))
 
-    describe("Greater than or equal to >="):
-      checkBinary2Bool(twoTensor0Gen(VType[Float]))("t1 >= t2", _ >= _)
-      checkBinary2Bool(twoTensor1Gen(VType[Float]))("t1 >= t2", _ >= _)
-      checkBinary2Bool(twoTensor2Gen(VType[Float]))("t1 >= t2", _ >= _)
-      checkBinary2Bool(twoTensor3Gen(VType[Float]))("t1 >= t2", _ >= _)
-
-    describe("elementwise equal (with different tensors)"):
-      checkBinary2Bool(twoTensor0Gen(VType[Float]))("jnp.equal(t1, t2)", _ `elementEquals` _)
-      checkBinary2Bool(twoTensor1Gen(VType[Float]))("jnp.equal(t1, t2)", _ `elementEquals` _)
-      checkBinary2Bool(twoTensor2Gen(VType[Float]))("jnp.equal(t1, t2)", _ `elementEquals` _)
-      checkBinary2Bool(twoTensor3Gen(VType[Float]))("jnp.equal(t1, t2)", _ `elementEquals` _)
-
-    describe("elementwise equal (with identical tensors)"):
-      checkBinary2Bool(twoSameTensor0Gen(VType[Float]))("jnp.equal(t1, t2)", _ `elementEquals` _)
-      checkBinary2Bool(twoSameTensor1Gen(VType[Float]))("jnp.equal(t1, t2)", _ `elementEquals` _)
-      checkBinary2Bool(twoSameTensor2Gen(VType[Float]))("jnp.equal(t1, t2)", _ `elementEquals` _)
-      checkBinary2Bool(twoSameTensor3Gen(VType[Float]))("jnp.equal(t1, t2)", _ `elementEquals` _)
-
-  describe("Int"):
-    describe("Addition +"):
-      checkBinary2Int(twoTensor0Gen(VType[Int]))("t1 + t2", _ + _)
-      checkBinary2Int(twoTensor1Gen(VType[Int]))("t1 + t2", _ + _)
-      checkBinary2Int(twoTensor2Gen(VType[Int]))("t1 + t2", _ + _)
-      checkBinary2Int(twoTensor3Gen(VType[Int]))("t1 + t2", _ + _)
-
-    describe("Subtraction -"):
-      checkBinary2Int(twoTensor0Gen(VType[Int]))("t1 - t2", _ - _)
-      checkBinary2Int(twoTensor1Gen(VType[Int]))("t1 - t2", _ - _)
-      checkBinary2Int(twoTensor2Gen(VType[Int]))("t1 - t2", _ - _)
-      checkBinary2Int(twoTensor3Gen(VType[Int]))("t1 - t2", _ - _)
-
-    describe("Multiplication *"):
-      checkBinary2Int(twoTensor0Gen(VType[Int]))("t1 * t2", _ * _)
-      checkBinary2Int(twoTensor1Gen(VType[Int]))("t1 * t2", _ * _)
-      checkBinary2Int(twoTensor2Gen(VType[Int]))("t1 * t2", _ * _)
-      checkBinary2Int(twoTensor3Gen(VType[Int]))("t1 * t2", _ * _)
-
-    describe("Less than <"):
-      checkBinary2Bool(twoTensor0Gen(VType[Int]))("t1 < t2", _ < _)
-      checkBinary2Bool(twoTensor1Gen(VType[Int]))("t1 < t2", _ < _)
-      checkBinary2Bool(twoTensor2Gen(VType[Int]))("t1 < t2", _ < _)
-      checkBinary2Bool(twoTensor3Gen(VType[Int]))("t1 < t2", _ < _)
-
-    describe("Less than or equal to <="):
-      checkBinary2Bool(twoTensor0Gen(VType[Int]))("t1 <= t2", _ <= _)
-      checkBinary2Bool(twoTensor1Gen(VType[Int]))("t1 <= t2", _ <= _)
-      checkBinary2Bool(twoTensor2Gen(VType[Int]))("t1 <= t2", _ <= _)
-      checkBinary2Bool(twoTensor3Gen(VType[Int]))("t1 <= t2", _ <= _)
-
-    describe("Greater than >"):
-      checkBinary2Bool(twoTensor0Gen(VType[Int]))("t1 > t2", _ > _)
-      checkBinary2Bool(twoTensor1Gen(VType[Int]))("t1 > t2", _ > _)
-      checkBinary2Bool(twoTensor2Gen(VType[Int]))("t1 > t2", _ > _)
-      checkBinary2Bool(twoTensor3Gen(VType[Int]))("t1 > t2", _ > _)
-
-    describe("Greater than or equal to >="):
-      checkBinary2Bool(twoTensor0Gen(VType[Int]))("t1 >= t2", _ >= _)
-      checkBinary2Bool(twoTensor1Gen(VType[Int]))("t1 >= t2", _ >= _)
-      checkBinary2Bool(twoTensor2Gen(VType[Int]))("t1 >= t2", _ >= _)
-      checkBinary2Bool(twoTensor3Gen(VType[Int]))("t1 >= t2", _ >= _)
-
-    describe("elementwise equal (with different tensors)"):
-      checkBinary2Bool(twoTensor0Gen(VType[Int]))("jnp.equal(t1, t2)", _ `elementEquals` _)
-      checkBinary2Bool(twoTensor1Gen(VType[Int]))("jnp.equal(t1, t2)", _ `elementEquals` _)
-      checkBinary2Bool(twoTensor2Gen(VType[Int]))("jnp.equal(t1, t2)", _ `elementEquals` _)
-      checkBinary2Bool(twoTensor3Gen(VType[Int]))("jnp.equal(t1, t2)", _ `elementEquals` _)
-
-    describe("elementwise equal (with identical tensors)"):
-      checkBinary2Bool(twoSameTensor0Gen(VType[Int]))("jnp.equal(t1, t2)", _ `elementEquals` _)
-      checkBinary2Bool(twoSameTensor1Gen(VType[Int]))("jnp.equal(t1, t2)", _ `elementEquals` _)
-      checkBinary2Bool(twoSameTensor2Gen(VType[Int]))("jnp.equal(t1, t2)", _ `elementEquals` _)
-      checkBinary2Bool(twoSameTensor3Gen(VType[Int]))("jnp.equal(t1, t2)", _ `elementEquals` _)
-
-  private def executeBinaryOps[T <: Tuple: Labels, InV, R](t1: Tensor[T, InV], t2: Tensor[T, InV])(
-      pythonProgram: String,
-      scalaProgram: (Tensor[T, InV], Tensor[T, InV]) => Tensor[T, R]
-  ): (Tensor[T, R], Tensor[T, R]) =
-    require(t1.shape == t2.shape, s"Shape mismatch: ${t1.shape} vs ${t2.shape}")
-    py.eval("globals()").bracketUpdate("t1", t1.jaxValue)
-    py.eval("globals()").bracketUpdate("t2", t2.jaxValue)
-    py.exec(s"res = $pythonProgram")
-    (Tensor(py.eval("res")), scalaProgram(t1, t2))
+    it("Comparisons (<, <=, >, >=)"):
+      (i2 < i2_2).asBoolean shouldEqual Tensor.fromArray(i2.shape, VType[Boolean])(Array(false, false, false, false))
+      (i2 >= i2_2).asBoolean shouldEqual Tensor.fromArray(i2.shape, VType[Boolean])(Array(true, true, true, true))

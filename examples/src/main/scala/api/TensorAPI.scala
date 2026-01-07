@@ -22,6 +22,11 @@ def tensorAPI(): Unit =
   trait B derives Label
   trait C derives Label
   trait D derives Label
+  trait E derives Label
+  trait X derives Label
+  trait Y derives Label
+
+  trait Stack derives Label
 
   val UNSUPPORTED = "Not Supported by dimwit"
   py.exec("import jax")
@@ -304,11 +309,11 @@ def tensorAPI(): Unit =
     }
     opBlock("stack AB AB AB AB") {
       py.exec("res = jnp.stack([ab, ab, ab, ab], axis=0)")
-      stack(List(AB, AB, AB, AB), Axis["Stack"])
+      stack(List(AB, AB, AB, AB), Axis[Stack])
     }
     opBlock("stack AB AB AB AB axis=1") {
       py.exec("res = jnp.stack([ab, ab, ab, ab], axis=1)")
-      stack(List(AB, AB, AB, AB), Axis["Stack"], afterAxis = Axis[A])
+      stack(List(AB, AB, AB, AB), Axis[Stack], afterAxis = Axis[A])
     }
     opBlock("concat AB AB") {
       py.exec("res = jnp.concatenate([ab, ab], axis=0)")
@@ -427,7 +432,7 @@ def tensorAPI(): Unit =
       // TODO this is logically a rearrange operation but not supported by current rearrange API nor by einops
       // Note jnp.split is chunk (see below)
       py.exec("res = jnp.reshape(abcd, (2, 3, 2, 2, 5))")
-      ABCD.split(Axis["E"], Axis[C], 2)
+      ABCD.split(Axis[E], Axis[C], 2)
     }
     opBlock("chunk ABCD") {
       py.exec("res = list(map(lambda x: x.shape, jnp.array_split(abcd, 2, axis=2)))")
@@ -437,13 +442,13 @@ def tensorAPI(): Unit =
     /** AS / RELABEL - rename axes labels */
     opBlock("as AB to XY") {
       py.exec("res = ab  # no equivalent in JAX, as axes are not named")
-      AB.relabel(Axis[A] -> Axis["X"]).relabel(Axis[B] -> Axis["Y"])
-      // TODO add relabel of tuple of axes? => AB.relabel((Axis[A] -> Axis["X"], Axis[B] -> Axis["Y"]))
+      AB.relabel(Axis[A] -> Axis[X]).relabel(Axis[B] -> Axis[Y])
+      // TODO add relabel of tuple of axes? => AB.relabel((Axis[A] -> Axis[X], Axis[B] -> Axis[Y]))
     }
     opBlock("relabel AB to XB") {
       py.exec("res = ab  # no equivalent in JAX, as axes are not named")
       AB.relabel(
-        Axis[A] -> Axis["X"]
+        Axis[A] -> Axis[X]
       )
     }
 
@@ -581,13 +586,15 @@ def tensorAPI(): Unit =
       AB.trace
     }
     opBlock("det abc1c2 over axes C1 and C2") {
+      trait C1 derives Label
+      trait C2 derives Label
       val ABC1C2 = Tensor.ones(
-        Shape(Axis[A] -> 2, Axis[B] -> 3, Axis["C1"] -> 4, Axis["C2"] -> 4),
+        Shape(Axis[A] -> 2, Axis[B] -> 3, Axis[C1] -> 4, Axis[C2] -> 4),
         VType[Float]
       )
       py.exec("abc1c2 = jnp.ones((2, 3, 4, 4))")
       py.exec("res = jnp.linalg.det(abc1c2)")
-      ABC1C2.det(Axis["C1"], Axis["C2"])
+      ABC1C2.det(Axis[C1], Axis[C2])
     }
     opBlock("det A1A2") {
       val A1A2 = Tensor.ones(
@@ -603,8 +610,10 @@ def tensorAPI(): Unit =
       AB.norm
     }
     opBlock("inv AB") {
+      trait A1 derives Label
+      trait A2 derives Label
       val a1a2 = Tensor2
-        .fromArray(Axis["A1"], Axis["A2"], VType[Float])(
+        .fromArray(Axis[A1], Axis[A2], VType[Float])(
           Array(
             Array(2f, 0f),
             Array(0f, 2f)

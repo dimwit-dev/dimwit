@@ -14,12 +14,14 @@ opaque type Y = Float
 trait A derives Label
 trait B derives Label
 trait C derives Label
+trait D derives Label
 
 @main def playground(): Unit =
 
   trait Batch derives Label
   trait Batch2 derives Label
   trait Features derives Label
+  trait Samples derives Label
 
   val t = Tensor.zeros(
     Shape(
@@ -31,8 +33,8 @@ trait C derives Label
 
   val t2 = Tensor.fromArray(
     Shape(
-      Axis["Batch"] -> 4,
-      Axis["Features"] -> 8
+      Axis[Batch] -> 4,
+      Axis[Features] -> 8
     ),
     VType[Float]
   )(Array.fill(32)(1.0f))
@@ -68,14 +70,14 @@ trait C derives Label
     ).map(_.toFloat)
     val X = Tensor.fromArray(
       Shape(
-        Axis["Samples"] -> 10,
-        Axis["Features"] -> 2
+        Axis[Samples] -> 10,
+        Axis[Features] -> 2
       ),
       VType[Float]
     )(values)
-    val means = X.vmap(Axis["Features"])(_.mean)
-    val stds = X.vmap(Axis["Features"])(_.std)
-    val Xnorm = X.vmap(Axis["Samples"]) { (x) =>
+    val means = X.vmap(Axis[Features])(_.mean)
+    val stds = X.vmap(Axis[Features])(_.std)
+    val Xnorm = X.vmap(Axis[Samples]) { (x) =>
       (x - means) / stds
     }
     println(Xnorm)
@@ -87,8 +89,8 @@ trait C derives Label
     println("DType and Device tests")
     val t = Tensor.zeros(
       Shape(
-        Axis["Batch"] -> 1024,
-        Axis["Features"] -> 512
+        Axis[Batch] -> 1024,
+        Axis[Features] -> 512
       ),
       VType[Float]
     )
@@ -101,35 +103,37 @@ trait C derives Label
   {
     val x = Tensor.zeros(
       Shape(
-        Axis["Features"] -> 2
+        Axis[Features] -> 2
       ),
       VType[Float]
     )
     val A = Tensor.zeros(
       Shape(
-        Axis["Samples"] -> 50,
-        Axis["Features"] -> 2
+        Axis[Samples] -> 50,
+        Axis[Features] -> 2
       ),
       VType[Float]
     )
     // val y1 = x.contract(Axis[A])(A)
-    val y1 = A.contract(Axis["Features"])(x)
+    val y1 = A.contract(Axis[Features])(x)
     println(y1.shape)
     // A.contract(Axis["lala"])(x)
-    // A.contract(Axis["Samples"])(x)
-    val y2 = x.contract(Axis["Features"])(A)
+    // A.contract(Axis[Samples])(x)
+    val y2 = x.contract(Axis[Features])(A)
     println(y2.shape)
     val y3 = x.outerProduct(A)
     println(y3.shape)
   }
   {
     println("Einops rearrange tests")
-    type Batch = "batch"
-    type Frame = "frame"
-    type BatchFrame = "batch_frame"
-    type Width = "width"
-    type Height = "height"
-    type Channel = "channel"
+    trait Batch derives Label
+    trait Frame derives Label
+    trait BatchFrame derives Label
+    trait Width derives Label
+    trait Height derives Label
+    trait Channel derives Label
+    trait Pixel derives Label
+
     val X = Tensor.zeros(
       Shape(
         Axis[Batch] -> 32,
@@ -148,7 +152,7 @@ trait C derives Label
       )
     )
     println(d.shape)
-    val e = d.relabelAll((Axis[Frame], Axis["pixel"], Axis[Channel]))
+    val e = d.relabelAll((Axis[Frame], Axis[Pixel], Axis[Channel]))
     println(e.shape)
   }
   {
@@ -316,7 +320,7 @@ trait C derives Label
         ),
         VType[Float]
       )
-      .appendAxis(Axis["D"])
+      .appendAxis(Axis[D])
     println(res.shape)
     val res2 = Tensor
       .ones(
@@ -327,7 +331,7 @@ trait C derives Label
         ),
         VType[Float]
       )
-      .prependAxis(Axis["D"])
+      .prependAxis(Axis[D])
     println(res2.shape)
   }
   {
@@ -378,7 +382,7 @@ trait C derives Label
           Axis[A] -> 2,
           Axis[B] -> 3,
           Axis[C] -> 4,
-          Axis["D"] -> 5
+          Axis[D] -> 5
         ),
         VType[Float]
       )
@@ -392,11 +396,11 @@ trait C derives Label
   }
   {
     println("zipvmap tests")
-    type Batch = "Batch"
-    type Asset = "Asset"
-    type Region = "Region"
-    type Sector = "Sector"
-    type Risk = "Risk"
+    trait Batch derives Label
+    trait Asset derives Label
+    trait Region derives Label
+    trait Sector derives Label
+    trait Risk derives Label
 
     val x = Tensor.ones(
       Shape(
@@ -438,11 +442,11 @@ trait C derives Label
   {
     import dimwit.tensor.* // Assuming imports
 
-    type Batch = "Batch"
-    type Asset = "Asset"
-    type Region = "Region"
-    type Sector = "Sector"
-    type Risk = "Risk"
+    trait Batch derives Label
+    trait Asset derives Label
+    trait Region derives Label
+    trait Sector derives Label
+    trait Risk derives Label
 
     val x = Tensor.ones(Shape(Axis[Batch] -> 6, Axis[Asset] -> 3, Axis[Region] -> 5), VType[Float])
     val y = Tensor.ones(Shape(Axis[Region] -> 5, Axis[Batch] -> 6, Axis[Sector] -> 4), VType[Float])
@@ -568,43 +572,6 @@ trait C derives Label
     println(newX.shape)
   }
   {
-    trait A derives Label
-    trait B derives Label
-    trait C derives Label
-    trait D derives Label
-    type AxisAB1 = Axis[A] | Axis[B]
-    type AxisAB2 = Axis[A | B]
-    type exists = Axis[A & B]
-
-    val ab = Tensor.ones(Shape(Axis[A] -> 2, Axis[B] -> 2), VType[Float])
-    val ba = Tensor.ones(Shape(Axis[B] -> 2, Axis[A] -> 2), VType[Float])
-    val cd = Tensor.ones(Shape(Axis[C] -> 2, Axis[D] -> 2), VType[Float])
-
-    val res2 = ab.slice(Axis[A | C] -> 1)
-
-    val axis1 = Axis[A |*| B]
-    val axis2 = Axis[B |*| A]
-
-    // type axisT = Axis[A] | Axis[B]
-    // val axis: axisT = Axis[A]
-    // val cab4 = ab.contract(axis)(ba)
-
-    val xxx = Label.union[A, B](using
-      summon[Label[A]],
-      summon[Label[B]]
-    )
-    val yyy = Labels.concat(using
-      xxx,
-      Labels.namesOfEmpty
-    )
-    given Labels[(A | B) *: EmptyTuple] = yyy
-    val aorb = Tensor.ones(Shape(Axis[A | B] -> 2)(using xxx), VType[Float])
-    val lala = summon[Label[A]]
-    // val r3 = aorb.slice(Axis[A] -> 1)
-    val r3 = aorb.slice(Axis[A | B] -> 1)
-    println(r3.shape)
-  }
-  {
     val t1 = Tensor.ones(
       Shape(
         Axis[A] -> 2,
@@ -613,10 +580,10 @@ trait C derives Label
       ),
       VType[Float]
     )
-    val t2 = t1.appendAxis(Axis["D"])
+    val t2 = t1.appendAxis(Axis[D])
     // val t3 = t1.appendAxis(Axis[A]) // should not compile
     def f[T <: Tuple: Labels, V](t: Tensor[T, V]) =
-      t.appendAxis(Axis["D"])
+      t.appendAxis(Axis[D])
     def f2[T <: Tuple: Labels, V](t: Tensor[T, V]) =
       t.appendAxis(Axis[A])
     val t3 = f(t1)
@@ -625,6 +592,6 @@ trait C derives Label
     println(t4.shape)
   }
   {
-    val x = Normal.standardNormal(Shape(Axis["A"] -> 3, Axis["B"] -> 4))
+    val x = Normal.standardNormal(Shape(Axis[A] -> 3, Axis[B] -> 4))
     println(x)
   }
