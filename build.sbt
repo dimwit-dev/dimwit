@@ -7,10 +7,6 @@ ThisBuild / organization := "ch.contrafactus"
 // Add resolver for snapshot dependencies
 ThisBuild / resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 
-ThisBuild / envVars := Map(
-  "PYTHONPATH" -> ((ThisBuild / baseDirectory).value / "src" / "python").getAbsolutePath
-)
-
 addCommandAlias("testAndCoverage", "; clean; coverage; test; coverageReport")
 
 lazy val root = (project in file("."))

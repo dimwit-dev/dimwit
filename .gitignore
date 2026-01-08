@@ -2,6 +2,7 @@ target/*
 project/target/*
 project/project/target/*
 project/project/project/target/*
+.dimwit-docs/target/*
 core/target/*
 nn/target/*
 .bsp
