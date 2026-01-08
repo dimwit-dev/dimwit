@@ -83,13 +83,13 @@ resolvers += Resolver.mavenLocal
 
 ### Python Environment Setup
 
-DimWit requires **Python 3.9+** and **JAX** since it uses JAX as the backend for tensor operations via ScalaPy.
+DimWit requires **Python 3.9+** and **JAX** since it uses JAX as the backend for tensor operations via ScalaPy. It also relies on **Einops** for tensor reshaping and manipulation.
 
-1. **Install Python and JAX**:
+1. **Install Python, JAX, and Einops**:
    ```bash
-   pip install jax jaxlib  # CPU version
+   pip install jax jaxlib einops  # CPU version
    # or for GPU support:
-   # pip install jax[cuda12]
+   # pip install jax[cuda12] einops
    ```
 
 2. **Set ScalaPy environment variables**:
