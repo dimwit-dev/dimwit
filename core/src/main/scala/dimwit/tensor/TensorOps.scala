@@ -15,32 +15,6 @@ import me.shadaj.scalapy.py.SeqConverters
 
 import me.shadaj.scalapy.readwrite.Writer
 import me.shadaj.scalapy.readwrite.Reader
-import me.shadaj.scalapy.py.PythonException
-
-object PythonMemoryGuard:
-
-  case class PythonOOMException(e: PythonException) extends Exception(e.getMessage)
-
-  def withRetry[T](block: => T, attempt: Int = 0, maxAttempts: Int = 3): T =
-    try
-      block
-    catch
-      case e: PythonException if isOOM(e) =>
-        System.err.println("JAX OOM detected! Triggering Emergency GC...")
-        System.gc()
-        Thread.sleep(100) // Give gc and python time to free Scala objects and Python tensors
-        if attempt < maxAttempts then
-          System.err.println(s"Retrying operation after OOM (attempt ${attempt + 1} of $maxAttempts)...")
-          withRetry(block, attempt + 1, maxAttempts)
-        else
-          System.err.println(s"Maximum OOM retries ($maxAttempts) reached. Rethrowing exception.")
-          throw PythonOOMException(e)
-
-  private def isOOM(e: PythonException): Boolean =
-    val msg = e.getMessage
-    msg.contains("Resource exhausted") ||
-    msg.contains("Out of memory") ||
-    msg.contains("XlaRuntimeError")
 
 object TensorOps:
 
