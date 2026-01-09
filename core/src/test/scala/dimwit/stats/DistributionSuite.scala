@@ -4,7 +4,6 @@ import dimwit.*
 import dimwit.Conversions.given
 import dimwit.jax.Jax
 import dimwit.random.Random
-import dimwit.tensor.TestUtil.*
 import dimwit.jax.Jax.scipy_stats as jstats
 
 import me.shadaj.scalapy.py

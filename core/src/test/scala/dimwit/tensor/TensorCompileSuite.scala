@@ -14,7 +14,7 @@ class TensorCompileSuite extends AnyFunSpec with Matchers:
     val errors = typeCheckErrors("t.sum(Axis[C])")
     errors should have size 1
     val error = errors.head
-    error.message should include("Axis[dimwit.tensor.C] not found in Tensor[(dimwit.tensor.A, dimwit.tensor.B)]")
+    error.message should include("Axis[dimwit.C] not found in Tensor[(dimwit.A, dimwit.B)]")
 
   it("Nice error message when axes not found in tensor for sum"):
     val t = Tensor.zeros(Shape(Axis[A] -> 1, Axis[B] -> 2), VType[Float])
@@ -22,7 +22,7 @@ class TensorCompileSuite extends AnyFunSpec with Matchers:
     val errors = typeCheckErrors("t.sum((Axis[A], Axis[C]))")
     errors should have size 1
     val error = errors.head
-    error.message should include("(dimwit.tensor.Axis[dimwit.tensor.A], dimwit.tensor.Axis[dimwit.tensor.C])]] not all found in Tensor shape [(dimwit.tensor.A, dimwit.tensor.B)]")
+    error.message should include("(dimwit.tensor.Axis[dimwit.A], dimwit.tensor.Axis[dimwit.C])]] not all found in Tensor shape [(dimwit.A, dimwit.B)]")
 
   it("Nice error message when axes not found in zipvmap"):
     val ab = Tensor.zeros(Shape(Axis[A] -> 1, Axis[B] -> 2), VType[Float])
@@ -31,4 +31,4 @@ class TensorCompileSuite extends AnyFunSpec with Matchers:
     val errors = typeCheckErrors("zipvmap(Axis[C])(ab, bc) { case (x, y) => x.sum + y.sum }")
     errors should have size 1
     val error = errors.head
-    error.message should include("Axis[dimwit.tensor.C]")
+    error.message should include("Axis[dimwit.C]")

@@ -5,8 +5,6 @@ import dimwit.Conversions.given
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.funspec.AnyFunSpec
 
-import TestUtil.*
-
 class TensorOpsFunctionalSuite extends AnyFunSpec with Matchers:
 
   val t2 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
@@ -55,9 +53,9 @@ class TensorOpsFunctionalSuite extends AnyFunSpec with Matchers:
 
     it("vapply over Axis A: adds a vector to each row"):
       val res = t2.vapply(Axis[A])(row => row /! row.norm)
-      res shouldEqual Tensor.fromArray(t2.shape, t2.vtype)(
+      res should approxEqual(Tensor.fromArray(t2.shape, t2.vtype)(
         Array(0.31622776f, 0.4472136f, 0.94868326f, 0.8944272f)
-      )
+      ))
 
   describe("vreduce"):
     it("vreduce(sum) matches .sum(axis)"):

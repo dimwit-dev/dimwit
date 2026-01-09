@@ -5,8 +5,6 @@ import dimwit.Conversions.given
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.funspec.AnyFunSpec
 
-import TestUtil.*
-
 class TensorOpsReductionSuite extends AnyFunSpec with Matchers:
 
   val t2 = Tensor2.fromArray(

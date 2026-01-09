@@ -2,11 +2,9 @@ package dimwit.autodiff
 
 import dimwit.*
 import dimwit.Conversions.given
-import dimwit.tensor.*
+import dimwit.*
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
-
-import TestUtil.*
 
 class FloatTensorTreeSuite extends AnyFunSpec with Matchers:
 

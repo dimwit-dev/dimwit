@@ -2,7 +2,6 @@ package dimwit.tensor
 
 import dimwit.*
 import dimwit.Conversions.given
-import TestUtil.*
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.funspec.AnyFunSpec
 import dimwit.tensor.Labels.concat

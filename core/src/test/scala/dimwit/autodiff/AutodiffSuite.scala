@@ -1,12 +1,11 @@
 package dimwit.autodiff
 
 import dimwit.*
-import dimwit.tensor.*
+import dimwit.*
 import dimwit.Conversions.given
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.funspec.AnyFunSpec
 
-import TestUtil.*
 import dimwit.autodiff.Autodiff.Gradient
 
 class AutodiffSuite extends AnyFunSpec with Matchers:

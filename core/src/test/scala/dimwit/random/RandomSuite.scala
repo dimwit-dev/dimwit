@@ -3,7 +3,6 @@ package dimwit.random
 import dimwit.*
 import dimwit.Conversions.given
 import dimwit.jax.Jax
-import dimwit.tensor.TestUtil.*
 import me.shadaj.scalapy.py
 
 import org.scalatest.funsuite.AnyFunSuite
