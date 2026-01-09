@@ -27,6 +27,8 @@ class TensorMemorySuite extends AnyFunSpec with Matchers:
       l.size + 1
     def block(n: Int): Unit =
       // Each iteration: Create tensor ready for garbage collection
-      for _ <- 0 until n do createLargeTensor()
+      for _ <- 0 until n do
+        PythonMemoryGuard.withRetry:
+          createLargeTensor()
     val N = 2 * oomAtN // guaranteed to be above available memory
     noException should be thrownBy (block(N))
