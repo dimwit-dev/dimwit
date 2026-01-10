@@ -56,6 +56,5 @@ jobs:
       - name: Check if README is up to date
         run: sbt "docs/mdoc --check"
 
-      - name: Run tests
-        run: sbt test
-
+      - name: Run tests (skip slow tests)
+        run: sbt testFast

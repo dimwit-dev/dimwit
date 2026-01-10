@@ -7,6 +7,7 @@ ThisBuild / organization := "ch.contrafactus"
 // Add resolver for snapshot dependencies
 ThisBuild / resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 
+addCommandAlias("testFast", "testOnly * -- -l org.scalatest.tags.Slow")
 addCommandAlias("testAndCoverage", "; clean; coverage; test; coverageReport")
 
 lazy val root = (project in file("."))

@@ -204,7 +204,6 @@ case class Inference(gpt2: GPT2, tokenizer: Tokenizer):
     println(s"Start inference for input: \"$input\"")
     val tokenIds = tokenizer.encode(input)
     def loop(currentTokenIds: List[Int]): LazyList[String] =
-      println(s"Current Token Ids: $currentTokenIds")
       val paddedTokenIds = currentTokenIds ++ List.fill(1024 - currentTokenIds.length)(0)
       val inputTensor = Tensor.fromArray(
         Shape((Axis[Batch] -> 1, Axis[Context] -> paddedTokenIds.length)),
@@ -216,7 +215,6 @@ case class Inference(gpt2: GPT2, tokenizer: Tokenizer):
       val nextToken = predTokensTensor.slice(Axis[Context] -> (currentTokenIds.length - 1))
       val nextTokens = currentTokenIds :+ nextToken.item
       val decoded = tokenizer.decode(nextTokens)
-      System.gc()
       LazyList.cons(decoded, loop(nextTokens))
     loop(tokenIds)
 
