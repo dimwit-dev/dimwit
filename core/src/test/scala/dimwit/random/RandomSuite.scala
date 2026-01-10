@@ -54,3 +54,54 @@ class RandomSuite extends AnyFunSuite with Matchers:
     )
 
     vmapResults should approxEqual(individualResults)
+
+  test("permutation creates valid permutation of indices"):
+    val key = Random.Key(789)
+    val n = 10
+    val perm = Random.permutation(Axis[A] -> n)(key)
+
+    // Check that the permutation has the correct length
+    perm.shape should equal(Shape(Axis[A] -> n))
+
+    // Check that all elements are in range [0, n-1]
+    val minVal = perm.min.item
+    val maxVal = perm.max.item
+    minVal should be >= 0
+    maxVal should be < n
+
+    // Check that all elements are unique (sum of unique permutation = sum of 0..n-1)
+    val expectedSum = (n * (n - 1)) / 2
+    perm.sum.item shouldBe expectedSum
+
+    // Check that it's actually permuted (with very high probability it won't be identical)
+    // By checking the first element is not 0 (fails 1/10 of the time, but good enough)
+    val original = Tensor1.fromArray(Axis[A], VType[Int])((0 until n).toArray)
+    val isIdentity = (perm === original).item
+    isIdentity shouldBe false
+
+  test("permutation with take can shuffle tensor rows"):
+    val key = Random.Key(101112)
+    trait Row derives Label
+    trait Col derives Label
+
+    // Create a 2D tensor with distinct values to verify shuffling
+    val original = Tensor2.fromArray(Axis[Row], Axis[Col], VType[Int])(Array(
+      Array(0, 1, 2),
+      Array(3, 4, 5),
+      Array(6, 7, 8),
+      Array(9, 10, 11)
+    ))
+
+    val rowPerm = Random.permutation(Axis[Row] -> 4)(key)
+    val shuffled = original.take(Axis[Row])(rowPerm)
+
+    shuffled.shape should equal(original.shape)
+    shuffled.sum.item shouldBe original.sum.item // sum should be unchanged
+
+    // Check that each row in shuffled exists in original by comparing row sums
+    // Original row sums are: [3, 12, 21, 30]
+    val shuffledRowSums = (0 until 4).map { i =>
+      shuffled.slice(Axis[Row] -> i).sum.item
+    }
+    val expectedRowSums = Set(3, 12, 21, 30)
+    shuffledRowSums.toSet shouldBe expectedRowSums

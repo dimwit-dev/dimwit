@@ -50,6 +50,29 @@ object Random:
 
     override def hashCode(): Int = jaxKey.tobytes().hashCode()
 
+  /** Generate a random permutation of indices from 0 to n-1.
+    *
+    * Common use case: shuffle a tensor along an axis by combining with `.take()`:
+    * {{{}
+    * val key = Random.Key(42)
+    * val data = Tensor2.fromArray(Axis[Row], Axis[Col], VType[Int])(
+    *    Array(Array(1, 2),
+    *    Array(3, 4),
+    *    Array(5, 6)) )
+    *    val perm = Random.permutation(Axis[Row] -> 3)(key)
+    *    val shuffled = data.take(Axis[Row])(perm)
+    * }}}
+    *
+    * @param dim
+    *   Specifies the axis label for the resulting permutation tensor and its size n
+    * @param key
+    *   The random key
+    * @return
+    *   A 1D tensor containing a random permutation of [0, 1, ..., n-1]
+    */
+  def permutation[L: Label](dim: (Axis[L], Int))(key: Key): Tensor1[L, Int] =
+    Tensor.fromPy(VType[Int])(Jax.jrandom.permutation(key.jaxKey, dim._2))
+
   object Key:
     /** Create a random key from an integer seed */
     def apply(seed: Int): Key = Key(Jax.jrandom.key(seed))
