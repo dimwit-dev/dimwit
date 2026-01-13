@@ -92,8 +92,7 @@ object Jit:
       val result = f(pyT1, pyT2)(rPy)
       ToPyTree[R].toPyTree(result)
 
-    // val jitted = Jax.jax_helper.jit_fn(fpy, anyToPy(Map("donate_argnums" -> Tuple1(2))))
-    val jitted = Jax.jax_helper.jit_fn(fpy)
+    val jitted = Jax.jax_helper.jit_fn(fpy, anyToPy(Map("donate_argnums" -> Tuple1(2))))
 
     opaque type ToReduce = py.Any
     def lift(o: R): ToReduce = outTree.toPyTree(o)

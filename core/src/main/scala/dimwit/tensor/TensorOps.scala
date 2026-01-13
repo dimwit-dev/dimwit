@@ -636,10 +636,10 @@ object TensorOps:
           )
         )
 
-      def chunk[splitL: Label](splitAxis: Axis[splitL], interval: Int)(using
+      def chunk[splitL: Label](splitAxis: Axis[splitL], chunkSize: Int)(using
           axisIndex: AxisIndex[T, splitL]
       ): Seq[Tensor[T, V]] =
-        val res = Jax.jnp.split(tensor.jaxValue, interval, axis = axisIndex.value).as[Seq[Jax.PyDynamic]]
+        val res = Jax.jnp.split(tensor.jaxValue, chunkSize, axis = axisIndex.value).as[Seq[Jax.PyDynamic]]
         res.map(x => Tensor[T, V](x))
 
       def tile = ???

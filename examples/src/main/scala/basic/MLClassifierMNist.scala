@@ -77,16 +77,11 @@ object MLPClassifierMNist:
         params: MLP.Params
     ): Tensor0[Float] =
       val model = MLP(params)
-      val batchSize = batchImages.shape(Axis[TrainSample])
-      val losses = (0 until batchSize)
-        .map: idx =>
-          val image = batchImages.slice(Axis[TrainSample] -> idx)
-          val label = batchLabels.slice(Axis[TrainSample] -> idx)
+      val losses = zipvmap(Axis[TrainSample])(batchImages, batchLabels):
+        case (image, label) =>
           val logits = model.logits(image)
           binaryCrossEntropy(logits, label)
-        .reduce(_ + _)
-      losses / batchSize.toFloat
-
+      losses.mean
     val initParams = MLP.Params(
       Axis[Height |*| Width] -> 28 * 28,
       Axis[Hidden] -> 128,
@@ -102,35 +97,47 @@ object MLPClassifierMNist:
 
     def gradientStep(
         imageBatch: Tensor[(TrainSample, Height, Width), Float],
-        labelBatch: Tensor1[TrainSample, Int]
-    )(
+        labelBatch: Tensor1[TrainSample, Int],
         params: MLP.Params
     ): MLP.Params =
       val lossBatch = batchLoss(imageBatch, labelBatch)
       val df = Autodiff.grad(lossBatch)
       GradientDescent(df, learningRate).step(params)
-    val jitStep = jitReduce(gradientStep)
 
-    val imageBatches = trainX.chunk(Axis[TrainSample], batchSize)
-    val labelBatches = trainY.chunk(Axis[TrainSample], batchSize)
-    val length = imageBatches.length
-    val imageBatch = imageBatches.head
-    val labelBatch = labelBatches.head
+    val jitReduceStep = jitReduce(
+      (
+          imageBatch: Tensor[(TrainSample, Height, Width), Float],
+          labelBatch: Tensor1[TrainSample, Int]
+      ) => (params: MLP.Params) => gradientStep(imageBatch, labelBatch, params)
+    )
+    val jitStep = jit(gradientStep)
+
     def miniBatchGradientDescent(
         imageBatches: Seq[Tensor[(TrainSample, Height, Width), Float]],
         labelBatches: Seq[Tensor1[TrainSample, Int]]
     )(
         params: MLP.Params
     ): MLP.Params =
-      jitStep.unlift:
-        imageBatches
-          .zip(labelBatches)
-          .foldLeft(jitStep.lift(params)):
+      jitReduceStep.unlift:
+        imageBatches.zip(labelBatches)
+          .foldLeft(jitReduceStep.lift(params)):
             case (currentParams, (imageBatch, labelBatch)) =>
-              jitStep(imageBatch, labelBatch)(currentParams)
+              jitReduceStep(imageBatch, labelBatch)(currentParams)
+
+    def miniBatchGradientDescent2(
+        imageBatches: Seq[Tensor[(TrainSample, Height, Width), Float]],
+        labelBatches: Seq[Tensor1[TrainSample, Int]]
+    )(
+        params: MLP.Params
+    ): MLP.Params =
+      imageBatches.zip(labelBatches)
+        .foldLeft(params):
+          case (currentParams, (imageBatch, labelBatch)) =>
+            jitStep(imageBatch, labelBatch, currentParams)
+
     val trainMiniBatchGradientDescent = miniBatchGradientDescent(
-      trainX.chunk(Axis[TrainSample], batchSize),
-      trainY.chunk(Axis[TrainSample], batchSize)
+      trainX.chunk(Axis[TrainSample], numSamples / batchSize),
+      trainY.chunk(Axis[TrainSample], numSamples / batchSize)
     )
     val trainTrajectory = Iterator.iterate(initParams)(currentParams =>
       timed("Training"):
