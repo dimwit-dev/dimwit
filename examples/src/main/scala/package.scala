@@ -1,4 +1,4 @@
-package examples.basic
+package examples
 
 def timed[A](template: String)(block: => A): A =
   val t0 = System.currentTimeMillis()

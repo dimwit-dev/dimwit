@@ -7,6 +7,9 @@ import nn.ActivationFunctions.{relu, sigmoid}
 import dimwit.random.Random
 import dimwit.jax.Jit.jitReduce
 
+import examples.timed
+import examples.dataset.MNISTLoader
+
 def binaryCrossEntropy[L: Label](
     logits: Tensor1[L, Float],
     label: Tensor0[Int]
@@ -119,10 +122,10 @@ object MLPClassifierMNist:
     )(
         params: MLP.Params
     ): MLP.Params =
-      jitStep.finish:
+      jitStep.unlift:
         imageBatches
           .zip(labelBatches)
-          .foldLeft(jitStep.setup(params)):
+          .foldLeft(jitStep.lift(params)):
             case (currentParams, (imageBatch, labelBatch)) =>
               jitStep(imageBatch, labelBatch)(currentParams)
     val trainMiniBatchGradientDescent = miniBatchGradientDescent(

@@ -36,7 +36,7 @@ def accuracy(params, x, y):
     return jnp.mean(jnp.argmax(forward(params, x), axis=1) == y)
 
 # --- 3. Training Update
-# @jax.jit
+@jax.jit
 def step(params, x, y, lr=0.05):
     grads = jax.grad(loss_fn)(params, x, y)
     return jax.tree_util.tree_map(lambda p, g: p - lr * g, params, grads)

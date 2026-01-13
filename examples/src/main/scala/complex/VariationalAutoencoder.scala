@@ -1,13 +1,12 @@
-package examples.basic.vae
+package examples.complex.vae
 
-import examples.basic.timed
+import examples.timed
 
 import dimwit.*
 import dimwit.Conversions.given
 import dimwit.stats.Normal
 import dimwit.random.Random
-import examples.basic.MNISTLoader
-import examples.basic.MNISTLoader.{Sample, TrainSample, TestSample, Height, Width}
+import examples.dataset.MNISTLoader
 import nn.LinearLayer
 import nn.ActivationFunctions.relu
 import nn.GradientDescent
@@ -15,6 +14,7 @@ import dimwit.jax.Jax
 import nn.ActivationFunctions.sigmoid
 import dimwit.random.Random.Key
 
+import MNISTLoader.{Sample, TrainSample, TestSample, Height, Width}
 type Pixel = Height |*| Width
 type ReconstructedPixel = Height |*| Width
 

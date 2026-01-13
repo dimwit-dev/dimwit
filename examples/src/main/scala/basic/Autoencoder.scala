@@ -3,7 +3,7 @@ package examples.basic.ae
 import dimwit.*
 import dimwit.Conversions.given
 
-import examples.basic.timed
+import examples.timed
 import dimwit.stats.Normal
 import dimwit.random.Random
 import nn.LinearLayer
@@ -13,7 +13,8 @@ import dimwit.jax.Jax
 import nn.ActivationFunctions.sigmoid
 import dimwit.random.Random.Key
 
-import examples.basic.MNISTLoader
+import examples.dataset.MNISTLoader
+
 import MNISTLoader.{Sample, TrainSample, TestSample, Height, Width}
 trait Hidden derives Label
 trait Output derives Label
