@@ -70,7 +70,7 @@ package object dimwit:
   export dimwit.autodiff.{Autodiff, TensorTree, FloatTensorTree, ToPyTree, Grad}
 
   // Export Just-in-Time compilation
-  export dimwit.jax.Jit.jit
+  export dimwit.jax.Jit.{jit, jitReduce}
 
   object Conversions:
     export dimwit.tensor.Tensor0.{float2FloatTensor, int2IntTensor, int2FloatTensor, boolean2BooleanTensor}

@@ -9,33 +9,35 @@ import me.shadaj.scalapy.py
 class JitSuite extends AnyFunSpec with Matchers:
 
   it("JIT compilation works correctly"):
-    def complexFn(t: Tensor1[A, Float]): Tensor1[A, Float] =
-      (0 until 50).foldLeft(t) { (acc, _) => acc * ((acc +! 1f) /! 2f) }
+    def f(t: Tensor1[A, Float]): Tensor1[A, Float] =
+      t * ((t +! 1f) /! 2f)
 
-    val jitComplexFn = jit(complexFn)
+    val jitF = jit(f)
     val tensor = Tensor.ones(Shape1(Axis[A] -> 5), VType[Float])
 
-    val res = complexFn(tensor)
-    val jittedRes = jitComplexFn(tensor)
+    val res = (0 until 25).foldLeft(tensor)((acc, _) => f(acc))
+    val jittedRes = (0 until 25).foldLeft(tensor)((acc, _) => jitF(acc))
     noException should be thrownBy (tensor.toString) // tensor is still usable, toString to trigger materialization
     res should approxEqual(jittedRes)
 
-  it("JIT compilation works correctly with donate_argument"):
-    def complexFn(t: Tensor1[A, Float]): Tensor1[A, Float] =
-      (0 until 50).foldLeft(t) { (acc, _) => acc * ((acc +! 1f) /! 2f) }
+  it("JITReduce compilation works correctly"):
+    def f(t: Tensor1[A, Float]): Tensor1[A, Float] =
+      t * ((t +! 1f) /! 2f)
 
-    val jitComplexFn = jit(complexFn, Map("donate_argnums" -> Tuple1(0)))
+    val jitF = jitReduce(f)
     val tensor = Tensor.ones(Shape1(Axis[A] -> 5), VType[Float])
 
-    val res = complexFn(tensor)
-    val jittedRes = jitComplexFn(tensor)
-    an[Exception] should be thrownBy (tensor.toString) // tensor is not usable, toString to trigger materialization
+    val res = (0 until 25).foldLeft(tensor)((acc, _) => f(acc))
+    val jittedRes = jitF.unlift((0 until 25).foldLeft(jitF.lift(tensor))((acc, _) => jitF(acc)))
+    noException should be thrownBy (tensor.toString) // tensor is still usable, toString to trigger materialization
     res should approxEqual(jittedRes)
 
   it("JIT compilation example: Speedup for jitted function"):
-    def timeFn[T](fn: T => Any, input: T, runs: Int = 100): Long =
+    def timeFn[T](fn: T => T, input: T, runs: Int = 100): Long =
       val start = System.nanoTime()
-      for _ <- 0 until runs do fn(input)
+      // run test
+      val _ = (0 until runs).foldLeft(input): (i, _) =>
+        fn(i)
       val end = System.nanoTime()
       (end - start) / 1_000_000 // ms
 
@@ -45,17 +47,24 @@ class JitSuite extends AnyFunSpec with Matchers:
       (0 until 50).foldLeft(t) { (acc, _) => acc * ((acc +! 1f) /! 2f) }
 
     val jitComplexFn = jit(complexFn)
+    val jitReduceComplexFn = jitReduce(complexFn)
 
     // pre-compile function as in the test we want to compare only execution time
-    val compilationTimeMs = timeFn(jitComplexFn, tensor) // first call includes compilation time
+    val jitCompilationTimeMs = timeFn(jitComplexFn, tensor, runs = 1) // first call includes compilation time
+    val jitReduceCompilationTimeMs = timeFn(jitReduceComplexFn, jitReduceComplexFn.lift(tensor), runs = 1) // first call includes compilation time
 
     val regularTimeMs = timeFn(complexFn, tensor)
     val jittedTimeMs = timeFn(jitComplexFn, tensor)
+    val jittedReduceTimeMs = timeFn(jitReduceComplexFn, jitReduceComplexFn.lift(tensor))
 
-    info(f"Regular execution:             $regularTimeMs%.2f ms")
-    info(f"JIT execution:                 $jittedTimeMs%.2f ms")
-    info(f"JIT compilation overhead time: $compilationTimeMs%.2f ms")
-    info(f"Speedup (wo compile overhead): ${regularTimeMs / jittedTimeMs}%.2f x")
-    info(f"Speedup (w compile overhead):  ${regularTimeMs / (jittedTimeMs + compilationTimeMs)}%.2f x")
+    info(f"Regular execution:                       $regularTimeMs%.2f ms")
+    info(f"JIT execution:                           $jittedTimeMs%.2f ms")
+    info(f"JITReduce execution:                     $jittedReduceTimeMs%.2f ms")
+    info(f"JIT compilation overhead time:           $jitCompilationTimeMs%.2f ms")
+    info(f"JITReduce compilation overhead time:     $jitReduceCompilationTimeMs%.2f ms")
+    info(f"JIT Speedup (wo compile overhead):       ${regularTimeMs / jittedTimeMs}%.2f x")
+    info(f"JIT Speedup (w compile overhead):       ${regularTimeMs / (jittedTimeMs + jitCompilationTimeMs)}%.2f x")
+    info(f"JITReduce Speedup (wo compile overhead):  ${regularTimeMs / (jittedReduceTimeMs)}%.2f x")
+    info(f"JITReduce Speedup (w compile overhead):  ${regularTimeMs / (jittedReduceTimeMs + jitReduceCompilationTimeMs)}%.2f x")
 
     jittedTimeMs should be < regularTimeMs

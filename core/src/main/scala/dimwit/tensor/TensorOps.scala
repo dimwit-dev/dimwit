@@ -233,7 +233,7 @@ object TensorOps:
           )
         )
 
-      def contract[
+      def dot[
           ContractAxis,
           OtherShape <: Tuple,
           R1 <: Tuple,
@@ -251,8 +251,8 @@ object TensorOps:
 
         Tensor(Jax.jnp.tensordot(tensor.jaxValue, other.jaxValue, axes = axesPair))
 
-      @targetName("contractOn")
-      def contract[
+      @targetName("dotOn")
+      def dot[
           ContractAxisA,
           ContractAxisB,
           OtherShape <: Tuple,
@@ -636,10 +636,10 @@ object TensorOps:
           )
         )
 
-      def chunk[splitL: Label](splitAxis: Axis[splitL], interval: Int)(using
+      def chunk[splitL: Label](splitAxis: Axis[splitL], chunkSize: Int)(using
           axisIndex: AxisIndex[T, splitL]
       ): Seq[Tensor[T, V]] =
-        val res = Jax.jnp.split(tensor.jaxValue, interval, axis = axisIndex.value).as[Seq[Jax.PyDynamic]]
+        val res = Jax.jnp.split(tensor.jaxValue, chunkSize, axis = axisIndex.value).as[Seq[Jax.PyDynamic]]
         res.map(x => Tensor[T, V](x))
 
       def tile = ???
@@ -995,9 +995,6 @@ object TensorOps:
 
     extension [L: Label, V](t: Tensor1[L, V])
 
-      def dot(other: Tensor1[L, V]): Tensor0[V] = t.innerDot(other)
-      def innerDot(other: Tensor1[L, V]): Tensor0[V] = t.contract(Axis[L])(other)
-      def outerDot[OtherLabel: Label](other: Tensor1[OtherLabel, V]): Tensor2[L, OtherLabel, V] = t.outerProduct(other)
       def relabelTo[NewL: Label](newAxis: Axis[NewL]): Tensor1[NewL, V] = Tensor[Tuple1[NewL], V](t.jaxValue)
 
   object Tensor2Ops:
@@ -1005,18 +1002,6 @@ object TensorOps:
     extension [L1: Label, L2: Label, V](t: Tensor2[L1, L2, V])
 
       def transpose: Tensor2[L2, L1, V] = t.rearrange((Axis[L2], Axis[L1]))
-
-      @targetName("tensor2MatmulTensor2")
-      def matmul[L3: Label](other: Tensor2[L2, L3, V])(using
-          ev: AxisRemover[(L1, L2), L2, Tuple1[L1]],
-          evOther: AxisRemover[(L2, L3), L2, Tuple1[L3]]
-      ): Tensor2[L1, L3, V] = t.contract(Axis[L2])(other)
-
-      @targetName("tensor2MatmulTensor1")
-      def matmul(other: Tensor1[L2, V])(using
-          ev: AxisRemover[(L1, L2), L2, Tuple1[L1]],
-          evOther: AxisRemover[Tuple1[L2], L2, EmptyTuple]
-      ): Tensor[Tuple1[L1], V] = t.contract(Axis[L2])(other)
 
   export Tensor0Ops.*
   export ValueOps.*

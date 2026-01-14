@@ -1,4 +1,4 @@
-package examples.basic
+package examples.complex
 
 import dimwit.*
 import dimwit.Conversions.given
@@ -73,11 +73,11 @@ object GPT2Params:
     )
     GPT2Params(vocabularyEmbeddings, positionalEmbeddings, layers, outputNormalization, outputParams)
 
-case class GPT2(params: GPT2Params) extends (Tensor[(Batch, Context), Int] => Tensor[(Batch, Context), Int]):
+case class GPT2(params: GPT2Params) extends (Tensor2[Batch, Context, Int] => Tensor2[Batch, Context, Int]):
 
   private case class LinearLayer[In: Label, Out: Label](params: LinearLayerParams[In, Out]) extends (Tensor1[In, Float] => Tensor1[Out, Float]):
     override def apply(x: Tensor1[In, Float]): Tensor1[Out, Float] =
-      x.contract(Axis[In])(params.weight) + params.bias
+      x.dot(Axis[In])(params.weight) + params.bias
 
   private case class EmbeddingMixer(params: EmbeddingMixerParams) extends (Tensor2[Context, Embedding, Float] => Tensor2[Context, Embedding, Float]):
     private val hiddenLayer = LinearLayer(params.c_fc)
@@ -92,7 +92,7 @@ case class GPT2(params: GPT2Params) extends (Tensor[(Batch, Context), Int] => Te
 
   private case class ProjectionLayer[In: Label, Out: Label](params: ProjectionLayerParams[In, Out]) extends (Tensor1[In, Float] => Tensor1[Out, Float]):
     def apply(x: Tensor1[In, Float]): Tensor1[Out, Float] =
-      x.contract(Axis[In])(params.weight)
+      x.dot(Axis[In])(params.weight)
 
   private case class MultiHeadAttention(params: MultiHeadAttentionParams) extends (Tensor2[Context, Embedding, Float] => Tensor2[Context, Embedding, Float]):
 
@@ -119,14 +119,14 @@ case class GPT2(params: GPT2Params) extends (Tensor[(Batch, Context), Int] => Te
         val causalMask = tril(Tensor.ones(Shape((Axis[Context] -> ctxLength, Axis[Prime[Context]] -> ctxLength)), VType[Boolean]))
         where(causalMask, attnScores, Tensor.const(attnScores.shape, attnScores.vtype)(Float.NegativeInfinity))
 
-      val queries = x.contract(Axis[Embedding])(wq) +! wqBias
-      val keys = x.contract(Axis[Embedding])(wk) +! wkBias
-      val values = x.contract(Axis[Embedding])(wv) +! wvBias
+      val queries = x.dot(Axis[Embedding])(wq) +! wqBias
+      val keys = x.dot(Axis[Embedding])(wk) +! wkBias
+      val values = x.dot(Axis[Embedding])(wv) +! wvBias
       val dk = Tensor0(Math.sqrt(keys.shape(Axis[HeadKey])).toFloat)
-      val attnScores = (queries.contract(Axis[HeadQuery ~ HeadKey])(keys) /! dk)
+      val attnScores = (queries.dot(Axis[HeadQuery ~ HeadKey])(keys) /! dk)
       val attnWeights = causalMasking(attnScores)
         .vmap(Axis[Context])(attnScore => softmax(attnScore).relabelTo(Axis[AttnWeights]))
-      attnWeights.contract(Axis[AttnWeights ~ Context])(values)
+      attnWeights.dot(Axis[AttnWeights ~ Context])(values)
 
   private case class LayerNorm(params: LayerNormalizationParams) extends (Tensor1[Embedding, Float] => Tensor1[Embedding, Float]):
 
@@ -153,10 +153,12 @@ case class GPT2(params: GPT2Params) extends (Tensor[(Batch, Context), Int] => Te
 
   private case class TransformerBlock(layers: List[TransformerLayer]) extends (Tensor2[Context, Embedding, Float] => Tensor2[Context, Embedding, Float]):
     override def apply(t: Tensor2[Context, Embedding, Float]): Tensor2[Context, Embedding, Float] =
-      layers.foldLeft(t) { (t, layer) => layer(t) }
+      layers.foldLeft(t):
+        case (t, layer) => layer(t)
 
-  case class Embedder(vocabularyEmbeddings: Tensor2[Vocab, Embedding, Float], positionalEmbeddings: Tensor2[Context, Embedding, Float]) extends (Tensor1[Context, Int] => Tensor2[Context, Embedding, Float]):
-    override def apply(tokens: Tensor1[Context, Int]): Tensor2[Context, Embedding, Float] =
+  case class Embedder(vocabularyEmbeddings: Tensor2[Vocab, Embedding, Float], positionalEmbeddings: Tensor2[Context, Embedding, Float]):
+
+    def apply(tokens: Tensor1[Context, Int]): Tensor2[Context, Embedding, Float] =
       val embeddings = vocabularyEmbeddings.take(Axis[Vocab])(tokens)
       embeddings + positionalEmbeddings
 
@@ -170,18 +172,22 @@ case class GPT2(params: GPT2Params) extends (Tensor[(Batch, Context), Int] => Te
   private val transformerBlock = TransformerBlock(params.layers.map(TransformerLayer(_)))
   private val outputLayer = OutputLayer(params.outputNormalization, params.output)
 
-  def logits(inputTokens: Tensor[(Batch, Context), Int]): Tensor[(Batch, Context, Vocab), Float] =
-    inputTokens.vmap(Axis[Batch])(tokens =>
-      val startEmbeddings = embedder(tokens)
-      val endEmbeddings = transformerBlock(startEmbeddings)
-      endEmbeddings.vmap(Axis[Context])(outputLayer)
-    )
+  def logits(inputTokens: Tensor2[Batch, Context, Int]): Tensor3[Batch, Context, Vocab, Float] =
+    inputTokens.vmap(Axis[Batch]):
+      case tokens =>
+        val startEmbeddings = embedder(tokens)
+        val endEmbeddings = transformerBlock(startEmbeddings)
+        endEmbeddings.vmap(Axis[Context])(x => outputLayer(x))
 
-  def probits(inputTokens: Tensor[(Batch, Context), Int]): Tensor[(Batch, Context, Vocab), Float] =
-    logits(inputTokens).vapply(Axis[Vocab])(softmax)
+  def probits(inputTokens: Tensor2[Batch, Context, Int]): Tensor3[Batch, Context, Vocab, Float] =
+    val x = logits(inputTokens)
+    val res = x.vapply(Axis[Vocab])(softmax)
+    return res
 
-  def apply(inputTokens: Tensor[(Batch, Context), Int]): Tensor[(Batch, Context), Int] =
-    logits(inputTokens).argmax(Axis[Vocab])
+  def apply(inputTokens: Tensor2[Batch, Context, Int]): Tensor2[Batch, Context, Int] =
+    val x = probits(inputTokens)
+    val res = x.argmax(Axis[Vocab])
+    return res
 
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters

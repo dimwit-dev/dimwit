@@ -289,15 +289,15 @@ def tensorAPI(): Unit =
     /** CONTRACT Analog to JAX tensordot with a single axis, with two changes:
       *   - Only a single axis is allowed TODO allow multiple axes
       */
-    opBlock("contract") {
+    opBlock("dot") {
       py.exec("res = einops.einsum(ab, ac, 'a b, a c -> b c')") // einsum variant
       py.exec("res = jnp.tensordot(ab, ac, axes=(0, 0))") // pure JAX variant
-      AB.contract(Axis[A])(AC)
+      AB.dot(Axis[A])(AC)
     }
-    opBlock("contract abcd axis=2") {
+    opBlock("dot abcd axis=2") {
       py.exec("res = einops.einsum(abcd, abcd, 'a b c d, e f c g -> a b d e f g')") // einsum variant
       py.exec("res = jnp.tensordot(abcd, abcd, axes=(2, 2))") // pure JAX variant
-      ABCD.contract(Axis[C])(ABCD)
+      ABCD.dot(Axis[C])(ABCD)
     }
 
     /** OUTER PRODUCT (contract over zero axes) Analog to JAX outer product, i.e., no axes to contract

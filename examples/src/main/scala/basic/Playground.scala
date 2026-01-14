@@ -44,26 +44,6 @@ trait D derives Label
 
   println("TensorV2 Playground")
   {
-    trait Samples derives Label
-    trait Features derives Label
-    println("MatMul tests")
-    val values = Array(
-      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
-    ).map(_.toFloat)
-    val X = Tensor.fromArray(
-      Shape(
-        Axis[Samples] -> 10,
-        Axis[Features] -> 2
-      ),
-      VType[Float]
-    )(values)
-    val XT = X.transpose
-    val XTX = XT.matmul(X)
-    val XXT = X.matmul(XT)
-    println(XTX.shape)
-    println(XXT.shape)
-  }
-  {
     println("Normalization example")
     val values = Array(
       0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
@@ -114,12 +94,12 @@ trait D derives Label
       ),
       VType[Float]
     )
-    // val y1 = x.contract(Axis[A])(A)
-    val y1 = A.contract(Axis[Features])(x)
+    // val y1 = x.dot(Axis[A])(A)
+    val y1 = A.dot(Axis[Features])(x)
     println(y1.shape)
-    // A.contract(Axis["lala"])(x)
-    // A.contract(Axis[Samples])(x)
-    val y2 = x.contract(Axis[Features])(A)
+    // A.dot(Axis["lala"])(x)
+    // A.dot(Axis[Samples])(x)
+    val y2 = x.dot(Axis[Features])(A)
     println(y2.shape)
     val y3 = x.outerProduct(A)
     println(y3.shape)
@@ -183,7 +163,6 @@ trait D derives Label
   }
   {
 
-    println("Contraction with overlapping axes")
     import scala.util.NotGiven
     def f[L1: Label, L2: Label, L3: Label](
         x: Tensor[(L1, L2), Float],
@@ -213,9 +192,8 @@ trait D derives Label
     println(z.shape)
   }
   {
-
     def f(t1: Tensor[(A, C), Float], t2: Tensor[Tuple1[C], Float]): Tensor[Tuple1[A], Float] =
-      t1.matmul(t2)
+      t1.dot(Axis[C])(t2)
     val t1 = Tensor.ones(
       Shape(
         Axis[A] -> 2,
@@ -550,14 +528,14 @@ trait D derives Label
       private trait AttnWeights derives Label
 
       def apply(x: Tensor2[Context, Value, Float]): Tensor2[Context, Value, Float] =
-        val k = x.contract(Axis[Value])(wk)
-        val q = x.contract(Axis[Value])(wq)
-        val v = x.contract(Axis[Value])(wv)
+        val k = x.dot(Axis[Value])(wk)
+        val q = x.dot(Axis[Value])(wq)
+        val v = x.dot(Axis[Value])(wv)
         val dk = Tensor0(Math.sqrt(k.shape(Axis[Key])).toFloat)
         val attnWeightsPrime = q
-          .contract(Axis[Query ~ Key])(k)
+          .dot(Axis[Query ~ Key])(k)
           .vmap(Axis[Context])(attnRow => softmax(attnRow).relabelTo(Axis[AttnWeights]))
-        val resPrime = attnWeightsPrime.contract(Axis[AttnWeights ~ Context])(v)
+        val resPrime = attnWeightsPrime.dot(Axis[AttnWeights ~ Context])(v)
         resPrime.relabel(Axis[Prime[Value]] -> Axis[Value])
 
     trait Batch derives Label

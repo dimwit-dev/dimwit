@@ -8,9 +8,9 @@ import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
 import dimwit.random.Random
 
-class Normal[T <: Tuple: Labels](
-    val loc: Tensor[T, Float],
-    val scale: Tensor[T, Float]
+class Normal[LocT <: T, ScaleT <: T, T <: Tuple: Labels](
+    val loc: Tensor[LocT, Float],
+    val scale: Tensor[ScaleT, Float]
 ) extends IndependentDistribution[T, Float]:
 
   require(loc.shape.dimensions == scale.shape.dimensions, "loc and scale must have the same dimensions")

@@ -5,14 +5,10 @@ import dimwit.Conversions.given
 import nn.*
 import nn.ActivationFunctions.{relu, sigmoid}
 import dimwit.random.Random
+import dimwit.jax.Jit.jitReduce
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.Try
-import java.io.{FileInputStream, DataInputStream, BufferedInputStream}
-import java.io.RandomAccessFile
-import java.util.Base64
-import me.shadaj.scalapy.py
-import me.shadaj.scalapy.py.SeqConverters
+import examples.timed
+import examples.dataset.MNISTLoader
 
 def binaryCrossEntropy[L: Label](
     logits: Tensor1[L, Float],
@@ -37,6 +33,7 @@ object MLPClassifierMNist:
     )
 
     object Params:
+
       def apply(
           layer1Dim: Dim[Height |*| Width],
           layer2Dim: Dim[Hidden],
@@ -80,16 +77,11 @@ object MLPClassifierMNist:
         params: MLP.Params
     ): Tensor0[Float] =
       val model = MLP(params)
-      val batchSize = batchImages.shape(Axis[TrainSample])
-      val losses = (0 until batchSize)
-        .map: idx =>
-          val image = batchImages.slice(Axis[TrainSample] -> idx)
-          val label = batchLabels.slice(Axis[TrainSample] -> idx)
+      val losses = zipvmap(Axis[TrainSample])(batchImages, batchLabels):
+        case (image, label) =>
           val logits = model.logits(image)
           binaryCrossEntropy(logits, label)
-        .reduce(_ + _)
-      losses / batchSize.toFloat
-
+      losses.mean
     val initParams = MLP.Params(
       Axis[Height |*| Width] -> 28 * 28,
       Axis[Hidden] -> 128,
@@ -130,8 +122,8 @@ object MLPClassifierMNist:
             jitStep(imageBatch, labelBatch, state, currentParams)
 
     val trainMiniBatchGradientDescent = miniBatchGradientDescent(
-      trainX.chunk(Axis[TrainSample], batchSize),
-      trainY.chunk(Axis[TrainSample], batchSize)
+      trainX.chunk(Axis[TrainSample], numSamples / batchSize),
+      trainY.chunk(Axis[TrainSample], numSamples / batchSize)
     )
     val trainTrajectory = Iterator.iterate((optimizer.init(initParams), initParams)): (state, currentParams) =>
       timed("Training"):

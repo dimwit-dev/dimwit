@@ -22,13 +22,13 @@ class TensorOpsContractionSuite extends AnyFunSpec with Matchers:
     Array(Array(10.0f, 20.0f), Array(30.0f, 40.0f))
   )
 
-  describe("contract (Vectors)"):
+  describe("dot (Vectors)"):
     it("Tensor1[A] and Tensor1[A] (Standard Dot Product)"):
-      v1.contract(Axis[A])(v2) shouldEqual Tensor0(11.0f)
+      v1.dot(Axis[A])(v2) shouldEqual Tensor0(11.0f)
 
-  describe("contract (Matrices)"):
-    it("Tensor2[A, B] and Tensor2[A, B] on axis A (Row-wise contraction)"):
-      val res = m1.contract(Axis[A])(m2)
+  describe("dot (Matrices)"):
+    it("Tensor2[A, B] and Tensor2[A, B] on axis A (row-wise)"):
+      val res = m1.dot(Axis[A])(m2)
 
       res.shape.labels shouldBe List("B", "B'")
       res should approxEqual(
@@ -37,8 +37,8 @@ class TensorOpsContractionSuite extends AnyFunSpec with Matchers:
         )
       )
 
-    it("Tensor2[A, B] and Tensor2[A, B] on axis B (Column-wise contraction)"):
-      val res = m1.contract(Axis[B])(m2)
+    it("Tensor2[A, B] and Tensor2[A, B] on axis B (column-wise)"):
+      val res = m1.dot(Axis[B])(m2)
 
       res.shape.labels shouldBe List("A", "A'")
       res should approxEqual(
@@ -47,11 +47,11 @@ class TensorOpsContractionSuite extends AnyFunSpec with Matchers:
         )
       )
 
-  describe("contract on different axis labels (A1 ~ A2)"):
+  describe("dot on different axis labels (A1 ~ A2)"):
     it("Tensor2[A, B] and Tensor2[C, D] using Axis mapping (A ~ C)"):
       val mCD = m2.relabelAll((Axis[C], Axis[D]))
 
-      val res = m1.contract(Axis[A ~ C])(mCD)
+      val res = m1.dot(Axis[A ~ C])(mCD)
 
       res.shape.labels shouldBe List("B", "D")
       res should approxEqual(
@@ -62,8 +62,8 @@ class TensorOpsContractionSuite extends AnyFunSpec with Matchers:
 
     it("~ should respect position-aware mapping in types"):
       val mCD = m2.relabelAll((Axis[C], Axis[D]))
-      "m1.contract(Axis[A ~ C])(mCD)" should compile
-      "m1.contract(Axis[C ~ A])(mCD)" shouldNot compile
+      "m1.dot(Axis[A ~ C])(mCD)" should compile
+      "m1.dot(Axis[C ~ A])(mCD)" shouldNot compile
 
   describe("outerProduct"):
     it("Tensor1[A] and Tensor1[B] to Tensor2[A, B]"):
