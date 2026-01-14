@@ -82,7 +82,7 @@ case class Autoencoder(params: Autoencoder.Params):
   def loss(original: Tensor1[Pixel, Float]): Tensor0[Float] =
     val (reconstructed, _) = apply(original)
     val eps = 1e-5f
-    val reconstructionLoss = -((original * (reconstructed +! eps).log) + ((Tensor0(1f) -! original) * (1f -! reconstructed +! eps).log)).sum
+    val reconstructionLoss = -((original * (reconstructed +! eps).log) + ((1f -! original) * (1f -! reconstructed +! eps).log)).sum
     reconstructionLoss
 
 object Autoencoder:
@@ -201,17 +201,18 @@ object AutoencoderExample:
      * */
     val ae = Autoencoder(trainedParams)
 
+    trait ImageRow derives Label
+    trait ImageCol derives Label
+
     val reconstructed = testX
       .slice(Axis[TestSample] -> (0 until 64))
       .vmap(Axis[TestSample]): sample =>
         val latent = ae.encoder(sample.ravel)
         ae.decoder(latent)
-      .relabel(Axis[TestSample] -> Axis[Prime[Height] |*| Prime[Width]])
+      .split(Axis[TestSample], Axis[ImageRow] -> 8, Axis[ImageCol] -> 8)
 
     val img2d = reconstructed.rearrange(
-      (Axis[Prime[Height] |*| Height], Axis[Prime[Width] |*| Width]),
-      Axis[Prime[Height]] -> 8,
-      Axis[Prime[Width]] -> 8,
+      (Axis[ImageRow |*| Height], Axis[ImageCol |*| Width]),
       Axis[Height] -> 28,
       Axis[Width] -> 28
     )

@@ -428,12 +428,6 @@ def tensorAPI(): Unit =
         (ABCD.shape.dim(Axis[A]), ABCD.shape.dim(Axis[B]))
       )
     }
-    opBlock("split/rearrange? ABCD to ABECD") {
-      // TODO this is logically a rearrange operation but not supported by current rearrange API nor by einops
-      // Note jnp.split is chunk (see below)
-      py.exec("res = jnp.reshape(abcd, (2, 3, 2, 2, 5))")
-      ABCD.split(Axis[E], Axis[C], 2)
-    }
     opBlock("chunk ABCD") {
       py.exec("res = list(map(lambda x: x.shape, jnp.array_split(abcd, 2, axis=2)))")
       ABCD.chunk(Axis[C], 2).map(_.shape)

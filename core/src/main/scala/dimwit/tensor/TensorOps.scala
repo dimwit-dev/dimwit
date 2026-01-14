@@ -20,6 +20,7 @@ import scala.compiletime.ops.int.<=
 import dimwit.tensor.TupleHelpers.{ValidationResult, CanForm, ComputeMissing, CheckValid, AllOk, MissingAxis}
 import dimwit.tensor.ShapeTypeHelpers.UnwrapDims
 import dimwit.tensor.ShapeTypeHelpers.DimExtractor
+import dimwit.tensor.ShapeTypeHelpers.AxisReplacerAll
 
 object TensorOps:
 
@@ -606,21 +607,21 @@ object TensorOps:
 
         Jax.Dynamic.global.tuple(indicesBuffer.toSeq.toPythonProxy)
 
-      def split[NewL, splitL](newAxis: Axis[NewL], splitAxis: Axis[splitL], interval: Int)(using
-          newLabel: Label[NewL],
-          axisIndex: AxisIndex[T, splitL]
-      ): Tensor[InsertBefore[T, splitL, NewL], V] =
-        val splitIdx = axisIndex.value
-        val names = summon[Labels[T]].names
-        val newNames = names.take(splitIdx) ++ Seq(newLabel.name) ++ names.drop(splitIdx)
-        given Labels[InsertBefore[T, splitL, NewL]] with
-          val names = newNames.toSeq
-        val (before, after) = tensor.shape.dimensions.splitAt(splitIdx)
-        val newShape = before ++ Seq(interval, after.head / interval) ++ after.drop(1)
+      def split[SplitL, NewL1, NewL2, R <: Tuple](
+          splitAxis: Axis[SplitL],
+          newDim1: Dim[NewL1],
+          newDim2: Dim[NewL2]
+      )(using
+          ev: AxisReplacerAll.Aux[T, SplitL, (NewL1, NewL2), R],
+          labels: Labels[R]
+      ): Tensor[R, V] =
+        val (before, after) = tensor.shape.dimensions.splitAt(ev.index)
+        val newShape = before ++ Seq(newDim1._2, newDim2._2) ++ after.drop(1)
+        println(newShape)
         Tensor(
           Jax.jnp.reshape(
             tensor.jaxValue,
-            Jax.Dynamic.global.tuple(
+            py.Dynamic.global.tuple(
               newShape.map(py.Any.from).toPythonProxy
             )
           )

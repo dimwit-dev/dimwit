@@ -121,6 +121,22 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
       )
       res should approxEqual(t3)
 
+  describe("split function"):
+
+    it("split axis into two axes"):
+      val ab = Tensor.ones(Shape(Axis[A] -> 4, Axis[B] -> 12), VType[Float])
+      val acd = ab.split(Axis[B], Axis[C] -> 6, Axis[D] -> 2)
+      acd.axes shouldBe (List("A", "C", "D"))
+      acd.shape(Axis[C]) shouldBe (6)
+      acd.shape(Axis[D]) shouldBe (2)
+
+    it("split axis into two axes, one being the type of original axis"):
+      val ab = Tensor.ones(Shape(Axis[A] -> 4, Axis[B] -> 12), VType[Float])
+      val acd = ab.split(Axis[B], Axis[B] -> 6, Axis[D] -> 2)
+      acd.axes shouldBe (List("A", "B", "D"))
+      acd.shape(Axis[B]) shouldBe (6)
+      acd.shape(Axis[D]) shouldBe (2)
+
   describe("Dimension manipulation"):
 
     it("squeeze axis of size 1"):
@@ -176,7 +192,7 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
       tril(t, kthDiagonal = -1).sum.item shouldBe 3.0f
       tril(t, kthDiagonal = 1).sum.item shouldBe 10.0f
 
-  describe(""):
+  describe("where"):
 
     val t1 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
       Array(
