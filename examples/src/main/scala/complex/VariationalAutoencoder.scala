@@ -173,25 +173,27 @@ object VariationalAutoencoderExample:
      */
     def batchLoss(key: Random.Key, trainData: Tensor3[Sample, Height, Width, Float])(params: Params): Tensor0[Float] =
       val vae = VariationalAutoencoder(params)
-      val keys = key.splitToTensor(trainData.dim(Axis[Sample]))
-      zipvmap(Axis[Sample])(trainData, keys):
-        case (sample, key) =>
-          vae.loss(sample.ravel, key.item)
-      .mean
+      val batchSize = trainData.shape.dim(Axis[Sample])._2
+      val keys = key.split(batchSize)
+      val losses = (0 until batchSize).map: idx =>
+        val sample = trainData.slice(Axis[Sample] -> idx)
+        vae.loss(sample.ravel, keys(idx))
+      losses.reduce(_ + _) / batchSize.toFloat
 
     val batches = trainImages.chunk(Axis[TrainSample], numSamples / batchSize)
-    def trainBatch(trainKey: Random.Key, batch: Tensor3[Sample, Height, Width, Float])(params: Params): Params =
-      val df = Autodiff.grad(batchLoss(trainKey, batch))
-      GradientDescent(df, learningRate).step(params)
+    val optimizer = GradientDescent(learningRate = Tensor0(learningRate))
+    def trainBatch(trainKey: Random.Key, batch: Tensor3[Sample, Height, Width, Float], params: Params): Params =
+      val grads = Autodiff.grad(batchLoss(trainKey, batch))(params)
+      val (_, newParams) = optimizer.update(grads, (), params)
+      newParams
 
-    val jittedTrainBatch = jitReduce(trainBatch)
+    val jittedTrainBatch = jit(trainBatch)
 
     def trainEpoch(key: Random.Key, epoch: Int, params: Params): Params =
       val batchKeys = key.split(batches.size)
-      jittedTrainBatch.unlift:
-        batches.zip(batchKeys).foldLeft(jittedTrainBatch.lift(params)):
-          case (batchParams, (batch, key)) =>
-            jittedTrainBatch(key, batch)(batchParams)
+      batches.zip(batchKeys).foldLeft(params):
+        case (batchParams, (batch, key)) =>
+          jittedTrainBatch(key, batch, batchParams)
 
     val keysForEpochs = dataKey.split(numEpochs)
 
