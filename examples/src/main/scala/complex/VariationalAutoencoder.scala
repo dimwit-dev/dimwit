@@ -180,7 +180,7 @@ object VariationalAutoencoderExample:
       .mean
 
     val batches = trainImages.chunk(Axis[TrainSample], numSamples / batchSize)
-    def trainBatch(trainKey: Random.Key, batch: Tensor3[Sample, Height, Width, Float])(params: Params): Params =
+    def trainBatch(trainKey: Random.Key, batch: Tensor3[Sample, Height, Width, Float], params: Params): Params =
       val df = Autodiff.grad(batchLoss(trainKey, batch))
       GradientDescent(df, learningRate).step(params)
 
@@ -190,8 +190,8 @@ object VariationalAutoencoderExample:
       val batchKeys = key.split(batches.size)
       val donatableParams = jitDonate(params)
       val newParams = batches.zip(batchKeys).foldLeft(donatableParams):
-          case (batchParams, (batch, key)) =>
-            jitStep(key, batch)(batchParams)
+        case (batchParams, (batch, key)) =>
+          jitStep(key, batch)(batchParams)
       jitReclaim(newParams)
 
     val keysForEpochs = dataKey.split(numEpochs)

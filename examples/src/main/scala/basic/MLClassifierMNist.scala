@@ -98,15 +98,14 @@ object MLPClassifierMNist:
 
     def gradientStep(
         imageBatch: Tensor[(TrainSample, Height, Width), Float],
-        labelBatch: Tensor1[TrainSample, Int]
-    )(
-        params: MLP.Params   // Still extra parameter group necessary
+        labelBatch: Tensor1[TrainSample, Int],
+        params: MLP.Params
     ): MLP.Params =
       val lossBatch = batchLoss(imageBatch, labelBatch)
       val df = Autodiff.grad(lossBatch)
       GradientDescent(df, learningRate).step(params)
 
-    val (jitDonate, jitStep, jitReclaim) = jitDonating(gradientStep)   // rename and change return types improving clarity
+    val (jitDonate, jitStep, jitReclaim) = jitDonating(gradientStep)
 
     def miniBatchGradientDescent(
         imageBatches: Seq[Tensor[(TrainSample, Height, Width), Float]],
@@ -114,12 +113,12 @@ object MLPClassifierMNist:
     )(
         params: MLP.Params
     ): MLP.Params =
-      val donatableParams: Donatable = jitDonate(params)            // changed lift call improving clarity
-      val newParams: Donatable = imageBatches.zip(labelBatches)   // Renamed ToReduce to Donatable improving clarity
-          .foldLeft(donatableParams):
-            case (currentParams, (imageBatch, labelBatch)) =>
-              jitStep(imageBatch, labelBatch)(currentParams)
-      jitReclaim(newParams)                                        // changed unlift call improving clarity
+      val donatableParams: Donatable = jitDonate(params)
+      val newParams: Donatable = imageBatches.zip(labelBatches)
+        .foldLeft(donatableParams):
+          case (currentParams, (imageBatch, labelBatch)) =>
+            jitStep(imageBatch, labelBatch)(currentParams)
+      jitReclaim(newParams)
 
     val trainMiniBatchGradientDescent = miniBatchGradientDescent(
       trainX.chunk(Axis[TrainSample], numSamples / batchSize),
@@ -132,7 +131,7 @@ object MLPClassifierMNist:
     )
     def evaluate(
         params: MLP.Params,
-        dataX: Tensor[(Sample, Height, Width), Float],
+        dataX: Tensor3[Sample, Height, Width, Float],
         dataY: Tensor1[Sample, Int]
     ): Tensor0[Float] =
       val model = MLP(params)
