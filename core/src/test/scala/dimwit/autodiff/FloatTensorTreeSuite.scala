@@ -17,9 +17,9 @@ class FloatTensorTreeSuite extends AnyFunSpec with Matchers:
           val b2: Tensor0[Float]
       )
       val params = Params(
-        Tensor1.fromArray(Axis[A], VType[Float])(Array(0.1f, 0.2f, 0.3f)),
+        Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)),
         Tensor0(0.5f),
-        Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(Array(Array(0.1f, 0.2f), Array(0.3f, 0.4f), Array(0.5f, 0.6f))),
+        Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(0.1f, 0.2f), Array(0.3f, 0.4f), Array(0.5f, 0.6f))),
         Tensor0(0.25f)
       )
       val ftTree = summon[FloatTensorTree[Params]]
@@ -40,11 +40,11 @@ class FloatTensorTreeSuite extends AnyFunSpec with Matchers:
           val layer2: LayerParams
       )
       val layer1Params = LayerParams(
-        Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(Array(Array(0.1f, 0.2f), Array(0.3f, 0.4f), Array(0.5f, 0.6f))),
+        Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(0.1f, 0.2f), Array(0.3f, 0.4f), Array(0.5f, 0.6f))),
         Tensor0(0.25f)
       )
       val layer2Params = LayerParams(
-        Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(Array(Array(0.7f, 0.8f), Array(0.9f, 1.0f), Array(1.1f, 1.2f))),
+        Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(0.7f, 0.8f), Array(0.9f, 1.0f), Array(1.1f, 1.2f))),
         Tensor0(0.75f)
       )
       val params = ModelParams(layer1Params, layer2Params)
@@ -62,7 +62,7 @@ class FloatTensorTreeSuite extends AnyFunSpec with Matchers:
           val weightBias: (Tensor2[A, B, Float], Tensor0[Float])
       )
       val layerParams = LayerParams(
-        Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(Array(Array(0.1f, 0.2f), Array(0.3f, 0.4f), Array(0.5f, 0.6f))),
+        Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(0.1f, 0.2f), Array(0.3f, 0.4f), Array(0.5f, 0.6f))),
         Tensor0(0.25f)
       )
       val ftTree = summon[FloatTensorTree[LayerParams]]
@@ -79,11 +79,11 @@ class FloatTensorTreeSuite extends AnyFunSpec with Matchers:
           val b1: Tensor0[Float]
       )
       val params1 = Params(
-        Tensor1.fromArray(Axis[A], VType[Float])(Array(0.1f, 0.2f, 0.3f)),
+        Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)),
         Tensor0(0.5f)
       )
       val params2 = Params(
-        Tensor1.fromArray(Axis[A], VType[Float])(Array(0.4f, 0.5f, 0.6f)),
+        Tensor1(Axis[A]).fromArray(Array(0.4f, 0.5f, 0.6f)),
         Tensor0(1.5f)
       )
       val ftTree = summon[FloatTensorTree[Params]]

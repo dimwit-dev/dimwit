@@ -23,7 +23,7 @@ object LinearLayer:
     ): Params[In, Out] =
       Params(
         weight = Normal.standardNormal(Shape(inputDim, outputDim)).sample(paramKey),
-        bias = Tensor.zeros(Shape(outputDim), VType[Float])
+        bias = Tensor(Shape(outputDim)).fill(0.0f)
       )
 
 case class LinearLayer[In: Label, Out: Label](params: LinearLayer.Params[In, Out]) extends Function[Tensor1[In, Float], Tensor1[Out, Float]]:

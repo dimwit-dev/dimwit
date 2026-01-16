@@ -61,7 +61,7 @@ package object dimwit:
   export dimwit.tensor.{Tensor, Tensor0, Tensor1, Tensor2, Tensor3}
   export dimwit.tensor.{Shape, Shape0, Shape1, Shape2, Shape3}
   export dimwit.tensor.{DType, Device}
-  export dimwit.tensor.{VType, ExecutionType, Label, Labels, Axis, AxisIndex, AxisIndices, Dim}
+  export dimwit.tensor.{VType, ExecutionType, ExecutionTypeFor, Label, Labels, Axis, AxisIndex, AxisIndices, Dim}
 
   // Export operations
   export dimwit.tensor.TensorOps.*

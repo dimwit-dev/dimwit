@@ -13,9 +13,7 @@ import dimwit.stats.{Normal, Uniform}
 import me.shadaj.scalapy.readwrite.Writer
 import scala.reflect.ClassTag
 import scala.annotation.unchecked.uncheckedVariance
-import java.nio.ByteBuffer
-import java.util.Base64
-import java.nio.ByteOrder
+import dimwit.stats.IndependentDistribution
 
 enum Device(val platform: String):
   case CPU extends Device("cpu")
@@ -74,58 +72,28 @@ object Tensor:
 
   type IndicesOf[T <: Tuple] = Tuple.Map[T, [_] =>> Int]
 
+  case class Factory[T <: Tuple: Labels](val shape: Shape[T]):
+
+    def fill[A: ExecutionType: Writer, V](value: A)(using ev: WriterEvidence.Aux[A, V]): Tensor[T, V] =
+      Tensor(Jax.jnp.full(shape.dimensions.toPythonProxy, value, dtype = ExecutionType[A].dtype.jaxType))
+
+    def fromArray[A: ExecutionType, V](values: Array[A])(using t2a: ArrayWriter.Aux[A, V]): Tensor[T, V] =
+      t2a.fromArray[T](shape)(values)
+
+  case class LikeFactory[T <: Tuple: Labels, V](val other: Tensor[T, V]):
+
+    def fill[A: Writer](value: A)(using ev: WriterEvidence.Aux[A, V]): Tensor[T, V] =
+      Tensor(Jax.jnp.full(other.shape.dimensions.toPythonProxy, value, dtype = other.dtype.jaxType))
+
+    def fromArray[A](values: Array[A])(using t2a: ArrayWriter.Aux[A, V]): Tensor[T, V] =
+      given ExecutionType[A] = ExecutionTypeFor[A](other.dtype) // fix the underlying dtype to match the other tensor's dtype
+      summon[ArrayWriter[A]].fromArray[T](other.shape)(values)
+
+  def apply[T <: Tuple: Labels](shape: Shape[T]): Tensor.Factory[T] = Tensor.Factory(shape)
   def apply[T <: Tuple: Labels, V](jaxValue: Jax.PyDynamic): Tensor[T, V] = new Tensor(jaxValue)
-  def randn[T <: Tuple: Labels](shape: Shape[T])(key: Random.Key)(using
-      executionType: ExecutionType[Float]
-  ): Tensor[T, Float] = Normal.standardNormal(shape).sample(key)
+  def like[T <: Tuple: Labels, V](template: Tensor[T, V]): Tensor.LikeFactory[T, V] = Tensor.LikeFactory(template)
 
   def fromPy[T <: Tuple: Labels, V](vtype: VType[V])(jaxValue: Jax.PyDynamic): Tensor[T, V] = new Tensor(jaxValue)
-  def zeros[T <: Tuple: Labels, V](shape: Shape[T], vtype: VType[V]): Tensor[T, V] = Tensor(Jax.jnp.zeros(shape.dimensions.toPythonProxy, dtype = vtype.dtype.jaxType))
-  def ones[T <: Tuple: Labels, V](shape: Shape[T], vtype: VType[V]): Tensor[T, V] = Tensor(Jax.jnp.ones(shape.dimensions.toPythonProxy, dtype = vtype.dtype.jaxType))
-  def const[T <: Tuple: Labels, V](shape: Shape[T], vtype: VType[V])(value: V)(using writer: Writer[V]): Tensor[T, V] = Tensor(Jax.jnp.full(shape.dimensions.toPythonProxy, value, dtype = vtype.dtype.jaxType))
-
-  def fromArray[T <: Tuple: Labels](shape: Shape[T], vtype: VType[Float])(values: Array[Float]): Tensor[T, Float] = fromFloatArray(shape)(values)
-  def fromArray[T <: Tuple: Labels](shape: Shape[T], vtype: VType[Int])(values: Array[Int]): Tensor[T, Int] = fromIntArray(shape)(values)
-  def fromArray[T <: Tuple: Labels](shape: Shape[T])(values: Array[Byte]): Tensor[T, Int] = fromByteArray(shape)(values)
-  def fromArray[T <: Tuple: Labels](shape: Shape[T], vtype: VType[Boolean])(values: Array[Boolean]): Tensor[T, Boolean] = fromBooleanArray(shape)(values)
-
-  /** array.toPythonProxy is very inefficient for large arrays, so we use base64 encoding as a workaround */
-  private val base64Loader = py.eval("lambda b64, shape, dtype: __import__('jax').numpy.array(__import__('numpy').frombuffer(__import__('base64').b64decode(b64), dtype=dtype).reshape(shape))")
-
-  def fromFloatArray[T <: Tuple: Labels](shape: Shape[T])(values: Array[Float]): Tensor[T, Float] =
-    require(values.length == shape.size, s"Values length ${values.length} does not match shape size ${shape.size}")
-    val floatArr = values.asInstanceOf[Array[Float]]
-    val buffer = ByteBuffer.allocate(floatArr.length * 4)
-    buffer.order(ByteOrder.LITTLE_ENDIAN)
-    buffer.asFloatBuffer().put(floatArr)
-    val b64String = Base64.getEncoder.encodeToString(buffer.array())
-    Tensor(base64Loader(b64String, shape.dimensions.toPythonProxy, "float32"))
-
-  def fromIntArray[T <: Tuple: Labels](shape: Shape[T])(values: Array[Int]): Tensor[T, Int] =
-    require(values.length == shape.size, s"Values length ${values.length} does not match shape size ${shape.size}")
-    val intArr = values.asInstanceOf[Array[Int]]
-    val buffer = ByteBuffer.allocate(intArr.length * 4)
-    buffer.order(ByteOrder.LITTLE_ENDIAN)
-    buffer.asIntBuffer().put(intArr)
-    val b64String = Base64.getEncoder.encodeToString(buffer.array())
-    Tensor(base64Loader(b64String, shape.dimensions.toPythonProxy, "int32"))
-
-  def fromByteArray[T <: Tuple: Labels](shape: Shape[T])(values: Array[Byte]): Tensor[T, Int] =
-    require(values.length == shape.size, s"Values length ${values.length} does not match shape size ${shape.size}")
-    val buffer = ByteBuffer.allocate(values.length)
-    buffer.order(ByteOrder.LITTLE_ENDIAN)
-    buffer.put(values)
-    val b64String = Base64.getEncoder.encodeToString(buffer.array())
-    Tensor(base64Loader(b64String, shape.dimensions.toPythonProxy, "uint8"))
-
-  def fromBooleanArray[T <: Tuple: Labels](shape: Shape[T])(values: Array[Boolean]): Tensor[T, Boolean] =
-    require(values.length == shape.size, s"Values length ${values.length} does not match shape size ${shape.size}")
-    val boolArr = values.map(b => if b then 1.toByte else 0.toByte)
-    val buffer = ByteBuffer.allocate(boolArr.length)
-    buffer.order(ByteOrder.LITTLE_ENDIAN)
-    buffer.put(boolArr)
-    val b64String = Base64.getEncoder.encodeToString(buffer.array())
-    Tensor(base64Loader(b64String, shape.dimensions.toPythonProxy, "bool"))
 
 type Tensor0[V] = Tensor[EmptyTuple, V]
 type Tensor1[L, V] = Tensor[Tuple1[L], V]
@@ -140,55 +108,38 @@ object Tensor0:
   given int2FloatTensor: Conversion[Int, Tensor0[Float]] = (x: Int) => Tensor0(x.toFloat)
   given boolean2BooleanTensor: Conversion[Boolean, Tensor0[Boolean]] = (x: Boolean) => Tensor0(x)
 
-  def zero[V](vtype: VType[V]): Tensor0[V] = Tensor.zeros(Shape.empty, vtype)
-  def one[V](vtype: VType[V]): Tensor0[V] = Tensor.ones(Shape.empty, vtype)
-  def const[V](vtype: VType[V])(value: V)(using writer: Writer[V]): Tensor0[V] = Tensor.const(Shape.empty, vtype)(value)
+  def apply[V: ExecutionType: Writer](value: V): Tensor0[V] = Tensor(Jax.jnp.full(Shape0.dimensions.toPythonProxy, value, dtype = ExecutionType[V].dtype.jaxType))
+  def like[V: Writer](template: Tensor0[V])(value: V): Tensor0[V] = Tensor(Jax.jnp.full(Shape0.dimensions.toPythonProxy, value, dtype = template.dtype.jaxType))
 
-  def randn(key: Random.Key)(using executionType: ExecutionType[Float]): Tensor0[Float] = Normal.standardNormal(Shape.empty).sample(key)
   def apply[V](jaxValue: Jax.PyDynamic): Tensor0[V] = Tensor(jaxValue)
-  def apply[V](value: V)(using sv: ExecutionType[V], writer: Writer[V]): Tensor0[V] = Tensor0.const(VType[V])(value)
 
 object Tensor1:
 
-  def fromArray[L: Label, V](axis: Axis[L], vtype: VType[Float])(values: Array[Float]) =
-    val dim = (axis -> values.length)
-    Tensor.fromArray(Shape(dim), vtype)(values)
-  def fromArray[L: Label, V](axis: Axis[L], vtype: VType[Int])(values: Array[Int]) =
-    val dim = (axis -> values.length)
-    Tensor.fromArray(Shape(dim), vtype)(values)
-  def fromArray[L: Label, V](axis: Axis[L], vtype: VType[Boolean])(values: Array[Boolean]) =
-    val dim = (axis -> values.length)
-    Tensor.fromArray(Shape(dim), vtype)(values)
+  case class Factory[L: Label](val axis: Axis[L]):
+    private def createShape(l: Int): Shape1[L] = Shape1(axis -> l)
+    def fromArray[A: ExecutionType, V](values: Array[A])(using t2a: ArrayWriter.Aux[A, V]): Tensor[Tuple1[L], V] = Tensor(createShape(values.length)).fromArray(values)
+
+  def apply[L: Label](axis: Axis[L]): Tensor1.Factory[L] = Tensor1.Factory(axis)
 
 object Tensor2:
 
-  def fromArray[L1: Label, L2: Label](axis1: Axis[L1], axis2: Axis[L2], vtype: VType[Float])(values: Array[Array[Float]]): Tensor2[L1, L2, Float] =
-    val dims = (axis1 -> values.length, axis2 -> values.head.length)
-    Tensor.fromArray(Shape(dims), vtype)(values.flatten)
-  def fromArray[L1: Label, L2: Label](axis1: Axis[L1], axis2: Axis[L2], vtype: VType[Int])(values: Array[Array[Int]]): Tensor2[L1, L2, Int] =
-    val dims = (axis1 -> values.length, axis2 -> values.head.length)
-    Tensor.fromArray(Shape(dims), vtype)(values.flatten)
-  def fromArray[L1: Label, L2: Label](axis1: Axis[L1], axis2: Axis[L2], vtype: VType[Boolean])(values: Array[Array[Boolean]]): Tensor2[L1, L2, Boolean] =
-    val dims = (axis1 -> values.length, axis2 -> values.head.length)
-    Tensor.fromArray(Shape(dims), vtype)(values.flatten)
+  case class Factory[L1: Label, L2: Label](val axis1: Axis[L1], val axis2: Axis[L2]):
+    private def createShape[V](valeus: Array[Array[V]]): Shape2[L1, L2] = Shape2(axis1 -> valeus.length, axis2 -> valeus.head.length)
+    def fromArray[A: ClassTag: ExecutionType, V](values: Array[Array[A]])(using t2a: ArrayWriter.Aux[A, V]): Tensor[(L1, L2), V] = Tensor(createShape(values)).fromArray(values.flatten)
 
-  def eye[L: Label, V](dim: Dim[L], vtype: VType[V]): Tensor2[L, L, V] = Tensor(Jax.jnp.eye(dim._2, dtype = vtype.dtype.jaxType))
+  def apply[L1: Label, L2: Label](axis1: Axis[L1], axis2: Axis[L2]): Tensor2.Factory[L1, L2] = Tensor2.Factory(axis1, axis2)
+
+  private def eyeImpl[L: Label, V](dim: Dim[L], dtype: DType): Tensor2[L, L, V] = Tensor(Jax.jnp.eye(dim._2, dtype = dtype.jaxType))
+  def eye[L: Label](dim: Dim[L])(using et: ExecutionType[Float]): Tensor2[L, L, Float] = eyeImpl(dim, et.dtype)
+  def eye[L: Label, V](dim: Dim[L], vtype: VType[V]): Tensor2[L, L, V] = eyeImpl(dim, vtype.dtype)
   def diag[L: Label, V](diag: Tensor1[L, V]): Tensor2[L, L, V] = Tensor(Jax.jnp.diag(diag.jaxValue))
 
 object Tensor3:
 
-  def fromArray[L1: Label, L2: Label, L3: Label, V](axis1: Axis[L1], axis2: Axis[L2], axis3: Axis[L3], vtype: VType[Float])(
-      values: Array[Array[Array[Float]]]
-  ): Tensor3[L1, L2, L3, Float] =
-    val dims = (axis1 -> values.length, axis2 -> values.head.length, axis3 -> values.head.head.length)
-    Tensor.fromArray(Shape(dims), vtype)(values.flatten.flatten)
-  def fromArray[L1: Label, L2: Label, L3: Label, V](axis1: Axis[L1], axis2: Axis[L2], axis3: Axis[L3], vtype: VType[Int])(
-      values: Array[Array[Array[Int]]]
-  ): Tensor3[L1, L2, L3, Int] =
-    val dims = (axis1 -> values.length, axis2 -> values.head.length, axis3 -> values.head.head.length)
-    Tensor.fromArray(Shape(dims), vtype)(values.flatten.flatten)
-  def fromArray[L1: Label, L2: Label, L3: Label, V](axis1: Axis[L1], axis2: Axis[L2], axis3: Axis[L3], vtype: VType[Boolean])(
-      values: Array[Array[Array[Boolean]]]
-  ): Tensor3[L1, L2, L3, Boolean] =
-    val dims = (axis1 -> values.length, axis2 -> values.head.length, axis3 -> values.head.head.length)
-    Tensor.fromArray(Shape(dims), vtype)(values.flatten.flatten)
+  case class Factory[L1: Label, L2: Label, L3: Label](val axis1: Axis[L1], val axis2: Axis[L2], val axis3: Axis[L3]):
+    private def createShape[V](values: Array[Array[Array[V]]]): Shape3[L1, L2, L3] =
+      Shape3(axis1 -> values.length, axis2 -> values.head.length, axis3 -> values.head.head.length)
+    def fromArray[A: ExecutionType: ClassTag, V](values: Array[Array[Array[A]]])(using t2a: ArrayWriter.Aux[A, V]): Tensor3[L1, L2, L3, V] =
+      Tensor(createShape(values)).fromArray(values.flatten.flatten)
+
+  def apply[L1: Label, L2: Label, L3: Label](axis1: Axis[L1], axis2: Axis[L2], axis3: Axis[L3]): Tensor3.Factory[L1, L2, L3] = Tensor3.Factory(axis1, axis2, axis3)

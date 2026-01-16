@@ -13,7 +13,7 @@ class JitSuite extends AnyFunSpec with Matchers:
       t * ((t +! 1f) /! 2f)
 
     val jitF = jit(f)
-    val tensor = Tensor.ones(Shape1(Axis[A] -> 5), VType[Float])
+    val tensor = Tensor(Shape1(Axis[A] -> 5)).fill(1f)
 
     val res = (0 until 25).foldLeft(tensor)((acc, _) => f(acc))
     val jittedRes = (0 until 25).foldLeft(tensor)((acc, _) => jitF(acc))
@@ -25,7 +25,7 @@ class JitSuite extends AnyFunSpec with Matchers:
       t * ((t +! 1f) /! 2f)
 
     val (jitDonate, jitF, jitReclaim) = jitDonating(f)
-    val tensor = Tensor.ones(Shape1(Axis[A] -> 5), VType[Float])
+    val tensor = Tensor(Shape1(Axis[A] -> 5)).fill(1f)
 
     val res = (0 until 25).foldLeft(tensor)((acc, _) => f(acc))
     val jittedRes = jitReclaim((0 until 25).foldLeft(jitDonate(tensor))((acc, _) => jitF(acc)))
@@ -37,7 +37,7 @@ class JitSuite extends AnyFunSpec with Matchers:
       t * ((t +! 1f) /! 2f)
 
     val jitF = jitDonatingUnsafe(f)
-    val tensor = Tensor.ones(Shape1(Axis[A] -> 5), VType[Float])
+    val tensor = Tensor(Shape1(Axis[A] -> 5)).fill(1f)
 
     val res = (0 until 25).foldLeft(tensor)((acc, _) => f(acc))
     val jittedRes = (0 until 25).foldLeft(tensor)((acc, _) => jitF(acc))
@@ -53,7 +53,7 @@ class JitSuite extends AnyFunSpec with Matchers:
       val end = System.nanoTime()
       (end - start) / 1_000_000 // ms
 
-    val tensor = Tensor.ones(Shape1(Axis[A] -> 5), VType[Float])
+    val tensor = Tensor(Shape1(Axis[A] -> 5)).fill(1f)
 
     def complexFn(t: Tensor1[A, Float]): Tensor1[A, Float] =
       (0 until 50).foldLeft(t) { (acc, _) => acc * ((acc +! 1f) /! 2f) }

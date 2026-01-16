@@ -116,8 +116,8 @@ case class GPT2(params: GPT2Params) extends (Tensor2[Batch, Context, Int] => Ten
 
       def causalMasking(attnScores: Tensor2[Context, Prime[Context], Float]): Tensor2[Context, Prime[Context], Float] =
         val ctxLength = attnScores.shape(Axis[Context])
-        val causalMask = tril(Tensor.ones(Shape((Axis[Context] -> ctxLength, Axis[Prime[Context]] -> ctxLength)), VType[Boolean]))
-        where(causalMask, attnScores, Tensor.const(attnScores.shape, attnScores.vtype)(Float.NegativeInfinity))
+        val causalMask = tril(Tensor(Shape((Axis[Context] -> ctxLength, Axis[Prime[Context]] -> ctxLength))).fill(true))
+        where(causalMask, attnScores, Tensor.like(attnScores).fill(Float.NegativeInfinity))
 
       val queries = x.dot(Axis[Embedding])(wq) +! wqBias
       val keys = x.dot(Axis[Embedding])(wk) +! wkBias
@@ -209,10 +209,9 @@ case class Inference(gpt2: GPT2, tokenizer: Tokenizer):
     def loop(currentTokenIds: List[Int]): LazyList[String] =
       println(s"Current Token Ids: $currentTokenIds")
       val paddedTokenIds = currentTokenIds ++ List.fill(1024 - currentTokenIds.length)(0)
-      val inputTensor = Tensor.fromArray(
-        Shape((Axis[Batch] -> 1, Axis[Context] -> paddedTokenIds.length)),
-        VType[Int]
-      )(
+      val inputTensor = Tensor(
+        Shape((Axis[Batch] -> 1, Axis[Context] -> paddedTokenIds.length))
+      ).fromArray(
         paddedTokenIds.toArray
       )
       val predTokensTensor = gpt2(inputTensor).slice(Axis[Batch] -> 0)

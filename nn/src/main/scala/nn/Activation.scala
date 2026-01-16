@@ -5,15 +5,11 @@ import dimwit.jax.Jax
 
 object ActivationFunctions:
 
-  // TODO rewrite relu, sigmoid to JAX
-
-  def sigmoid[T <: Tuple: Labels](t: Tensor[T, Float]): Tensor[T, Float] =
-    val ones = Tensor.ones(t.shape, t.vtype)
-    ones / (ones + (-t).exp)
+  def sigmoid[T <: Tuple: Labels, V](t: Tensor[T, V]): Tensor[T, V] =
+    Tensor(Jax.jnn.sigmoid(t.jaxValue))
 
   def relu[T <: Tuple: Labels, V](t: Tensor[T, V]): Tensor[T, V] =
-    val zeros = Tensor.zeros(t.shape, t.vtype)
-    maximum(t, zeros)
+    Tensor(Jax.jnn.relu(t.jaxValue))
 
   def gelu[T <: Tuple: Labels, V](t: Tensor[T, V]): Tensor[T, V] =
     Tensor(Jax.jnn.gelu(t.jaxValue))

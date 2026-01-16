@@ -10,7 +10,7 @@ import scala.compiletime.testing.typeCheckErrors
 class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
 
   // Shape: A=2, B=2, C=1
-  val t3 = Tensor3.fromArray(Axis[A], Axis[B], Axis[C], VType[Float])(
+  val t3 = Tensor3(Axis[A], Axis[B], Axis[C]).fromArray(
     Array(
       Array(Array(1.0f), Array(2.0f)),
       Array(Array(3.0f), Array(4.0f))
@@ -33,7 +33,7 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
       val res = t3.rearrange((Axis[A |*| B], Axis[C]))
       res.axes shouldBe List("A*B", "C")
       res should approxEqual(
-        Tensor2.fromArray(Axis[A |*| B], Axis[C], VType[Float])(
+        Tensor2(Axis[A |*| B], Axis[C]).fromArray(
           Array(Array(1.0f), Array(2.0f), Array(3.0f), Array(4.0f))
         )
       )
@@ -61,7 +61,7 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
         "flattened.rearrange((Axis[A], Axis[B], Axis[C]), Axis[A] -> 2, Axis[B] -> 2)" should compile
 
       it("complex reshape fails incrementally: (a b) (c d) -> (a c) (b d)"):
-        val t = Tensor2.fromArray(Axis[A |*| B], Axis[C |*| D], VType[Float])(
+        val t = Tensor2(Axis[A |*| B], Axis[C |*| D]).fromArray(
           Array(
             Array(1.0f, 2.0f, 3.0f, 4.0f),
             Array(5.0f, 6.0f, 7.0f, 8.0f),
@@ -93,7 +93,7 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
         "t.rearrange((Axis[A |*| C], Axis[B |*| D]), Axis[A] -> 2, Axis[C] -> 2, Axis[B] -> 2, Axis[D] -> 2)" should compile
 
     it("complex rearrange: (a b) (c d) -> (a c) (b d)"):
-      val t = Tensor2.fromArray(Axis[A |*| B], Axis[C |*| D], VType[Float])(
+      val t = Tensor2(Axis[A |*| B], Axis[C |*| D]).fromArray(
         Array(
           Array(1.0f, 2.0f, 3.0f, 4.0f),
           Array(5.0f, 6.0f, 7.0f, 8.0f),
@@ -104,7 +104,7 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
       t.axes shouldBe List("A*B", "C*D")
       val res = t.rearrange((Axis[A |*| C], Axis[B |*| D]), Axis[A] -> 2, Axis[B] -> 2, Axis[C] -> 2, Axis[D] -> 2)
       res.axes shouldBe List("A*C", "B*D")
-      res should approxEqual(Tensor2.fromArray(Axis[A |*| C], Axis[B |*| D], VType[Float])(
+      res should approxEqual(Tensor2(Axis[A |*| C], Axis[B |*| D]).fromArray(
         Array(
           Array(1.0f, 2.0f, 5.0f, 6.0f),
           Array(3.0f, 4.0f, 7.0f, 8.0f),
@@ -124,14 +124,14 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
   describe("split function"):
 
     it("split axis into two axes"):
-      val ab = Tensor.ones(Shape(Axis[A] -> 4, Axis[B] -> 12), VType[Float])
+      val ab = Tensor(Shape(Axis[A] -> 4, Axis[B] -> 12)).fill(1f)
       val acd = ab.split(Axis[B], Axis[C] -> 6, Axis[D] -> 2)
       acd.axes shouldBe (List("A", "C", "D"))
       acd.shape(Axis[C]) shouldBe (6)
       acd.shape(Axis[D]) shouldBe (2)
 
     it("split axis into two axes, one being the type of original axis"):
-      val ab = Tensor.ones(Shape(Axis[A] -> 4, Axis[B] -> 12), VType[Float])
+      val ab = Tensor(Shape(Axis[A] -> 4, Axis[B] -> 12)).fill(1f)
       val acd = ab.split(Axis[B], Axis[B] -> 6, Axis[D] -> 2)
       acd.axes shouldBe (List("A", "B", "D"))
       acd.shape(Axis[B]) shouldBe (6)
@@ -165,13 +165,13 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
       t3.relabel(Axis[C] -> Axis[X]).axes shouldBe List("A", "B", "X")
 
     it("relabel all axes"):
-      val t = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(Array.fill(2, 2)(1.0f))
+      val t = Tensor2(Axis[A], Axis[B]).fromArray(Array.fill(2, 2)(1.0f))
       val relabeled = t.relabelAll((Axis[C], Axis[D]))
       relabeled.axes shouldBe List("C", "D")
 
   describe("tril / triu"):
 
-    val t = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
+    val t = Tensor2(Axis[A], Axis[B]).fromArray(
       Array(
         Array(1.0f, 2.0f),
         Array(3.0f, 4.0f)
@@ -194,13 +194,13 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
 
   describe("where"):
 
-    val t1 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
+    val t1 = Tensor2(Axis[A], Axis[B]).fromArray(
       Array(
         Array(1.0f, 2.0f),
         Array(3.0f, 4.0f)
       )
     )
-    val t2 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
+    val t2 = Tensor2(Axis[A], Axis[B]).fromArray(
       Array(
         Array(10.0f, 20.0f),
         Array(30.0f, 40.0f)
@@ -208,14 +208,14 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
     )
 
     it("uniform mask"):
-      val mask = Tensor.zeros(t1.shape, VType[Boolean])
+      val mask = Tensor(t1.shape).fill(false)
       where(mask, t1, t2) should approxEqual(t2)
       where(!mask, t1, t2) should approxEqual(t1)
 
     it("triu mask"):
-      val mask = triu(Tensor.ones(t1.shape, VType[Boolean]))
+      val mask = triu(Tensor(t1.shape).fill(true))
       where(mask, t1, t2) should approxEqual(
-        Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
+        Tensor2(Axis[A], Axis[B]).fromArray(
           Array(
             Array(1.0f, 2.0f),
             Array(30.0f, 4.0f)
@@ -227,7 +227,7 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
 
     it("Prime axes are rearrangable"):
       // As rearrange uses einops the "+" om the derived label for B |+| C must be handled in the rearrange operation to not trigger error
-      val t = Tensor2.fromArray(Axis[A], Axis[Prime[B] |*| B], VType[Float])(
+      val t = Tensor2(Axis[A], Axis[Prime[B] |*| B]).fromArray(
         Array(Array(1.0f, 2.0f, 3.0f, 4.0f), Array(5.0f, 6.0f, 7.0f, 8.0f))
       )
       val tRearranged = t.rearrange(
@@ -238,15 +238,15 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
 
     it("|+| axes are rearrangable"):
       // As rearrange uses einops the "+" om the derived label for B |+| C must be handled in the rearrange operation to not trigger error
-      val t = Tensor2.fromArray(Axis[A], Axis[B |+| C], VType[Float])(
+      val t = Tensor2(Axis[A], Axis[B |+| C]).fromArray(
         Array(Array(1.0f, 2.0f), Array(3.0f, 4.0f))
       )
       val tRearranged = t.rearrange((Axis[B |+| C], Axis[A]))
       tRearranged.axes shouldBe List("B+C", "A")
 
     it("concatenate2 same axes"):
-      val part1 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(Array(Array(1.0f, 2.0f)))
-      val part2 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(Array(Array(3.0f, 4.0f)))
+      val part1 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f)))
+      val part2 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(3.0f, 4.0f)))
       val joined = concatenate(part1, part2, Axis[B])
       joined.axes shouldBe List("A", "B")
       joined.shape(Axis[B]) shouldBe (part1.shape(Axis[B]) + part2.shape(Axis[B]))
@@ -254,9 +254,9 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
       joined.slice(Axis[B] -> (part1.shape(Axis[B]) until (part1.shape(Axis[B]) + part2.shape(Axis[B])))) should approxEqual(part2)
 
     it("concatenateN same axes"):
-      val part1 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(Array(Array(1.0f, 2.0f)))
-      val part2 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(Array(Array(3.0f, 4.0f)))
-      val part3 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(Array(Array(3.0f, 4.0f)))
+      val part1 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f)))
+      val part2 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(3.0f, 4.0f)))
+      val part3 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(3.0f, 4.0f)))
       val joined = concatenate(Seq(part1, part2, part3), Axis[B])
       joined.axes shouldBe List("A", "B")
       joined.shape(Axis[B]) shouldBe (part1.shape(Axis[B]) + part2.shape(Axis[B]) + part3.shape(Axis[B]))
@@ -265,8 +265,8 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
       joined.slice(Axis[B] -> ((part1.shape(Axis[B]) + part2.shape(Axis[B])) until (part1.shape(Axis[B]) + part2.shape(Axis[B]) + part3.shape(Axis[B])))) should approxEqual(part3)
 
     it("concatenate2 different axes"):
-      val part1 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(Array(Array(1.0f, 2.0f)))
-      val part2 = Tensor2.fromArray(Axis[A], Axis[C], VType[Float])(Array(Array(3.0f, 4.0f)))
+      val part1 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f)))
+      val part2 = Tensor2(Axis[A], Axis[C]).fromArray(Array(Array(3.0f, 4.0f)))
       val joined = concatenate(part1, part2)
       joined.axes shouldBe List("A", "B+C")
       joined.shape(Axis[B |+| C]) shouldBe (part1.shape(Axis[B]) + part2.shape(Axis[C]))
@@ -276,7 +276,7 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
   describe("Deconcatenation"):
 
     it("deconcatenate on |+| axis"):
-      val t = Tensor2.fromArray(Axis[A], Axis[B |+| C], VType[Float])(
+      val t = Tensor2(Axis[A], Axis[B |+| C]).fromArray(
         Array(Array(1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f))
       )
       val (partB, partC) = t.deconcatenate(Axis[B |+| C], (Axis[B] -> 2, Axis[C] -> 3))

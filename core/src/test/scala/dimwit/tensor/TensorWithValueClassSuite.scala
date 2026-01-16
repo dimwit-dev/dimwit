@@ -21,7 +21,7 @@ class TensorWithValueClassSuite extends AnyFunSpec with Matchers:
         given IsFloat[V2] with {} // make all IsFloat ops available
 
     import ValueClassScope.*
-    val t = Tensor.zeros(Shape(Axis[A] -> 1, Axis[B] -> 2), VType[Float])
+    val t = Tensor(Shape(Axis[A] -> 1, Axis[B] -> 2)).fill(0f)
     val v1 = V1(t)
     val v2 = V2(t)
     "v1 + v1" should compile

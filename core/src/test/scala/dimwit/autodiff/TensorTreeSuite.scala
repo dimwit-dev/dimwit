@@ -16,16 +16,15 @@ class TensorTreeSuite extends AnyFunSpec with Matchers:
           val flags: Tensor1[A, Boolean]
       )
       val params = Data(
-        Tensor1.fromArray(Axis[A], VType[Float])(Array(0.1f, 0.2f, 0.3f)),
-        Tensor1.fromArray(Axis[A], VType[Int])(Array(1, 2, 3)),
-        Tensor1.fromArray(Axis[A], VType[Boolean])(Array(true, false, true))
+        Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)),
+        Tensor1(Axis[A]).fromArray(Array(1, 2, 3)),
+        Tensor1(Axis[A]).fromArray(Array(true, false, true))
       )
       val tree = summon[TensorTree[Data]]
-      def toOnes[T <: Tuple: Labels, V](t: Tensor[T, V]): Tensor[T, V] = Tensor.ones(t.shape, t.vtype)
-      val tree2 = tree.map(params, [T <: Tuple, V] => (labels: Labels[T]) ?=> (x: Tensor[T, V]) => toOnes(x))
-      tree2.numbers should approxEqual(Tensor1.fromArray(Axis[A], VType[Float])(Array(1.0f, 1.0f, 1.0f)))
-      tree2.counts should equal(Tensor1.fromArray(Axis[A], VType[Int])(Array(1, 1, 1)))
-      tree2.flags should equal(Tensor1.fromArray(Axis[A], VType[Boolean])(Array(true, true, true)))
+      val tree2 = tree.map(params, [T <: Tuple, V] => (labels: Labels[T]) ?=> (x: Tensor[T, V]) => x)
+      tree2.numbers should approxEqual(params.numbers)
+      tree2.counts should equal(params.counts)
+      tree2.flags should equal(params.flags)
 
   describe("zipmap"):
     it("1-level case class"):
@@ -34,11 +33,11 @@ class TensorTreeSuite extends AnyFunSpec with Matchers:
           val b1: Tensor0[Int]
       )
       val params1 = Params(
-        Tensor1.fromArray(Axis[A], VType[Float])(Array(0.1f, 0.2f, 0.3f)),
+        Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)),
         Tensor0(0)
       )
       val params2 = Params(
-        Tensor1.fromArray(Axis[A], VType[Float])(Array(0.4f, 0.5f, 0.6f)),
+        Tensor1(Axis[A]).fromArray(Array(0.4f, 0.5f, 0.6f)),
         Tensor0(1)
       )
       val ftTree = summon[TensorTree[Params]]

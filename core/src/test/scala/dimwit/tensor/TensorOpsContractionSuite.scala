@@ -7,18 +7,18 @@ import org.scalatest.funspec.AnyFunSpec
 
 class TensorOpsContractionSuite extends AnyFunSpec with Matchers:
 
-  val v1 = Tensor1.fromArray(Axis[A], VType[Float])(
+  val v1 = Tensor1(Axis[A]).fromArray(
     Array(1.0f, 2.0f)
   )
-  val v2 = Tensor1.fromArray(Axis[A], VType[Float])(
+  val v2 = Tensor1(Axis[A]).fromArray(
     Array(3.0f, 4.0f)
   )
 
-  val m1 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
+  val m1 = Tensor2(Axis[A], Axis[B]).fromArray(
     Array(Array(1.0f, 2.0f), Array(3.0f, 4.0f))
   )
 
-  val m2 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
+  val m2 = Tensor2(Axis[A], Axis[B]).fromArray(
     Array(Array(10.0f, 20.0f), Array(30.0f, 40.0f))
   )
 
@@ -32,7 +32,7 @@ class TensorOpsContractionSuite extends AnyFunSpec with Matchers:
 
       res.shape.labels shouldBe List("B", "B'")
       res should approxEqual(
-        Tensor.fromArray(res.shape, res.vtype)(
+        Tensor.like(res).fromArray(
           Array(100.0f, 140.0f, 140.0f, 200.0f)
         )
       )
@@ -42,7 +42,7 @@ class TensorOpsContractionSuite extends AnyFunSpec with Matchers:
 
       res.shape.labels shouldBe List("A", "A'")
       res should approxEqual(
-        Tensor.fromArray(res.shape, res.vtype)(
+        Tensor.like(res).fromArray(
           Array(50.0f, 110.0f, 110.0f, 250.0f)
         )
       )
@@ -55,7 +55,7 @@ class TensorOpsContractionSuite extends AnyFunSpec with Matchers:
 
       res.shape.labels shouldBe List("B", "D")
       res should approxEqual(
-        Tensor.fromArray(res.shape, res.vtype)(
+        Tensor.like(res).fromArray(
           Array(100.0f, 140.0f, 140.0f, 200.0f)
         )
       )
@@ -67,12 +67,12 @@ class TensorOpsContractionSuite extends AnyFunSpec with Matchers:
 
   describe("outerProduct"):
     it("Tensor1[A] and Tensor1[B] to Tensor2[A, B]"):
-      val vA = Tensor1.fromArray(Axis[A], VType[Float])(Array(1.0f, 2.0f))
-      val vB = Tensor1.fromArray(Axis[B], VType[Float])(Array(10.0f, 20.0f))
+      val vA = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f))
+      val vB = Tensor1(Axis[B]).fromArray(Array(10.0f, 20.0f))
 
       val res = vA.outerProduct(vB)
       res should approxEqual(
-        Tensor.fromArray(res.shape, res.vtype)(
+        Tensor.like(res).fromArray(
           Array(10.0f, 20.0f, 20.0f, 40.0f)
         )
       )

@@ -14,9 +14,9 @@ class TensorCovarianceSuite extends AnyFunSpec with Matchers:
     trait Child2 extends Parent derives Label
     trait NoChild derives Label
     def concreteFunction(t: Tensor1[Parent, Float]): Tensor1[Parent, Float] = t + t
-    val child1: Tensor1[Child1, Float] = Tensor.ones(Shape1(Axis[Child1] -> 4), VType[Float])
-    val child2: Tensor1[Child2, Float] = Tensor.ones(Shape1(Axis[Child2] -> 4), VType[Float])
-    val noChild: Tensor1[NoChild, Float] = Tensor.ones(Shape1(Axis[NoChild] -> 4), VType[Float])
+    val child1: Tensor1[Child1, Float] = Tensor(Shape1(Axis[Child1] -> 4)).fill(1f)
+    val child2: Tensor1[Child2, Float] = Tensor(Shape1(Axis[Child2] -> 4)).fill(1f)
+    val noChild: Tensor1[NoChild, Float] = Tensor(Shape1(Axis[NoChild] -> 4)).fill(1f)
 
     "concreteFunction(child1)" should compile
     "concreteFunction(child2)" should compile
@@ -27,8 +27,8 @@ class TensorCovarianceSuite extends AnyFunSpec with Matchers:
     trait Child1 extends Parent derives Label
     trait Child2 extends Parent derives Label
     def genericFunction[T <: Parent: Label](t: Tensor1[T, Float]): Tensor1[T, Float] = t + t
-    val child1: Tensor1[Child1, Float] = Tensor.ones(Shape1(Axis[Child1] -> 4), VType[Float])
-    val child2: Tensor1[Child2, Float] = Tensor.ones(Shape1(Axis[Child2] -> 4), VType[Float])
+    val child1: Tensor1[Child1, Float] = Tensor(Shape1(Axis[Child1] -> 4)).fill(1f)
+    val child2: Tensor1[Child2, Float] = Tensor(Shape1(Axis[Child2] -> 4)).fill(1f)
 
     "genericFunction(child1)" should compile
     "genericFunction(child2)" should compile
@@ -41,8 +41,8 @@ class TensorCovarianceSuite extends AnyFunSpec with Matchers:
       opaque type Logit = Float
       opaque type Prob = Float
 
-      def createLogits[L: Label](s: Shape1[L]): Tensor1[L, Logit] = Tensor.zeros(s, VType[Logit])
-      def createProbs[L: Label](s: Shape1[L]): Tensor1[L, Prob] = Tensor.zeros(s, VType[Prob])
+      def createLogits[L: Label](s: Shape1[L]): Tensor1[L, Logit] = Tensor(s).fill(0f)
+      def createProbs[L: Label](s: Shape1[L]): Tensor1[L, Prob] = Tensor(s).fill(0f)
 
       // Operation restricted only to Logit 'land'
       def combineLogits[L: Label](a: Tensor1[L, Logit], b: Tensor1[L, Logit]): Tensor1[L, Logit] = a + b
@@ -52,7 +52,7 @@ class TensorCovarianceSuite extends AnyFunSpec with Matchers:
     val shape = Shape1(Axis[Classes] -> 10)
     val logits = MLContext.createLogits(shape)
     val probs = MLContext.createProbs(shape)
-    val rawFloats = Tensor.ones(shape, VType[Float])
+    val rawFloats = Tensor(shape).fill(1f)
 
     "MLContext.combineLogits(logits, logits)" should compile
     "MLContext.combineProbs(probs, probs)" should compile

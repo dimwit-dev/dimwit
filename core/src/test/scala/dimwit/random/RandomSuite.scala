@@ -7,6 +7,7 @@ import me.shadaj.scalapy.py
 
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import dimwit.stats.Normal
 
 class RandomSuite extends AnyFunSuite with Matchers:
   trait A derives Label
@@ -42,15 +43,12 @@ class RandomSuite extends AnyFunSuite with Matchers:
     val key = Random.Key(456)
     val n = 3
 
-    // Generate random numbers using splitvmap
-    val vmapResults = key.splitvmap(Axis[Samples] -> n) { k =>
-      Tensor0.randn(k)
-    }
+    val vmapResults = key.splitvmap(Axis[Samples] -> n)(Normal.standardSample)
 
     // Generate random numbers using individual calls
     val splitKeys = key.split(n)
-    val individualResults = Tensor1.fromArray(Axis[Samples], VType[Float])(
-      splitKeys.map(k => Tensor0.randn(k).item).toArray
+    val individualResults = Tensor1(Axis[Samples]).fromArray(
+      splitKeys.map(k => Normal.standardSample(k).item).toArray
     )
 
     vmapResults should approxEqual(individualResults)
@@ -75,7 +73,7 @@ class RandomSuite extends AnyFunSuite with Matchers:
 
     // Check that it's actually permuted (with very high probability it won't be identical)
     // By checking the first element is not 0 (fails 1/10 of the time, but good enough)
-    val original = Tensor1.fromArray(Axis[A], VType[Int])((0 until n).toArray)
+    val original = Tensor1(Axis[A]).fromArray((0 until n).toArray)
     val isIdentity = (perm === original).item
     isIdentity shouldBe false
 
@@ -85,7 +83,7 @@ class RandomSuite extends AnyFunSuite with Matchers:
     trait Col derives Label
 
     // Create a 2D tensor with distinct values to verify shuffling
-    val original = Tensor2.fromArray(Axis[Row], Axis[Col], VType[Int])(Array(
+    val original = Tensor2(Axis[Row], Axis[Col]).fromArray(Array(
       Array(0, 1, 2),
       Array(3, 4, 5),
       Array(6, 7, 8),

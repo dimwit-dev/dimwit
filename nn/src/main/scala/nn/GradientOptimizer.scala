@@ -68,7 +68,7 @@ case class Lion(learningRate: Tensor0[Float], weightDecay: Tensor0[Float] = Tens
       [T <: Tuple] =>
         (n: Labels[T]) ?=>
           (t: Tensor[T, Float]) =>
-            Tensor.zeros(t.shape, VType[Float])
+            Tensor(t.shape).fill(0f)
     )
 
   def update[Params: ToPyTree: FloatTensorTree](gradients: Grad[Params], params: Params, momentums: Params): (Params, Params) =

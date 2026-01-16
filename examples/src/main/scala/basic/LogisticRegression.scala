@@ -45,8 +45,8 @@ object LogisticRegression:
       case 0 => false
     }
 
-    val dataUnnormalized = Tensor2.fromArray(Axis[Sample], Axis[Feature], VType[Float])(featureData)
-    val dataLabels = Tensor1.fromArray(Axis[Sample], VType[Boolean])(labelData)
+    val dataUnnormalized = Tensor2(Axis[Sample], Axis[Feature]).fromArray(featureData)
+    val dataLabels = Tensor1(Axis[Sample]).fromArray(labelData)
 
     // TODO implement split
     val (trainingDataUnnormalized, valDataUnnormalized) = (dataUnnormalized, dataUnnormalized)
@@ -88,7 +88,6 @@ object LogisticRegression:
     val trainLoss = loss(trainingData)
     val valLoss = loss(valData)
     val learningRate = 3e-1f
-    val xxx = summon[FloatTensorTree[BinaryLogisticRegression.Params]]
     val gd = GradientDescent(learningRate)
 
     val trainTrajectory = gd.iterate(initParams)(Autodiff.grad(trainLoss))

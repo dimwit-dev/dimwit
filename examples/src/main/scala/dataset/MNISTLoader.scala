@@ -37,7 +37,11 @@ object MNISTLoader:
       file.readFully(pixels)
 
       val shape = Shape(Axis[S] -> numImages, Axis[Height] -> rows, Axis[Width] -> cols)
-      Tensor.fromArray(shape)(pixels)
+
+      // MNIST pixels are unsigned bytes
+      // So we read them as Byte and interpret as UInt8 when creating the Tensor
+      given ExecutionType[Byte] = ExecutionTypeFor[Byte](DType.UInt8)
+      Tensor(shape).fromArray(pixels)
 
     finally
       file.close()
@@ -57,7 +61,7 @@ object MNISTLoader:
       file.readFully(labels)
 
       val shape = Shape(Axis[S] -> numLabels)
-      Tensor.fromArray(shape)(labels)
+      Tensor(shape).fromArray(labels)
 
     finally
       file.close()

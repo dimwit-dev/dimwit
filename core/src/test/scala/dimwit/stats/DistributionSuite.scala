@@ -19,9 +19,9 @@ class DistributionSuite extends AnyFunSpec with Matchers:
 
   describe("Normal Distribution"):
     it("logProbs matches JAX"):
-      val loc = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.0f, 1.0f, -0.5f))
-      val scale = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(1.0f, 0.5f, 2.0f))
-      val x = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.5f, 1.5f, -1.0f))
+      val loc = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.0f, 1.0f, -0.5f))
+      val scale = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1.0f, 0.5f, 2.0f))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 1.5f, -1.0f))
 
       val dist = Normal(loc, scale)
       val scalaLogProbs = dist.logProb(x)
@@ -32,8 +32,8 @@ class DistributionSuite extends AnyFunSpec with Matchers:
 
     it("sample means approximates means"):
       val normal = Normal(
-        Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(0.0f, 1.0f)),
-        Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(1.0f, 0.5f))
+        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.0f, 1.0f)),
+        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1.0f, 0.5f))
       )
       val key = Random.Key(42)
       val samples = key.splitvmap(Axis[Samples] -> 10000)(k => normal.sample(k))
@@ -45,18 +45,18 @@ class DistributionSuite extends AnyFunSpec with Matchers:
       trait A derives Label
       trait LocA extends A derives Label
       trait ScaleA extends A derives Label
-      val loc = Tensor.fromArray(Shape(Axis[LocA] -> 3), VType[Float])(Array(0.0f, 1.0f, -0.5f))
-      val scale = Tensor.fromArray(Shape(Axis[ScaleA] -> 3), VType[Float])(Array(1.0f, 0.5f, 2.0f))
-      val x = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.5f, 1.5f, -1.0f))
+      val loc = Tensor(Shape(Axis[LocA] -> 3)).fromArray(Array(0.0f, 1.0f, -0.5f))
+      val scale = Tensor(Shape(Axis[ScaleA] -> 3)).fromArray(Array(1.0f, 0.5f, 2.0f))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 1.5f, -1.0f))
       val dist = Normal(loc, scale)
       val scalaLogProbs = dist.logProb(x)
       scalaLogProbs shouldBe a[Tensor1[A, LogProb]]
 
   describe("Uniform Distribution"):
     it("logProbs matches JAX"):
-      val low = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.0f, -1.0f, 2.0f))
-      val high = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(1.0f, 1.0f, 5.0f))
-      val x = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.5f, 0.0f, 3.0f))
+      val low = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.0f, -1.0f, 2.0f))
+      val high = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1.0f, 1.0f, 5.0f))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 0.0f, 3.0f))
 
       val dist = Uniform(low, high)
       val scalaLogProbs = dist.logProb(x)
@@ -67,8 +67,8 @@ class DistributionSuite extends AnyFunSpec with Matchers:
 
     it("sample means approximates means"):
       val uniform = Uniform(
-        Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(-1.0f, 0.0f)),
-        Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(1.0f, 2.0f))
+        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(-1.0f, 0.0f)),
+        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1.0f, 2.0f))
       )
       val key = Random.Key(42)
       val samples = key.splitvmap(Axis[Samples] -> 10000)(k => uniform.sample(k))
@@ -78,8 +78,8 @@ class DistributionSuite extends AnyFunSpec with Matchers:
 
   describe("Bernoulli"):
     it("logProbs matches JAX"):
-      val probs = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.3f, 0.5f, 0.8f))
-      val x = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Int])(Array(0, 1, 1))
+      val probs = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.3f, 0.5f, 0.8f))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0, 1, 1))
 
       val dist = Bernoulli(probs)
       val scalaLogProbs = dist.logProb(x)
@@ -90,7 +90,7 @@ class DistributionSuite extends AnyFunSpec with Matchers:
 
     it("sample means approximates probabilities"):
       val bernoulli = Bernoulli(
-        Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(0.3f, 0.7f))
+        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.3f, 0.7f))
       )
       val key = Random.Key(42)
       val samples = key.splitvmap(Axis[Samples] -> 1000)(k => bernoulli.sample(k))
@@ -100,9 +100,9 @@ class DistributionSuite extends AnyFunSpec with Matchers:
 
   describe("Cauchy"):
     it("logProbs matches JAX"):
-      val loc = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.0f, 1.0f, -0.5f))
-      val scale = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(1.0f, 0.5f, 2.0f))
-      val x = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.5f, 1.5f, -1.0f))
+      val loc = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.0f, 1.0f, -0.5f))
+      val scale = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1.0f, 0.5f, 2.0f))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 1.5f, -1.0f))
 
       val dist = Cauchy(loc, scale)
       val scalaLogProbs = dist.logProb(x)
@@ -113,8 +113,8 @@ class DistributionSuite extends AnyFunSpec with Matchers:
 
     it("sample medians approximates location"):
       val cauchy = Cauchy(
-        Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(0.0f, 2.0f)),
-        Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(1.0f, 0.5f))
+        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.0f, 2.0f)),
+        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1.0f, 0.5f))
       )
       val key = Random.Key(42)
       val samples = key.splitvmap(Axis[Samples] -> 50000)(k => cauchy.sample(k))
@@ -124,9 +124,9 @@ class DistributionSuite extends AnyFunSpec with Matchers:
 
   describe("HalfNormal"):
     it("logProbs computed correctly"):
-      val loc = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.0f, 0.0f, 0.0f))
-      val scale = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(1.0f, 0.5f, 2.0f))
-      val x = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.5f, 1.0f, 0.8f))
+      val loc = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.0f, 0.0f, 0.0f))
+      val scale = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1.0f, 0.5f, 2.0f))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 1.0f, 0.8f))
 
       val dist = HalfNormal(loc, scale)
       val scalaLogProbs = dist.logProb(x)
@@ -138,8 +138,8 @@ class DistributionSuite extends AnyFunSpec with Matchers:
 
     it("sample means approximates expected means"):
       val halfNormal = HalfNormal(
-        Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(0.0f, 0.0f)),
-        Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(1.0f, 2.0f))
+        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.0f, 0.0f)),
+        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1.0f, 2.0f))
       )
       val key = Random.Key(42)
       val samples = key.splitvmap(Axis[Samples] -> 10000)(k => halfNormal.sample(k))
@@ -152,9 +152,9 @@ class DistributionSuite extends AnyFunSpec with Matchers:
   describe("StudentT"):
     it("logProbs matches JAX"):
       val df = 5
-      val loc = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.0f, 1.0f, -0.5f))
-      val scale = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(1.0f, 0.5f, 2.0f))
-      val x = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.5f, 1.5f, -1.0f))
+      val loc = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.0f, 1.0f, -0.5f))
+      val scale = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1.0f, 0.5f, 2.0f))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 1.5f, -1.0f))
 
       val dist = StudentT(df, loc, scale)
       val scalaLogProbs = dist.logProb(x)
@@ -166,8 +166,8 @@ class DistributionSuite extends AnyFunSpec with Matchers:
     it("sample means approximates location"):
       val studentT = StudentT(
         df = 5,
-        loc = Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(0.0f, 2.0f)),
-        scale = Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(1.0f, 0.5f))
+        loc = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.0f, 2.0f)),
+        scale = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1.0f, 0.5f))
       )
       val key = Random.Key(42)
       val samples = key.splitvmap(Axis[Samples] -> 10000)(k => studentT.sample(k))
@@ -177,15 +177,15 @@ class DistributionSuite extends AnyFunSpec with Matchers:
 
   describe("MVNormal"):
     it("logProb matches JAX"):
-      val mean = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.0f, 1.0f, 2.0f))
-      val cov = Tensor.fromArray(Shape(Axis[A] -> 3, Axis[Prime[A]] -> 3), VType[Float])(
+      val mean = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.0f, 1.0f, 2.0f))
+      val cov = Tensor(Shape(Axis[A] -> 3, Axis[Prime[A]] -> 3)).fromArray(
         Array(
           1.0f, 0.5f, 0.2f,
           0.5f, 2.0f, 0.3f,
           0.2f, 0.3f, 1.5f
         )
       )
-      val x = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.5f, 1.5f, 2.2f))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 1.5f, 2.2f))
 
       val dist = MVNormal(mean, cov)
       val scalaLogProb = dist.logProb(x)
@@ -195,8 +195,8 @@ class DistributionSuite extends AnyFunSpec with Matchers:
       scalaLogProb.asFloat should approxEqual(jaxLogProb)
 
     it("sample mean approximates mean"):
-      val mean = Tensor.fromArray(Shape(Axis[A] -> 2), VType[Float])(Array(1.0f, 2.0f))
-      val cov = Tensor.fromArray(Shape(Axis[A] -> 2, Axis[Prime[A]] -> 2), VType[Float])(
+      val mean = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1.0f, 2.0f))
+      val cov = Tensor(Shape(Axis[A] -> 2, Axis[Prime[A]] -> 2)).fromArray(
         Array(1.0f, 0.3f, 0.3f, 1.0f)
       )
       val mvNormal = MVNormal(mean, cov)
@@ -208,8 +208,8 @@ class DistributionSuite extends AnyFunSpec with Matchers:
 
   describe("Dirichlet"):
     it("logProb matches JAX"):
-      val concentration = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(2.0f, 3.0f, 5.0f))
-      val x = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.2f, 0.3f, 0.5f))
+      val concentration = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(2.0f, 3.0f, 5.0f))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.2f, 0.3f, 0.5f))
 
       val dist = Dirichlet(concentration)
       val scalaLogProb = dist.logProb(x)
@@ -219,21 +219,21 @@ class DistributionSuite extends AnyFunSpec with Matchers:
       scalaLogProb.asFloat should approxEqual(jaxLogProb)
 
     it("sample mean approximates expected mean"):
-      val concentration = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(2.0f, 5.0f, 3.0f))
+      val concentration = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(2.0f, 5.0f, 3.0f))
       val dirichlet = Dirichlet(concentration)
       val key = Random.Key(42)
       val samples = key.splitvmap(Axis[Samples] -> 10000)(k => dirichlet.sample(k))
       val sampleMean = samples.mean(Axis[Samples])
       // Expected mean for Dirichlet is concentration / sum(concentration)
       // For [2.0, 5.0, 3.0], sum=10.0, so expected is [0.2, 0.5, 0.3]
-      val expectedMean = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.2f, 0.5f, 0.3f))
+      val expectedMean = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.2f, 0.5f, 0.3f))
       sampleMean should approxEqual(expectedMean, 0.2f)
 
   describe("Multinomial"):
     it("logProb matches JAX"):
-      val probsFloat = Tensor.fromArray(Shape(Axis[A] -> 4), VType[Float])(Array(0.1f, 0.2f, 0.3f, 0.4f))
+      val probsFloat = Tensor(Shape(Axis[A] -> 4)).fromArray(Array(0.1f, 0.2f, 0.3f, 0.4f))
       val probs = Prob(probsFloat)
-      val x = Tensor.fromArray(Shape(Axis[A] -> 4), VType[Int])(Array(2, 1, 3, 4))
+      val x = Tensor(Shape(Axis[A] -> 4)).fromArray(Array(2, 1, 3, 4))
       val n = 10
 
       val dist = Multinomial[A](n, probs)
@@ -244,7 +244,7 @@ class DistributionSuite extends AnyFunSpec with Matchers:
       scalaLogProb.asFloat should approxEqual(jaxLogProb)
 
     it("sample mean approximates expected counts"):
-      val probsFloat = Tensor.fromArray(Shape(Axis[A] -> 3), VType[Float])(Array(0.2f, 0.5f, 0.3f))
+      val probsFloat = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.2f, 0.5f, 0.3f))
       val probs = Prob(probsFloat)
       val n = 100
       val multinomial = Multinomial[A](n, probs)
@@ -257,7 +257,7 @@ class DistributionSuite extends AnyFunSpec with Matchers:
 
   describe("Categorical"):
     it("logProb matches expected value"):
-      val probs = Tensor.fromArray(Shape(Axis[A] -> 4), VType[Float])(Array(0.1f, 0.2f, 0.3f, 0.4f))
+      val probs = Tensor(Shape(Axis[A] -> 4)).fromArray(Array(0.1f, 0.2f, 0.3f, 0.4f))
       val x = Tensor0(2)
 
       val dist = Categorical(probs)
@@ -266,7 +266,7 @@ class DistributionSuite extends AnyFunSpec with Matchers:
       scalaLogProb.asFloat should approxEqual(expectedLogProb)
 
     it("sample distribution matches probabilities"):
-      val probs = Tensor.fromArray(Shape(Axis[A] -> 4), VType[Float])(Array(0.1f, 0.2f, 0.3f, 0.4f))
+      val probs = Tensor(Shape(Axis[A] -> 4)).fromArray(Array(0.1f, 0.2f, 0.3f, 0.4f))
       val categorical = Categorical(probs)
       val key = Random.Key(42)
       val numSamples = 10000
