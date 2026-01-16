@@ -316,14 +316,16 @@ object GPT2Inference:
         require(tLength % numHeads == 0, s"T length $tLength not divisible by numHeads $numHeads")
         t.rearrange(
           (Axis[Head], Axis[Embedding], Axis[L]),
-          (Axis[Head] -> numHeads, Axis[L] -> (tLength / numHeads))
+          Axis[Head] -> numHeads,
+          Axis[L] -> (tLength / numHeads)
         )
       def splitBiasToHeads[L](t: Tensor1[Head |*| L, Float], numHeads: Int)(using label: Label[L]): Tensor2[Head, L, Float] =
         val tLength = t.shape(Axis[Head |*| L])
         require(tLength % numHeads == 0, s"T length $tLength not divisible by numHeads $numHeads")
         t.rearrange(
           (Axis[Head], Axis[L]),
-          (Axis[Head] -> numHeads, Axis[L] -> (tLength / numHeads))
+          Axis[Head] -> numHeads,
+          Axis[L] -> (tLength / numHeads)
         )
       val qkvLength = cAttn.weight.shape(Axis[QKV])
       require(qkvLength % 3 == 0, s"QKV length $qkvLength not divisible by 3")

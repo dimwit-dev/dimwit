@@ -15,7 +15,6 @@ import nn.ActivationFunctions.sigmoid
 import dimwit.random.Random.Key
 
 import MNISTLoader.{Sample, TrainSample, TestSample, Height, Width}
-import dimwit.jax.Jit.jitReduce
 type Pixel = Height |*| Width
 type ReconstructedPixel = Height |*| Width
 

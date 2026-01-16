@@ -1,6 +1,13 @@
 package dimwit.tensor
 
 import scala.util.NotGiven
+import scala.annotation.implicitNotFound
+
+import scala.compiletime.{constValue, error}
+import scala.compiletime.ops.string.+
+import scala.quoted.Type
+import scala.quoted.Quotes
+import scala.quoted.Expr
 
 /* Helpers for manipulating Tuple types */
 object TupleHelpers:
@@ -95,6 +102,107 @@ object TupleHelpers:
     case EmptyTuple => false
     case X *: t     => true
     case _ *: t     => Member[X, t]
+
+  import dimwit.|*|
+  import scala.util.NotGiven
+  import scala.annotation.implicitNotFound
+
+  object TensorEvidence:
+
+    // --- Core Checks (Same as before) ---
+
+    // 1. Does Source T contain Axis X?
+    trait Has[X, T <: Tuple]
+    object Has:
+      given head[X, T <: Tuple]: Has[X, X *: T] = new Has[X, X *: T] {}
+      given tail[X, H, T <: Tuple](using Has[X, T]): Has[X, H *: T] = new Has[X, H *: T] {}
+
+    // 2. Can we form Axis A from Source S? (Handles A vs A|*|B)
+    trait CanForm[A, S <: Tuple, Ignore <: Tuple]
+    object CanForm:
+      // Case 1: Found directly in Source (Highest Priority)
+      given inSource[A, S <: Tuple, I <: Tuple](using
+          Has[A, S]
+      ): CanForm[A, S, I] = new CanForm[A, S, I] {}
+
+      // Case 2: Found directly in Ignore List (Explicit Dims)
+      given inIgnore[A, S <: Tuple, I <: Tuple](using
+          NotGiven[Has[A, S]],
+          Has[A, I]
+      ): CanForm[A, S, I] = new CanForm[A, S, I] {}
+
+    // Result Types
+    sealed trait ValidationResult
+    final class AllOk extends ValidationResult
+    final class MissingAxis[A, InT <: Tuple] extends ValidationResult
+
+    // 3. ComputeMissing: Walks through Target axes and finds the first missing one.
+    //    It returns the result in the type parameter 'Res'.
+    trait ComputeMissing[Target <: Tuple, Source <: Tuple, Ignore <: Tuple, Res <: ValidationResult]
+
+    object ComputeMissing extends ComputeMissingLowPriority:
+
+      // Case 1: Target is empty -> All Good!
+      given empty[S <: Tuple, I <: Tuple]: ComputeMissing[EmptyTuple, S, I, AllOk] =
+        new ComputeMissing[EmptyTuple, S, I, AllOk] {}
+
+      // Case 2: Head is Valid -> Continue checking Tail
+      given headFound[H, T <: Tuple, S <: Tuple, I <: Tuple, Res <: ValidationResult](using
+          found: CanForm[H, S, I], // Proof that Head exists
+          tailCheck: ComputeMissing[T, S, I, Res] // Recurse
+      ): ComputeMissing[H *: T, S, I, Res] =
+        new ComputeMissing[H *: T, S, I, Res] {}
+
+      // Case 3: Composite Decompose (Target Head is L |*| R, and it was NOT found above)
+      // Strategy: Replace (L |*| R) with L, then R, in the search queue.
+      // Specificity: This matches (L |*| R) *: T, which is more specific than H *: T.
+      given decompose[L, R, T <: Tuple, S <: Tuple, I <: Tuple, Res <: ValidationResult](using
+          missingAsUnit: NotGiven[CanForm[L |*| R, S, I]], // Ensure we didn't miss the unit above
+          recurse: ComputeMissing[L *: R *: T, S, I, Res] // Flatten L and R into the stream
+      ): ComputeMissing[(L |*| R) *: T, S, I, Res] =
+        new ComputeMissing[(L |*| R) *: T, S, I, Res] {}
+
+    trait ComputeMissingLowPriority:
+      // Case 4: Head is MISSING -> Stop and Report Error
+      // We use NotGiven to prove it's missing. This handles the 'else' branch safely.
+      given headMissing[H, T <: Tuple, S <: Tuple, I <: Tuple](using
+          missing: NotGiven[CanForm[H, S, I]], // Proof that Head is missing
+          notIgnored: NotGiven[Has[H, I]]
+      ): ComputeMissing[H *: T, S, I, MissingAxis[H, S]] =
+        new ComputeMissing[H *: T, S, I, MissingAxis[H, S]] {}
+
+    // --- The Guard (Error Trigger) ---
+
+    // 4. CheckValid: This checks the RESULT of the computation.
+    //    If the result is AllOk, it compiles.
+    //    If the result is MissingAxis[A], it fails with your message.
+    sealed trait CheckValid[R <: ValidationResult]
+
+    import scala.compiletime.ops.any.ToString
+    object CheckValid:
+      // Case 1: Success. We provide an instance, so compilation proceeds.
+      given ok: CheckValid[AllOk] = new CheckValid[AllOk] {}
+
+      def failImpl[A: Type, SourceShape <: Tuple: Type](using Quotes): Expr[CheckValid[MissingAxis[A, SourceShape]]] =
+        import scala.quoted.quotes.reflect.*
+        // Type.show[A] gives you the nice, readable name (e.g., "A" instead of "package.A")
+        val name = Type.show[A]
+        val sourceShape = Type.show[SourceShape]
+
+        report.errorAndAbort(
+          s"""❌ Missing Axis: '$name' in the source shape $sourceShape. There are a few possible reasons:
+              |  1. Missing axis $name is not present in the source shape $sourceShape.
+              |   👉 New structure must be based on source shape
+              |  2. Missing axis $name is present only in flattened form (e.g., $name|*|OtherAxis) in the source shape $sourceShape. This requires additional information to be unflattened.
+              |   If you are unflattening (e.g. $name|*|OtherAxis -> $name, OtherAxis), you must provide the size of '$name' explicitly.
+              |   👉 Try: .rearrange(newOrder, (Axis[$name] -> size, ...)), where size is the length of $name after the unflattening.
+              |""".stripMargin
+        )
+
+      // Case 2: Failure. We provide an instance that triggers a compile-time ERROR with a user-friendly message.
+      inline given fail[A, SourceShape <: Tuple]: CheckValid[MissingAxis[A, SourceShape]] =
+        ${ failImpl[A, SourceShape] }
+  export TensorEvidence.*
 
   trait PrimeRest[Fixed <: Tuple, Incoming <: Tuple]:
     type Out <: Tuple

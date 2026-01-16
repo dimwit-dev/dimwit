@@ -8,7 +8,7 @@ import me.shadaj.scalapy.py
 
 class JitSuite extends AnyFunSpec with Matchers:
 
-  it("JIT compilation works correctly"):
+  it("jit compilation works correctly"):
     def f(t: Tensor1[A, Float]): Tensor1[A, Float] =
       t * ((t +! 1f) /! 2f)
 
@@ -20,15 +20,27 @@ class JitSuite extends AnyFunSpec with Matchers:
     noException should be thrownBy (tensor.toString) // tensor is still usable, toString to trigger materialization
     res should approxEqual(jittedRes)
 
-  it("JITReduce compilation works correctly"):
+  it("jitDonating compilation works correctly"):
     def f(t: Tensor1[A, Float]): Tensor1[A, Float] =
       t * ((t +! 1f) /! 2f)
 
-    val jitF = jitReduce(f)
+    val (jitDonate, jitF, jitReclaim) = jitDonating(f)
     val tensor = Tensor.ones(Shape1(Axis[A] -> 5), VType[Float])
 
     val res = (0 until 25).foldLeft(tensor)((acc, _) => f(acc))
-    val jittedRes = jitF.unlift((0 until 25).foldLeft(jitF.lift(tensor))((acc, _) => jitF(acc)))
+    val jittedRes = jitReclaim((0 until 25).foldLeft(jitDonate(tensor))((acc, _) => jitF(acc)))
+    noException should be thrownBy (tensor.toString) // tensor is still usable, toString to trigger materialization
+    res should approxEqual(jittedRes)
+
+  it("jitDonatingUnsafe compilation works correctly"):
+    def f(t: Tensor1[A, Float]): Tensor1[A, Float] =
+      t * ((t +! 1f) /! 2f)
+
+    val jitF = jitDonatingUnsafe(f)
+    val tensor = Tensor.ones(Shape1(Axis[A] -> 5), VType[Float])
+
+    val res = (0 until 25).foldLeft(tensor)((acc, _) => f(acc))
+    val jittedRes = (0 until 25).foldLeft(tensor)((acc, _) => jitF(acc))
     noException should be thrownBy (tensor.toString) // tensor is still usable, toString to trigger materialization
     res should approxEqual(jittedRes)
 
@@ -47,24 +59,29 @@ class JitSuite extends AnyFunSpec with Matchers:
       (0 until 50).foldLeft(t) { (acc, _) => acc * ((acc +! 1f) /! 2f) }
 
     val jitComplexFn = jit(complexFn)
-    val jitReduceComplexFn = jitReduce(complexFn)
+    val (jitDonate, jitDonatingComplexFn, jitReclaim) = jitDonating(complexFn)
+    val jitDonatingUnsafeComplexFn = jitDonatingUnsafe(complexFn)
 
     // pre-compile function as in the test we want to compare only execution time
     val jitCompilationTimeMs = timeFn(jitComplexFn, tensor, runs = 1) // first call includes compilation time
-    val jitReduceCompilationTimeMs = timeFn(jitReduceComplexFn, jitReduceComplexFn.lift(tensor), runs = 1) // first call includes compilation time
+    val jitDonatingCompilationTimeMs = timeFn(jitDonatingComplexFn, jitDonate(tensor), runs = 1) // first call includes compilation time
+    val jitDonatingUnsafeCompilationTimeMs = timeFn(jitDonatingUnsafeComplexFn, tensor, runs = 1) // first call includes compilation time
 
     val regularTimeMs = timeFn(complexFn, tensor)
     val jittedTimeMs = timeFn(jitComplexFn, tensor)
-    val jittedReduceTimeMs = timeFn(jitReduceComplexFn, jitReduceComplexFn.lift(tensor))
+    val jittedDonatingTimeMs = timeFn(jitDonatingComplexFn, jitDonate(tensor))
+    val jittedDonatingUnsafeTimeMs = timeFn(jitDonatingUnsafeComplexFn, tensor)
 
-    info(f"Regular execution:                       $regularTimeMs%.2f ms")
-    info(f"JIT execution:                           $jittedTimeMs%.2f ms")
-    info(f"JITReduce execution:                     $jittedReduceTimeMs%.2f ms")
-    info(f"JIT compilation overhead time:           $jitCompilationTimeMs%.2f ms")
-    info(f"JITReduce compilation overhead time:     $jitReduceCompilationTimeMs%.2f ms")
-    info(f"JIT Speedup (wo compile overhead):       ${regularTimeMs / jittedTimeMs}%.2f x")
-    info(f"JIT Speedup (w compile overhead):       ${regularTimeMs / (jittedTimeMs + jitCompilationTimeMs)}%.2f x")
-    info(f"JITReduce Speedup (wo compile overhead):  ${regularTimeMs / (jittedReduceTimeMs)}%.2f x")
-    info(f"JITReduce Speedup (w compile overhead):  ${regularTimeMs / (jittedReduceTimeMs + jitReduceCompilationTimeMs)}%.2f x")
+    info(f"Regular execution:                               $regularTimeMs%.2f ms")
+    info(f"JIT execution:                                   $jittedTimeMs%.2f ms")
+    info(f"JITDonating execution:                           $jittedDonatingTimeMs%.2f ms")
+    info(f"JIT compilation overhead time:                   $jitCompilationTimeMs%.2f ms")
+    info(f"JITDonating compilation overhead time:           $jitDonatingCompilationTimeMs%.2f ms")
+    info(f"JIT Speedup (wo compile overhead):               ${regularTimeMs / jittedTimeMs}%.2f x")
+    info(f"JIT Speedup (w compile overhead):                ${regularTimeMs / (jittedTimeMs + jitCompilationTimeMs)}%.2f x")
+    info(f"JITDonating Speedup (wo compile overhead):       ${regularTimeMs / (jittedDonatingTimeMs)}%.2f x")
+    info(f"JITDonating Speedup (w compile overhead):        ${regularTimeMs / (jittedDonatingTimeMs + jitDonatingCompilationTimeMs)}%.2f x")
+    info(f"JITDonatingUnsafe Speedup (wo compile overhead): ${regularTimeMs / (jittedDonatingUnsafeTimeMs)}%.2f x")
+    info(f"JITDonatingUnsafe Speedup (w compile overhead):  ${regularTimeMs / (jittedDonatingUnsafeTimeMs + jitDonatingUnsafeCompilationTimeMs)}%.2f x")
 
     jittedTimeMs should be < regularTimeMs

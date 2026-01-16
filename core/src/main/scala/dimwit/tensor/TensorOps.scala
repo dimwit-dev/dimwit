@@ -16,6 +16,12 @@ import me.shadaj.scalapy.py.SeqConverters
 import me.shadaj.scalapy.readwrite.Writer
 import me.shadaj.scalapy.readwrite.Reader
 
+import scala.compiletime.ops.int.<=
+import dimwit.tensor.TupleHelpers.{ValidationResult, CanForm, ComputeMissing, CheckValid, AllOk, MissingAxis}
+import dimwit.tensor.ShapeTypeHelpers.UnwrapDims
+import dimwit.tensor.ShapeTypeHelpers.DimExtractor
+import dimwit.tensor.ShapeTypeHelpers.AxisReplacerAll
+
 object TensorOps:
 
   import TensorOpsUtil.*
@@ -399,21 +405,6 @@ object TensorOps:
         case EmptyTuple => Z
         case h *: t     => FoldLeft[t, F[Z, h], F]
 
-      trait DimExtractor[T]:
-        def extract(t: T): Map[String, Int]
-
-      object DimExtractor:
-        given DimExtractor[EmptyTuple] with
-          def extract(t: EmptyTuple) = Map.empty
-
-        given [L, Tail <: Tuple](using
-            label: Label[L],
-            tailExtractor: DimExtractor[Tail]
-        ): DimExtractor[(Axis[L], Int) *: Tail] with
-          def extract(t: (Axis[L], Int) *: Tail) =
-            val (_, size) = t.head
-            Map(label.name -> size) ++ tailExtractor.extract(t.tail)
-
       @implicitNotFound("The axis ${L} is already present in the tensor shape ${T}.")
       trait AxisAbsent[T, L]
       object AxisAbsent:
@@ -616,21 +607,21 @@ object TensorOps:
 
         Jax.Dynamic.global.tuple(indicesBuffer.toSeq.toPythonProxy)
 
-      def split[NewL, splitL](newAxis: Axis[NewL], splitAxis: Axis[splitL], interval: Int)(using
-          newLabel: Label[NewL],
-          axisIndex: AxisIndex[T, splitL]
-      ): Tensor[InsertBefore[T, splitL, NewL], V] =
-        val splitIdx = axisIndex.value
-        val names = summon[Labels[T]].names
-        val newNames = names.take(splitIdx) ++ Seq(newLabel.name) ++ names.drop(splitIdx)
-        given Labels[InsertBefore[T, splitL, NewL]] with
-          val names = newNames.toSeq
-        val (before, after) = tensor.shape.dimensions.splitAt(splitIdx)
-        val newShape = before ++ Seq(interval, after.head / interval) ++ after.drop(1)
+      def split[SplitL, NewL1, NewL2, R <: Tuple](
+          splitAxis: Axis[SplitL],
+          newDim1: Dim[NewL1],
+          newDim2: Dim[NewL2]
+      )(using
+          ev: AxisReplacerAll.Aux[T, SplitL, (NewL1, NewL2), R],
+          labels: Labels[R]
+      ): Tensor[R, V] =
+        val (before, after) = tensor.shape.dimensions.splitAt(ev.index)
+        val newShape = before ++ Seq(newDim1._2, newDim2._2) ++ after.drop(1)
+        println(newShape)
         Tensor(
           Jax.jnp.reshape(
             tensor.jaxValue,
-            Jax.Dynamic.global.tuple(
+            py.Dynamic.global.tuple(
               newShape.map(py.Any.from).toPythonProxy
             )
           )
@@ -690,12 +681,36 @@ object TensorOps:
           axesIndices: AxisIndices[T, ExtractLabels[Tuple1[(Axis[L], I)]]]
       )(value: Tensor[R, V]): Tensor[T, V] = set(Tuple1(axisWithSliceIndex))(value)
 
-      def rearrange[Axes <: Tuple](newOrder: Axes)(using Labels[UnwrapAxes[Axes]]): Tensor[UnwrapAxes[Axes], V] =
-        rearrange[Axes, EmptyTuple](newOrder, EmptyTuple)
+      def rearrange[Axes <: Tuple, Status <: ValidationResult](newOrder: Axes)(using
+          Labels[UnwrapAxes[Axes]]
+      )(using
+          computer: ComputeMissing[UnwrapAxes[Axes], T, EmptyTuple, Status],
+          guard: CheckValid[Status]
+      ): Tensor[UnwrapAxes[Axes], V] =
+        rearrange[Axes, EmptyTuple, Status](newOrder, EmptyTuple)
 
-      def rearrange[Axes <: Tuple, Dims <: Tuple](
+      // Convenience overload for 1 dims (to support error messages with single axis)
+      inline def rearrange[Axes <: Tuple, L1, Status <: ValidationResult](newOrder: Axes, d1: Dim[L1])(using computer: ComputeMissing[UnwrapAxes[Axes], T, UnwrapDims[Tuple1[Dim[L1]]], Status], guard: CheckValid[Status])(using newLabels: Labels[UnwrapAxes[Axes]], extractor: DimExtractor[Tuple1[Dim[L1]]]): Tensor[UnwrapAxes[Axes], V] =
+        rearrange(newOrder, Tuple1(d1))
+
+      // Convenience overload for 2 dims
+      inline def rearrange[Axes <: Tuple, L1, L2, Status <: ValidationResult](newOrder: Axes, d1: Dim[L1], d2: Dim[L2])(using computer: ComputeMissing[UnwrapAxes[Axes], T, UnwrapDims[(Dim[L1], Dim[L2])], Status], guard: CheckValid[Status])(using newLabels: Labels[UnwrapAxes[Axes]], extractor: DimExtractor[(Dim[L1], Dim[L2])]): Tensor[UnwrapAxes[Axes], V] =
+        rearrange(newOrder, (d1, d2))
+
+      // Convenience overload for 3 dims
+      inline def rearrange[Axes <: Tuple, L1, L2, L3, Status <: ValidationResult](newOrder: Axes, d1: Dim[L1], d2: Dim[L2], d3: Dim[L3])(using computer: ComputeMissing[UnwrapAxes[Axes], T, UnwrapDims[(Dim[L1], Dim[L2], Dim[L3])], Status], guard: CheckValid[Status])(using newLabels: Labels[UnwrapAxes[Axes]], extractor: DimExtractor[(Dim[L1], Dim[L2], Dim[L3])]): Tensor[UnwrapAxes[Axes], V] =
+        rearrange(newOrder, (d1, d2, d3))
+
+      // Convenience overload for 4 dims
+      inline def rearrange[Axes <: Tuple, L1, L2, L3, L4, Status <: ValidationResult](newOrder: Axes, d1: Dim[L1], d2: Dim[L2], d3: Dim[L3], d4: Dim[L4])(using computer: ComputeMissing[UnwrapAxes[Axes], T, UnwrapDims[(Dim[L1], Dim[L2], Dim[L3], Dim[L4])], Status], guard: CheckValid[Status])(using newLabels: Labels[UnwrapAxes[Axes]], extractor: DimExtractor[(Dim[L1], Dim[L2], Dim[L3], Dim[L4])]): Tensor[UnwrapAxes[Axes], V] =
+        rearrange(newOrder, (d1, d2, d3, d4))
+
+      def rearrange[Axes <: Tuple, Dims <: Tuple, Status <: ValidationResult](
           newOrder: Axes,
           dims: Dims
+      )(using
+          computer: ComputeMissing[UnwrapAxes[Axes], T, UnwrapDims[Dims], Status],
+          guard: CheckValid[Status]
       )(using
           newLabels: Labels[UnwrapAxes[Axes]],
           extractor: DimExtractor[Dims]

@@ -1,6 +1,7 @@
 package dimwit.tensor
 
 import scala.annotation.implicitNotFound
+import scala.util.NotGiven
 
 /* Helpers for tracking Tensor Shape types across various operations */
 object ShapeTypeHelpers:
@@ -11,6 +12,10 @@ object ShapeTypeHelpers:
     case EmptyTuple      => EmptyTuple
     case Axis[a] *: tail => a *: UnwrapAxes[tail]
     case h *: tail       => h *: UnwrapAxes[tail]
+
+  type UnwrapDims[T <: Tuple] <: Tuple = T match
+    case EmptyTuple             => EmptyTuple
+    case (Axis[a], Int) *: tail => a *: UnwrapDims[tail]
 
   @implicitNotFound("Axis[${Axis}] not found in Tensor[${TensorShape}]")
   trait AxisInTensor[TensorShape <: Tuple, Axis]:
@@ -25,6 +30,7 @@ object ShapeTypeHelpers:
     ): AxisRemover[S, A, R] with
       def index: Int = axisIndex.value
 
+  // Replace single axis with single axis
   trait AxisReplacer[TensorShape <: Tuple, Axis, AxisReplacement] extends AxisInTensor[TensorShape, Axis]:
     type NewShape <: Tuple
 
@@ -37,6 +43,39 @@ object ShapeTypeHelpers:
     ): AxisReplacer.Aux[S, A, AR, O] = new AxisReplacer[S, A, AR]:
       def index: Int = idx.value
       type NewShape = O
+
+  // Replace single axis with multiple axes
+  trait AxisReplacerAll[TensorShape <: Tuple, Axis, AxisReplacements <: Tuple] extends AxisInTensor[TensorShape, Axis]:
+    type NewShape <: Tuple
+
+  object AxisReplacerAll:
+    type Aux[S <: Tuple, A, AR <: Tuple, O <: Tuple] = AxisReplacerAll[S, A, AR] { type NewShape = O }
+
+    trait Splice[Source <: Tuple, Axis, Replacement <: Tuple]:
+      type Out <: Tuple
+      def index: Int
+
+    object Splice:
+      type Aux[S <: Tuple, A, R <: Tuple, O <: Tuple] = Splice[S, A, R] { type Out = O }
+
+      given found[A, T <: Tuple, R <: Tuple]: Splice.Aux[A *: T, A, R, Tuple.Concat[R, T]] =
+        new Splice[A *: T, A, R]:
+          type Out = Tuple.Concat[R, T]
+          def index = 0
+
+      given recurse[H, T <: Tuple, A, R <: Tuple, TailOut <: Tuple](using
+          ne: NotGiven[H =:= A],
+          tailSplice: Splice.Aux[T, A, R, TailOut]
+      ): Splice.Aux[H *: T, A, R, H *: TailOut] =
+        new Splice[H *: T, A, R]:
+          type Out = H *: TailOut
+          def index = 1 + tailSplice.index
+
+    given bridge[S <: Tuple, A, AR <: Tuple, O <: Tuple](using
+        s: Splice.Aux[S, A, AR, O]
+    ): AxisReplacerAll.Aux[S, A, AR, O] = new AxisReplacerAll[S, A, AR]:
+      type NewShape = O
+      def index: Int = s.index
 
   @implicitNotFound("Axes [${Axes}] not all found in Tensor shape [${TensorShape}]")
   trait AxesInTensor[TensorShape <: Tuple, Axes <: Tuple]:
@@ -75,3 +114,22 @@ object ShapeTypeHelpers:
         evT: SharedAxisRemover[T, Axis, TailOut]
     ): SharedAxisRemover[H *: T, Axis, R *: TailOut] with
       def indices = evH.index :: evT.indices
+
+  trait DimExtractor[T]:
+    def extract(t: T): Map[String, Int]
+
+  object DimExtractor:
+    given DimExtractor[EmptyTuple] with
+      def extract(t: EmptyTuple) = Map.empty
+
+    given [L, Tail <: Tuple](using
+        label: Label[L],
+        tailExtractor: DimExtractor[Tail]
+    ): DimExtractor[(Axis[L], Int) *: Tail] with
+      def extract(t: (Axis[L], Int) *: Tail) =
+        val (_, size) = t.head
+        Map(label.name -> size) ++ tailExtractor.extract(t.tail)
+
+    given single[L](using label: Label[L]): DimExtractor[(Axis[L], Int)] with
+      def extract(t: (Axis[L], Int)) =
+        Map(label.name -> t._2)

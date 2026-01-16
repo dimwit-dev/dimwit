@@ -5,7 +5,6 @@ import dimwit.Conversions.given
 import nn.*
 import nn.ActivationFunctions.{relu, sigmoid}
 import dimwit.random.Random
-import dimwit.jax.Jit.jitReduce
 
 import examples.timed
 import examples.dataset.MNISTLoader
@@ -100,26 +99,26 @@ object MLPClassifierMNist:
     def gradientStep(
         imageBatch: Tensor[(TrainSample, Height, Width), Float],
         labelBatch: Tensor1[TrainSample, Int],
-        state: MLP.Params,
-        params: MLP.Params
+        params: MLP.Params,
+        state: MLP.Params
     ): (MLP.Params, MLP.Params) =
       val lossBatch = batchLoss(imageBatch, labelBatch)
       val grads = Autodiff.grad(lossBatch)(params)
       optimizer.update(grads, params, state)
-    val jitStep = jit(gradientStep, Map("donate_argnums" -> (2, 3)))
+    val jitStep = jit(gradientStep)
 
     def miniBatchGradientDescent(
         imageBatches: Seq[Tensor[(TrainSample, Height, Width), Float]],
         labelBatches: Seq[Tensor1[TrainSample, Int]]
     )(
-        initialState: MLP.Params,
-        params: MLP.Params
+        params: MLP.Params,
+        initialState: MLP.Params
     ): (MLP.Params, MLP.Params) =
       imageBatches
         .zip(labelBatches)
         .foldLeft((params, initialState)):
           case ((currentParams, state), (imageBatch, labelBatch)) =>
-            jitStep(imageBatch, labelBatch, state, currentParams)
+            jitStep(imageBatch, labelBatch, currentParams, state)
 
     val trainMiniBatchGradientDescent = miniBatchGradientDescent(
       trainX.chunk(Axis[TrainSample], numSamples / batchSize),
@@ -128,7 +127,7 @@ object MLPClassifierMNist:
     val trainTrajectory = Iterator.iterate((initParams, optimizer.init(initParams))): (currentParams, state) =>
       timed("Training"):
         dimwit.gc()
-        trainMiniBatchGradientDescent(state, currentParams)
+        trainMiniBatchGradientDescent(currentParams, state)
     def evaluate(
         params: MLP.Params,
         dataX: Tensor[(Sample, Height, Width), Float],

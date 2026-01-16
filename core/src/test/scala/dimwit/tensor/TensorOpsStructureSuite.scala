@@ -5,6 +5,7 @@ import dimwit.Conversions.given
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.funspec.AnyFunSpec
 import dimwit.tensor.Labels.concat
+import scala.compiletime.testing.typeCheckErrors
 
 class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
 
@@ -17,6 +18,7 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
   )
 
   describe("rearrange (Einops-style)"):
+
     it("transpose: a b c -> c a b"):
       val res = t3.rearrange((Axis[C], Axis[A], Axis[B]))
       res.axes shouldBe List("C", "A", "B")
@@ -36,6 +38,81 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
         )
       )
 
+    describe("should have good errors"):
+      it("non-existing axis: a b c -> d a b"):
+        val wrongDimCode = "t3.rearrange((Axis[D], Axis[A], Axis[B]))"
+        val wrongDimErrors = typeCheckErrors(wrongDimCode)
+        wrongDimErrors should have size 1
+        wrongDimErrors.head.message should include("Missing Axis: 'dimwit.D'") // Axis D does not exist in t3
+
+      it("unflatten without size fails: (a b) c -> a b c"):
+        val flattened = t3.rearrange((Axis[A |*| B], Axis[C]))
+
+        val noDimsCode = "flattened.rearrange((Axis[A], Axis[B], Axis[C]))"
+        val noDimsErrors = typeCheckErrors(noDimsCode)
+        noDimsErrors should have size 1
+        noDimsErrors.head.message should include("Missing Axis: 'dimwit.A'") // First Axis A is missing
+
+        val aDimCode = "flattened.rearrange((Axis[A], Axis[B], Axis[C]), Axis[A] -> 2)"
+        val aDimErrors = typeCheckErrors(aDimCode)
+        aDimErrors should have size 1
+        aDimErrors.head.message should include("Missing Axis: 'dimwit.B'") // Given A, next Axis B is missing
+
+        "flattened.rearrange((Axis[A], Axis[B], Axis[C]), Axis[A] -> 2, Axis[B] -> 2)" should compile
+
+      it("complex reshape fails incrementally: (a b) (c d) -> (a c) (b d)"):
+        val t = Tensor2.fromArray(Axis[A |*| B], Axis[C |*| D], VType[Float])(
+          Array(
+            Array(1.0f, 2.0f, 3.0f, 4.0f),
+            Array(5.0f, 6.0f, 7.0f, 8.0f),
+            Array(9.0f, 10.0f, 11.0f, 12.0f),
+            Array(13.0f, 14.0f, 15.0f, 16.0f)
+          )
+        )
+
+        val noDimsCode = "t.rearrange((Axis[A |*| C], Axis[B |*| D]))"
+        val noDimsErrors = typeCheckErrors(noDimsCode)
+        noDimsErrors should have size 1
+        noDimsErrors.head.message should include("Missing Axis: 'dimwit.A'")
+
+        val aDimCode = "t.rearrange((Axis[A |*| C], Axis[B |*| D]), Axis[A] -> 2)"
+        val aDimErrors = typeCheckErrors(aDimCode)
+        aDimErrors should have size 1
+        aDimErrors.head.message should include("Missing Axis: 'dimwit.C'")
+
+        val acDimCode = "t.rearrange((Axis[A |*| C], Axis[B |*| D]), Axis[A] -> 2, Axis[C] -> 2)"
+        val acDimErrors = typeCheckErrors(acDimCode)
+        acDimErrors should have size 1
+        acDimErrors.head.message should include("Missing Axis: 'dimwit.B'")
+
+        val acbDimCode = "t.rearrange((Axis[A |*| C], Axis[B |*| D]), Axis[A] -> 2, Axis[C] -> 2, Axis[B] -> 2)"
+        val acbDimErrors = typeCheckErrors(acbDimCode)
+        acbDimErrors should have size 1
+        acbDimErrors.head.message should include("Missing Axis: 'dimwit.D'")
+
+        "t.rearrange((Axis[A |*| C], Axis[B |*| D]), Axis[A] -> 2, Axis[C] -> 2, Axis[B] -> 2, Axis[D] -> 2)" should compile
+
+    it("complex rearrange: (a b) (c d) -> (a c) (b d)"):
+      val t = Tensor2.fromArray(Axis[A |*| B], Axis[C |*| D], VType[Float])(
+        Array(
+          Array(1.0f, 2.0f, 3.0f, 4.0f),
+          Array(5.0f, 6.0f, 7.0f, 8.0f),
+          Array(9.0f, 10.0f, 11.0f, 12.0f),
+          Array(13.0f, 14.0f, 15.0f, 16.0f)
+        )
+      )
+      t.axes shouldBe List("A*B", "C*D")
+      val res = t.rearrange((Axis[A |*| C], Axis[B |*| D]), Axis[A] -> 2, Axis[B] -> 2, Axis[C] -> 2, Axis[D] -> 2)
+      res.axes shouldBe List("A*C", "B*D")
+      res should approxEqual(Tensor2.fromArray(Axis[A |*| C], Axis[B |*| D], VType[Float])(
+        Array(
+          Array(1.0f, 2.0f, 5.0f, 6.0f),
+          Array(3.0f, 4.0f, 7.0f, 8.0f),
+          Array(9.0f, 10.0f, 13.0f, 14.0f),
+          Array(11.0f, 12.0f, 15.0f, 16.0f)
+        )
+      ))
+
     it("splitting axes: (a b) c -> a b c"):
       val flattened = t3.rearrange((Axis[A |*| B], Axis[C]))
       val res = flattened.rearrange(
@@ -43,6 +120,22 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
         (Axis[A] -> 2, Axis[B] -> 2)
       )
       res should approxEqual(t3)
+
+  describe("split function"):
+
+    it("split axis into two axes"):
+      val ab = Tensor.ones(Shape(Axis[A] -> 4, Axis[B] -> 12), VType[Float])
+      val acd = ab.split(Axis[B], Axis[C] -> 6, Axis[D] -> 2)
+      acd.axes shouldBe (List("A", "C", "D"))
+      acd.shape(Axis[C]) shouldBe (6)
+      acd.shape(Axis[D]) shouldBe (2)
+
+    it("split axis into two axes, one being the type of original axis"):
+      val ab = Tensor.ones(Shape(Axis[A] -> 4, Axis[B] -> 12), VType[Float])
+      val acd = ab.split(Axis[B], Axis[B] -> 6, Axis[D] -> 2)
+      acd.axes shouldBe (List("A", "B", "D"))
+      acd.shape(Axis[B]) shouldBe (6)
+      acd.shape(Axis[D]) shouldBe (2)
 
   describe("Dimension manipulation"):
 
@@ -99,7 +192,7 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
       tril(t, kthDiagonal = -1).sum.item shouldBe 3.0f
       tril(t, kthDiagonal = 1).sum.item shouldBe 10.0f
 
-  describe(""):
+  describe("where"):
 
     val t1 = Tensor2.fromArray(Axis[A], Axis[B], VType[Float])(
       Array(
