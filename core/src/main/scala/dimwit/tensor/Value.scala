@@ -22,7 +22,7 @@ object ExecutionType:
     def dtype: DType = DType.Bool
 
   given byteValue: ExecutionType[Byte] with
-    def dtype: DType = DType.UInt8
+    def dtype: DType = DType.Int8
 
   given doubleValue: ExecutionType[Double] with
     def dtype: DType = DType.Float64

@@ -23,7 +23,9 @@ class Normal[LocT <: T, ScaleT <: T, T <: Tuple: Labels](
     standardNormal * scale + loc
 
 object Normal:
-  def standardNormal[T <: Tuple: Labels](shape: Shape[T]) = new Normal(
+
+  def standardSample(key: Random.Key): Tensor0[Float] = standardNormal(Shape.empty).sample(key)
+  def standardNormal[T <: Tuple: Labels](shape: Shape[T])(using executionType: ExecutionType[Float]) = new Normal(
     loc = Tensor(shape).fill(0f),
     scale = Tensor(shape).fill(1f)
   )

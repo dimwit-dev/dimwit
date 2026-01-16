@@ -7,6 +7,7 @@ import me.shadaj.scalapy.py
 
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import dimwit.stats.Normal
 
 class RandomSuite extends AnyFunSuite with Matchers:
   trait A derives Label
@@ -42,15 +43,12 @@ class RandomSuite extends AnyFunSuite with Matchers:
     val key = Random.Key(456)
     val n = 3
 
-    // Generate random numbers using splitvmap
-    val vmapResults = key.splitvmap(Axis[Samples] -> n) { k =>
-      Tensor0.randn(k)
-    }
+    val vmapResults = key.splitvmap(Axis[Samples] -> n)(Normal.standardSample)
 
     // Generate random numbers using individual calls
     val splitKeys = key.split(n)
     val individualResults = Tensor1(Axis[Samples]).fromArray(
-      splitKeys.map(k => Tensor0.randn(k).item).toArray
+      splitKeys.map(k => Normal.standardSample(k).item).toArray
     )
 
     vmapResults should approxEqual(individualResults)

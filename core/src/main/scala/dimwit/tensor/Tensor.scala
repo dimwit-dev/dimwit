@@ -13,6 +13,7 @@ import dimwit.stats.{Normal, Uniform}
 import me.shadaj.scalapy.readwrite.Writer
 import scala.reflect.ClassTag
 import scala.annotation.unchecked.uncheckedVariance
+import dimwit.stats.IndependentDistribution
 
 enum Device(val platform: String):
   case CPU extends Device("cpu")
@@ -92,10 +93,6 @@ object Tensor:
   def apply[T <: Tuple: Labels, V](jaxValue: Jax.PyDynamic): Tensor[T, V] = new Tensor(jaxValue)
   def like[T <: Tuple: Labels, V](template: Tensor[T, V]): Tensor.LikeFactory[T, V] = Tensor.LikeFactory(template)
 
-  def randn[T <: Tuple: Labels](shape: Shape[T])(key: Random.Key)(using
-      executionType: ExecutionType[Float]
-  ): Tensor[T, Float] = Normal.standardNormal(shape).sample(key)
-
   def fromPy[T <: Tuple: Labels, V](vtype: VType[V])(jaxValue: Jax.PyDynamic): Tensor[T, V] = new Tensor(jaxValue)
 
 type Tensor0[V] = Tensor[EmptyTuple, V]
@@ -114,7 +111,6 @@ object Tensor0:
   def apply[V: ExecutionType: Writer](value: V): Tensor0[V] = Tensor(Jax.jnp.full(Shape0.dimensions.toPythonProxy, value, dtype = ExecutionType[V].dtype.jaxType))
   def like[V: Writer](template: Tensor0[V])(value: V): Tensor0[V] = Tensor(Jax.jnp.full(Shape0.dimensions.toPythonProxy, value, dtype = template.dtype.jaxType))
 
-  def randn(key: Random.Key)(using executionType: ExecutionType[Float]): Tensor0[Float] = Normal.standardNormal(Shape.empty).sample(key)
   def apply[V](jaxValue: Jax.PyDynamic): Tensor0[V] = Tensor(jaxValue)
 
 object Tensor1:
