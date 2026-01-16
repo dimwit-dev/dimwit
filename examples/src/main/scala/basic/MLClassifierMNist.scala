@@ -105,7 +105,7 @@ object MLPClassifierMNist:
     ): (MLP.Params, MLP.Params) =
       val lossBatch = batchLoss(imageBatch, labelBatch)
       val grads = Autodiff.grad(lossBatch)(params)
-      optimizer.update(grads, state, params)
+      optimizer.update(grads, params, state)
     val jitStep = jit(gradientStep, Map("donate_argnums" -> (2, 3)))
 
     def miniBatchGradientDescent(
@@ -117,15 +117,15 @@ object MLPClassifierMNist:
     ): (MLP.Params, MLP.Params) =
       imageBatches
         .zip(labelBatches)
-        .foldLeft((initialState, params)):
-          case ((state, currentParams), (imageBatch, labelBatch)) =>
+        .foldLeft((params, initialState)):
+          case ((currentParams, state), (imageBatch, labelBatch)) =>
             jitStep(imageBatch, labelBatch, state, currentParams)
 
     val trainMiniBatchGradientDescent = miniBatchGradientDescent(
       trainX.chunk(Axis[TrainSample], numSamples / batchSize),
       trainY.chunk(Axis[TrainSample], numSamples / batchSize)
     )
-    val trainTrajectory = Iterator.iterate((optimizer.init(initParams), initParams)): (state, currentParams) =>
+    val trainTrajectory = Iterator.iterate((initParams, optimizer.init(initParams))): (currentParams, state) =>
       timed("Training"):
         dimwit.gc()
         trainMiniBatchGradientDescent(state, currentParams)
@@ -138,9 +138,9 @@ object MLPClassifierMNist:
       val predictions = dataX.vmap(Axis[Sample])(model)
       accuracy(predictions, dataY)
     val jitEvaluate = jit(evaluate)
-    val (finalState, finalParams) = trainTrajectory.zipWithIndex
+    val (finalParams, finalState) = trainTrajectory.zipWithIndex
       .tapEach:
-        case ((state, params), epoch) =>
+        case ((params, state), epoch) =>
           timed("Evaluation"):
             val testAccuracy = jitEvaluate(params, testX, testY)
             val trainAccuracy = jitEvaluate(params, trainX, trainY)

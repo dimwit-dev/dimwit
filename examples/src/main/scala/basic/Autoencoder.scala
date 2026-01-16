@@ -173,7 +173,7 @@ object AutoencoderExample:
 
     def gradientStep(batch: Tensor3[Sample, Height, Width, Float], params: Autoencoder.Params): Autoencoder.Params =
       val grads = Autodiff.grad(loss(batch))(params)
-      val (_, newParams) = optimizer.update(grads, (), params)
+      val (newParams, _) = optimizer.update(grads, params, ())
       newParams
 
     val jittedGradientStep = jit(gradientStep)

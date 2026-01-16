@@ -184,7 +184,7 @@ object VariationalAutoencoderExample:
     val optimizer = GradientDescent(learningRate = Tensor0(learningRate))
     def trainBatch(trainKey: Random.Key, batch: Tensor3[Sample, Height, Width, Float], params: Params): Params =
       val grads = Autodiff.grad(batchLoss(trainKey, batch))(params)
-      val (_, newParams) = optimizer.update(grads, (), params)
+      val (newParams, _) = optimizer.update(grads, params, ())
       newParams
 
     val jittedTrainBatch = jit(trainBatch)

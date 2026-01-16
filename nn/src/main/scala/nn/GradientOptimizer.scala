@@ -18,25 +18,27 @@ import dimwit.jax.Jit
   * 2. **Functional state threading with foldLeft** for minibatch training
   *    {{{
   *    val optimizer = GradientDescent(lr = 0.1)
-  *    val (finalState, finalParams) = batches.foldLeft((optimizer.init(initParams), initParams)):
-  *      case ((state, params), batch) =>
+  *    val (finalParams, finalState) = batches.foldLeft((initParams, optimizer.init(initParams))):
+  *      case ((params, state), batch) =>
   *        val grads = Autodiff.grad(loss(batch))(params)
-  *        optimizer.update(grads, state, params)
+  *        optimizer.update(grads, params, state)
   *    }}}
   */
 trait GradientOptimizer:
   type State[_]
 
-  // Core JAX-style API
+  // Core API
   def init[Params: ToPyTree: FloatTensorTree](params: Params): State[Params]
-  def update[Params: ToPyTree: FloatTensorTree](gradients: Grad[Params], state: State[Params], params: Params): (State[Params], Params)
+  def update[Params: ToPyTree: FloatTensorTree](gradients: Grad[Params], params: Params, state: State[Params]): (Params, State[Params])
 
   // Convenience: iterator with fixed gradient function
-  def iterate[Params: ToPyTree: FloatTensorTree](init: Params)(df: Params => Grad[Params]): Iterator[Params] =
-    Iterator.unfold((this.init(init), init)): (state, params) =>
+  def iterateWithState[Params: ToPyTree: FloatTensorTree](init: Params)(df: Params => Grad[Params]): Iterator[(Params, State[Params])] =
+    Iterator.iterate((init, this.init(init))): (params, state) =>
       val grads = df(params)
-      val (newState, newParams) = update(grads, state, params)
-      Some((newParams, (newState, newParams)))
+      update(grads, params, state)
+
+  def iterate[Params: ToPyTree: FloatTensorTree](init: Params)(df: Params => Grad[Params]): Iterator[Params] =
+    iterateWithState(init)(df).map(_._1)
 
 case class GradientDescent(learningRate: Tensor0[Float]) extends GradientOptimizer:
   import dimwit.Conversions.given
@@ -45,14 +47,14 @@ case class GradientDescent(learningRate: Tensor0[Float]) extends GradientOptimiz
 
   def init[Params: ToPyTree: FloatTensorTree](params: Params): Unit = ()
 
-  def update[Params: ToPyTree: FloatTensorTree](gradients: Grad[Params], state: Unit, params: Params): (Unit, Params) =
+  def update[Params: ToPyTree: FloatTensorTree](gradients: Grad[Params], params: Params, state: Unit): (Params, Unit) =
     val paramTree = summon[FloatTensorTree[Params]]
     val newParams = paramTree.zipMap(
       gradients.value,
       params,
       [T <: Tuple] => (n: Labels[T]) ?=> (g: Tensor[T, Float], p: Tensor[T, Float]) => p - g.scale(learningRate)
     )
-    ((), newParams)
+    (newParams, ())
 
 case class Lion(learningRate: Tensor0[Float], weightDecay: Tensor0[Float] = Tensor0(0.0f), beta1: Tensor0[Float] = Tensor0(0.9f), beta2: Tensor0[Float] = Tensor0(0.99f)) extends GradientOptimizer:
   import dimwit.Conversions.given
@@ -69,7 +71,7 @@ case class Lion(learningRate: Tensor0[Float], weightDecay: Tensor0[Float] = Tens
             Tensor.zeros(t.shape, VType[Float])
     )
 
-  def update[Params: ToPyTree: FloatTensorTree](gradients: Grad[Params], momentums: Params, params: Params): (Params, Params) =
+  def update[Params: ToPyTree: FloatTensorTree](gradients: Grad[Params], params: Params, momentums: Params): (Params, Params) =
     val paramTree = summon[FloatTensorTree[Params]]
     // the direction (1 or -1)
     // is determined by the sign of the momentum + gradient
@@ -100,4 +102,4 @@ case class Lion(learningRate: Tensor0[Float], weightDecay: Tensor0[Float] = Tens
             m *! beta2 + g *! (1f - beta2)
     )
 
-    (newMomentums, updatedParams)
+    (updatedParams, newMomentums)
