@@ -61,7 +61,6 @@ object MLPClassifierMNist:
 
   def main(args: Array[String]): Unit =
 
-    val learningRate = 1e-4f
     val numSamples = 59904
     val numTestSamples = 9728
     val batchSize = 512
@@ -94,14 +93,21 @@ object MLPClassifierMNist:
       val matches = zipvmap(Axis[Sample])(predictions, targets)(_ === _)
       matches.asFloat.mean
 
-    val optimizer = Lion(learningRate = Tensor0(learningRate), weightDecay = Tensor0(0f))
+    // val optimizer = GradientDescent(learningRate = Tensor0(1e-4f))
+    // type OptState = Unit
+
+    // val optimizer = Lion(learningRate = Tensor0(1e-4f), weightDecay = Tensor0(0f))
+    // type OptState = MLP.Params
+
+    val optimizer = Adam(learningRate = Tensor0(1e-4f))
+    type OptState = AdamState[MLP.Params]
 
     def gradientStep(
         imageBatch: Tensor[(TrainSample, Height, Width), Float],
         labelBatch: Tensor1[TrainSample, Int],
         params: MLP.Params,
-        state: MLP.Params
-    ): (MLP.Params, MLP.Params) =
+        state: OptState
+    ): (MLP.Params, OptState) =
       val lossBatch = batchLoss(imageBatch, labelBatch)
       val grads = Autodiff.grad(lossBatch)(params)
       optimizer.update(grads, params, state)
@@ -112,8 +118,8 @@ object MLPClassifierMNist:
         labelBatches: Seq[Tensor1[TrainSample, Int]]
     )(
         params: MLP.Params,
-        initialState: MLP.Params
-    ): (MLP.Params, MLP.Params) =
+        initialState: OptState
+    ): (MLP.Params, OptState) =
       imageBatches
         .zip(labelBatches)
         .foldLeft((params, initialState)):

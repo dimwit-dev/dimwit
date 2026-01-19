@@ -74,3 +74,5 @@ package object dimwit:
 
   object Conversions:
     export dimwit.tensor.Tensor0.{float2FloatTensor, int2IntTensor, int2FloatTensor, boolean2BooleanTensor}
+
+  export dimwit.FloatTensorTree.*
