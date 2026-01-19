@@ -65,8 +65,8 @@ object TupleHelpers:
 
     // 3. Found Case: H is a subtype of K
     // We explicitly return 'Tail' as the output
-    given singleFound[H, Tail <: Tuple, K](using H <:< K): Aux[H *: Tail, K *: EmptyTuple, Tail] =
-      new RemoverAll[H *: Tail, K *: EmptyTuple]:
+    given singleFound[K, Tail <: Tuple]: Aux[K *: Tail, K *: EmptyTuple, Tail] =
+      new RemoverAll[K *: Tail, K *: EmptyTuple]:
         type Out = Tail
 
   trait LowPriorityRemoverAll:

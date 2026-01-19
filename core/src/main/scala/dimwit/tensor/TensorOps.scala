@@ -87,26 +87,29 @@ object TensorOps:
     // IsNumber operations (IsFloat or IsInt)
     // ---------------------------------------------------------
 
-    def add[T <: Tuple: Labels, V: IsNumber](t1: Tensor[T, V], t2: Tensor[T, V]): Tensor[T, V] = Tensor(Jax.jnp.add(t1.jaxValue, t2.jaxValue))
+    def add[T <: Tuple: Labels, T1 <: T, T2 <: T, V: IsNumber](t1: Tensor[T1, V], t2: Tensor[T2, V]): Tensor[T, V] = Tensor(Jax.jnp.add(t1.jaxValue, t2.jaxValue))
     def addScalar[T <: Tuple: Labels, V: IsNumber](t1: Tensor[T, V], t2: Tensor0[V]): Tensor[T, V] = Tensor(Jax.jnp.add(t1.jaxValue, t2.jaxValue))
 
     def negate[T <: Tuple: Labels, V: IsNumber](t: Tensor[T, V]): Tensor[T, V] = Tensor(Jax.jnp.negative(t.jaxValue))
-    def subtract[T <: Tuple: Labels, V: IsNumber](t1: Tensor[T, V], t2: Tensor[T, V]): Tensor[T, V] = Tensor(Jax.jnp.subtract(t1.jaxValue, t2.jaxValue))
+    def subtract[T <: Tuple: Labels, T1 <: T, T2 <: T, V: IsNumber](t1: Tensor[T1, V], t2: Tensor[T2, V]): Tensor[T, V] = Tensor(Jax.jnp.subtract(t1.jaxValue, t2.jaxValue))
     def subtractScalar[T <: Tuple: Labels, V: IsNumber](t: Tensor[T, V], t2: Tensor0[V]): Tensor[T, V] = Tensor(Jax.jnp.subtract(t.jaxValue, t2.jaxValue))
 
-    def multiply[T <: Tuple: Labels, V: IsNumber](t1: Tensor[T, V], t2: Tensor[T, V]): Tensor[T, V] = Tensor(Jax.jnp.multiply(t1.jaxValue, t2.jaxValue))
+    def multiply[T <: Tuple: Labels, T1 <: T, T2 <: T, V: IsNumber](t1: Tensor[T1, V], t2: Tensor[T2, V]): Tensor[T, V] = Tensor(Jax.jnp.multiply(t1.jaxValue, t2.jaxValue))
     def multiplyScalar[T <: Tuple: Labels, V: IsNumber](t1: Tensor[T, V], t2: Tensor0[V]): Tensor[T, V] = Tensor(Jax.jnp.multiply(t1.jaxValue, t2.jaxValue))
+
+    extension [T <: Tuple: Labels, T1 <: T, T2 <: T, V: IsNumber](t: Tensor[T1, V])
+
+      def +(other: Tensor[T2, V]): Tensor[T, V] = add(t, other)
+      def -(other: Tensor[T2, V]): Tensor[T, V] = subtract(t, other)
+      def *(other: Tensor[T2, V]): Tensor[T, V] = multiply(t, other)
 
     extension [T <: Tuple: Labels, V: IsNumber](t: Tensor[T, V])
 
-      def +(other: Tensor[T, V]): Tensor[T, V] = add(t, other)
       def +![O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, V] = bc.applyTo(t, other)(add)
 
       def unary_- : Tensor[T, V] = negate(t)
-      def -(other: Tensor[T, V]): Tensor[T, V] = subtract(t, other)
       def -![O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, V] = bc.applyTo(t, other)(subtract)
 
-      def *(other: Tensor[T, V]): Tensor[T, V] = multiply(t, other)
       def *![O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, V] = bc.applyTo(t, other)(multiply)
       def scale(other: Tensor0[V]): Tensor[T, V] = multiplyScalar(t, other)
 

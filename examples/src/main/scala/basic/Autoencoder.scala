@@ -160,17 +160,17 @@ object AutoencoderExample:
      * Training loop
      * */
 
-    def loss(trainData: Tensor3[Sample, Height, Width, Float])(params: Autoencoder.Params): Tensor0[Float] =
+    def loss[S <: Sample: Label](trainData: Tensor3[S, Height, Width, Float])(params: Autoencoder.Params): Tensor0[Float] =
       val ae = Autoencoder(params)
       trainData
-        .vmap(Axis[Sample])(sample => ae.loss(sample.ravel))
+        .vmap(Axis[S])(sample => ae.loss(sample.ravel))
         .mean
 
     val batches = trainX.chunk(Axis[TrainSample], numSamples / batchSize)
 
     val optimizer = GradientDescent(learningRate = Tensor0(learningRate))
 
-    def gradientStep(batch: Tensor3[Sample, Height, Width, Float], params: Autoencoder.Params): Autoencoder.Params =
+    def gradientStep(batch: Tensor3[TrainSample, Height, Width, Float], params: Autoencoder.Params): Autoencoder.Params =
       val grads = Autodiff.grad(loss(batch))(params)
       val (newParams, _) = optimizer.update(grads, params, ())
       newParams
