@@ -28,7 +28,7 @@ object Device:
       require(devices.nonEmpty, s"No JAX devices found for platform: ${device.platform}")
       devices.head
 
-class Tensor[+T <: Tuple: Labels, V] private[tensor] (
+class Tensor[T <: Tuple: Labels, V] private[tensor] (
     val jaxValue: Jax.PyDynamic
 ):
 

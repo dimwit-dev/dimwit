@@ -8,7 +8,7 @@ import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
 import dimwit.random.Random
 
-class Normal[LocT <: T, ScaleT <: T, T <: Tuple: Labels](
+class Normal[T <: Tuple: Labels, LocT <: T, ScaleT <: T](
     val loc: Tensor[LocT, Float],
     val scale: Tensor[ScaleT, Float]
 ) extends IndependentDistribution[T, Float]:

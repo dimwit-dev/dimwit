@@ -87,11 +87,11 @@ object MLPClassifierMNist:
       Axis[Output] -> 10
     )(initKey)
 
-    def accuracy[Sample: Label](
-        predictions: Tensor1[Sample, Int],
-        targets: Tensor1[Sample, Int]
+    def accuracy[S: Label](
+        predictions: Tensor1[S, Int],
+        targets: Tensor1[S, Int]
     ): Tensor0[Float] =
-      val matches = zipvmap(Axis[Sample])(predictions, targets)(_ === _)
+      val matches = zipvmap(Axis[S])(predictions, targets)(_ === _)
       matches.asFloat.mean
 
     val optimizer = Lion(learningRate = Tensor0(learningRate), weightDecay = Tensor0(0f))
@@ -128,21 +128,21 @@ object MLPClassifierMNist:
       timed("Training"):
         dimwit.gc()
         trainMiniBatchGradientDescent(currentParams, state)
-    def evaluate(
+    def evaluate[S <: Sample: Label](
         params: MLP.Params,
-        dataX: Tensor[(Sample, Height, Width), Float],
-        dataY: Tensor1[Sample, Int]
+        dataX: Tensor3[S, Height, Width, Float],
+        dataY: Tensor1[S, Int]
     ): Tensor0[Float] =
       val model = MLP(params)
-      val predictions = dataX.vmap(Axis[Sample])(model)
+      val predictions = dataX.vmap(Axis[S])(model)
       accuracy(predictions, dataY)
-    val jitEvaluate = jit(evaluate)
+    val jitEvaluate = evaluate
     val (finalParams, finalState) = trainTrajectory.zipWithIndex
       .tapEach:
         case ((params, state), epoch) =>
           timed("Evaluation"):
-            val testAccuracy = jitEvaluate(params, testX, testY)
-            val trainAccuracy = jitEvaluate(params, trainX, trainY)
+            val testAccuracy = evaluate(params, testX, testY)
+            val trainAccuracy = evaluate(params, trainX, trainY)
             println(
               List(
                 s"Epoch $epoch",

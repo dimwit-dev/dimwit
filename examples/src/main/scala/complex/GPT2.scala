@@ -126,7 +126,8 @@ case class GPT2(params: GPT2Params) extends (Tensor2[Batch, Context, Int] => Ten
       val attnScores = (queries.dot(Axis[HeadQuery ~ HeadKey])(keys) /! dk)
       val attnWeights = causalMasking(attnScores)
         .vmap(Axis[Context])(attnScore => softmax(attnScore).relabelTo(Axis[AttnWeights]))
-      attnWeights.dot(Axis[AttnWeights ~ Context])(values)
+      val res = attnWeights.dot(Axis[AttnWeights ~ Context])(values)
+      res
 
   private case class LayerNorm(params: LayerNormalizationParams) extends (Tensor1[Embedding, Float] => Tensor1[Embedding, Float]):
 

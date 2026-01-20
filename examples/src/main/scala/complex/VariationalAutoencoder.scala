@@ -77,7 +77,7 @@ case class VariationalAutoencoder(params: VariationalAutoencoder.Params):
   val encoder = Encoder(params.encoderParams)
   val decoder = Decoder(params.decoderParams)
 
-  def apply(pixels: Tensor1[Pixel, Float], key: Random.Key): (Tensor1[ReconstructedPixel, Float], Tensor1[Latent, Float], Tensor1[Latent, Float]) =
+  def apply(pixels: Tensor1[Pixel, Float], key: Random.Key): (Tensor1[ReconstructedPixel, Float], Tensor1[MeanLatent, Float], Tensor1[LogVarLatent, Float]) =
     val (mean, logVar) = encoder(pixels)
     val latent = reparametrize(mean, logVar, key)
     val reconstructedPixels = decoder(latent)
@@ -170,18 +170,18 @@ object VariationalAutoencoderExample:
     /*
      * Training
      */
-    def batchLoss(key: Random.Key, trainData: Tensor3[Sample, Height, Width, Float])(params: Params): Tensor0[Float] =
+    def batchLoss[S <: Sample: Label](key: Random.Key, trainData: Tensor3[S, Height, Width, Float])(params: Params): Tensor0[Float] =
       val vae = VariationalAutoencoder(params)
-      val batchSize = trainData.shape.dim(Axis[Sample])._2
+      val batchSize = trainData.shape.dim(Axis[S])._2
       val keys = key.split(batchSize)
       val losses = (0 until batchSize).map: idx =>
-        val sample = trainData.slice(Axis[Sample] -> idx)
+        val sample = trainData.slice(Axis[S] -> idx)
         vae.loss(sample.ravel, keys(idx))
       losses.reduce(_ + _) / batchSize.toFloat
 
     val batches = trainImages.chunk(Axis[TrainSample], numSamples / batchSize)
     val optimizer = GradientDescent(learningRate = Tensor0(learningRate))
-    def trainBatch(trainKey: Random.Key, batch: Tensor3[Sample, Height, Width, Float], params: Params): Params =
+    def trainBatch(trainKey: Random.Key, batch: Tensor3[TrainSample, Height, Width, Float], params: Params): Params =
       val grads = Autodiff.grad(batchLoss(trainKey, batch))(params)
       val (newParams, _) = optimizer.update(grads, params, ())
       newParams
