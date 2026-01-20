@@ -5,9 +5,7 @@ import scala.quoted.*
 
 @scala.annotation.implicitNotFound("""
 An axis label ${T} was given or inferred, which does not have a Label instance.
-Ensure that:
-1. All axis types ${T} are defined with 'derives Label' (e.g. 'trait T derives Label'), or
-2. You are not accidentally mixing incompatible label types (these would be unified by the compiler to a new type, which does not have a Label instance.
+Ensure that all axis types ${T} are defined with 'derives Label' (e.g. 'trait T derives Label')
 """)
 trait Label[T]:
   def name: String
@@ -27,9 +25,7 @@ object Label:
 @scala.annotation.implicitNotFound("""
 A tuple of axis labels ${T} was given or inferred that does not have a valid Labels instance. 
 
-Common causes:
-- One of the types in the tuple is missing a 'derives Label' clause.
-- You are mixing incompatible label types, which the compiler automatically unifies to a new type, which may not have a Labels instance.
+Ensure that all of the types in the tuple have a 'derives Label' clause.
 """)
 trait Labels[T]:
   def names: List[String]
