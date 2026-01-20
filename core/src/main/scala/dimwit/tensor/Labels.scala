@@ -3,6 +3,10 @@ package dimwit.tensor
 import scala.compiletime.*
 import scala.quoted.*
 
+@scala.annotation.implicitNotFound("""
+An axis label ${T} was given or inferred, which does not have a Label instance.
+Ensure that all axis types ${T} are defined with 'derives Label' (e.g. 'trait T derives Label')
+""")
 trait Label[T]:
   def name: String
 
@@ -18,6 +22,11 @@ object Label:
         def name: String = ${ Expr(simpleName) }
     }
 
+@scala.annotation.implicitNotFound("""
+A tuple of axis labels ${T} was given or inferred that does not have a valid Labels instance. 
+
+Ensure that all of the types in the tuple have a 'derives Label' clause.
+""")
 trait Labels[T]:
   def names: List[String]
 
