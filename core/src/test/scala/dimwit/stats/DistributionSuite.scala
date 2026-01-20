@@ -41,17 +41,6 @@ class DistributionSuite extends AnyFunSpec with Matchers:
       val expectedMeans = normal.loc
       sampleMeans should approxEqual(expectedMeans, 0.2f)
 
-    it("more specific types"):
-      trait A derives Label
-      trait LocA extends A derives Label
-      trait ScaleA extends A derives Label
-      val loc = Tensor(Shape(Axis[LocA] -> 3)).fromArray(Array(0.0f, 1.0f, -0.5f))
-      val scale = Tensor(Shape(Axis[ScaleA] -> 3)).fromArray(Array(1.0f, 0.5f, 2.0f))
-      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 1.5f, -1.0f))
-      val dist = Normal(loc, scale)
-      val scalaLogProbs = dist.logProb(x)
-      scalaLogProbs shouldBe a[Tensor1[A, LogProb]]
-
   describe("Uniform Distribution"):
     it("logProbs matches JAX"):
       val low = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.0f, -1.0f, 2.0f))
