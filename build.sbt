@@ -27,7 +27,9 @@ lazy val core = (project in file("core"))
     fork := true,
     coverageMinimumStmtTotal := 80,
     coverageFailOnMinimum := false,
-    coverageHighlighting := true
+    coverageHighlighting := true,
+    publishArtifact in (Compile, packageSrc) := true,
+    publishArtifact in (Compile, packageDoc) := true
   )
 
 lazy val nn = (project in file("nn"))
