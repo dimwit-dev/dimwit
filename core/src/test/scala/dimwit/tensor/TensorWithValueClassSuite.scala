@@ -15,10 +15,10 @@ class TensorWithValueClassSuite extends AnyFunSpec with Matchers:
 
       object V1:
         def apply[T <: Tuple](t: Tensor[T, Float]): Tensor[T, V1] = t // lift
-        given IsFloat[V1] with {} // make all IsFloat ops available
+        given IsFloating[V1] with {} // make all IsFloating ops available
       object V2:
         def apply[T <: Tuple](t: Tensor[T, Float]): Tensor[T, V2] = t // lift
-        given IsFloat[V2] with {} // make all IsFloat ops available
+        given IsFloating[V2] with {} // make all IsFloating ops available
 
     import ValueClassScope.*
     val t = Tensor(Shape(Axis[A] -> 1, Axis[B] -> 2)).fill(0f)
