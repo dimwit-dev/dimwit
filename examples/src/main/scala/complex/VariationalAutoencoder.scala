@@ -22,8 +22,6 @@ trait EHidden1 derives Label
 trait EHidden2 derives Label
 
 trait Latent derives Label
-trait MeanLatent extends Latent derives Label
-trait LogVarLatent extends Latent derives Label
 
 trait DHidden1 derives Label
 trait DHidden2 derives Label
@@ -35,7 +33,7 @@ class Encoder(p: Encoder.Params):
   val meanLayer = LinearLayer(p.meanLayer)
   val logVarLayer = LinearLayer(p.logVarLayer)
 
-  def apply(v: Tensor1[Pixel, Float]): (Tensor1[MeanLatent, Float], Tensor1[LogVarLatent, Float]) =
+  def apply(v: Tensor1[Pixel, Float]): (Tensor1[Latent, Float], Tensor1[Latent, Float]) =
     val h1 = relu(layer1(v))
     val h2 = relu(layer2(h1))
     val mean = meanLayer(h2)
@@ -46,8 +44,8 @@ object Encoder:
   case class Params(
       layer1: LinearLayer.Params[Pixel, EHidden1],
       layer2: LinearLayer.Params[EHidden1, EHidden2],
-      meanLayer: LinearLayer.Params[EHidden2, MeanLatent],
-      logVarLayer: LinearLayer.Params[EHidden2, LogVarLatent]
+      meanLayer: LinearLayer.Params[EHidden2, Latent],
+      logVarLayer: LinearLayer.Params[EHidden2, Latent]
   )
 
 class Decoder(p: Decoder.Params):
@@ -68,7 +66,7 @@ object Decoder:
       outputLayer: LinearLayer.Params[DHidden2, ReconstructedPixel]
   )
 
-def reparametrize(mean: Tensor1[MeanLatent, Float], logVar: Tensor1[LogVarLatent, Float], key: Random.Key): Tensor1[Latent, Float] =
+def reparametrize(mean: Tensor1[Latent, Float], logVar: Tensor1[Latent, Float], key: Random.Key): Tensor1[Latent, Float] =
   val std = (logVar *! 0.5f).exp
   Normal(mean, std).sample(key)
 
@@ -118,15 +116,15 @@ object VariationalAutoencoderExample:
 
     val heightDim = Axis[Height] -> 28
     val widthDim = Axis[Width] -> 28
-    val heightWidthDim = Axis[Height |*| Width] -> (heightDim._2 * widthDim._2)
+    val heightWidthDim = Axis[Height |*| Width] -> (heightDim.size * widthDim.size)
     val EHidden1Dim = Axis[EHidden1] -> 512
     val EHidden2Dim = Axis[EHidden2] -> 256
     val latentDim = Axis[Latent] -> 20
-    val meanLatentDim = Axis[MeanLatent] -> 20
-    val logVarLatentDim = Axis[LogVarLatent] -> 20
+    val meanLatentDim = Axis[Latent] -> 20
+    val logVarLatentDim = Axis[Latent] -> 20
     val DHidden1Dim = Axis[DHidden1] -> 256
     val DHidden2Dim = Axis[DHidden2] -> 512
-    val ReconstructedPixelDim = Axis[ReconstructedPixel] -> (heightDim._2 * widthDim._2)
+    val ReconstructedPixelDim = Axis[ReconstructedPixel] -> (heightDim.size * widthDim.size)
 
     import VariationalAutoencoder.Params
 
@@ -170,18 +168,19 @@ object VariationalAutoencoderExample:
     /*
      * Training
      */
-    def batchLoss(key: Random.Key, trainData: Tensor3[Sample, Height, Width, Float])(params: Params): Tensor0[Float] =
+    def batchLoss[S <: Sample: Label](key: Random.Key, trainData: Tensor3[S, Height, Width, Float])(params: Params): Tensor0[Float] =
       val vae = VariationalAutoencoder(params)
-      val batchSize = trainData.shape.dim(Axis[Sample])._2
+      val batchSize = trainData.shape.extent(Axis[S]).size
       val keys = key.split(batchSize)
       val losses = (0 until batchSize).map: idx =>
-        val sample = trainData.slice(Axis[Sample] -> idx)
+        val sample = trainData.slice(Axis[S].at(idx))
         vae.loss(sample.ravel, keys(idx))
+
       losses.reduce(_ + _) / batchSize.toFloat
 
     val batches = trainImages.chunk(Axis[TrainSample], numSamples / batchSize)
     val optimizer = GradientDescent(learningRate = Tensor0(learningRate))
-    def trainBatch(trainKey: Random.Key, batch: Tensor3[Sample, Height, Width, Float], params: Params): Params =
+    def trainBatch(trainKey: Random.Key, batch: Tensor3[TrainSample, Height, Width, Float], params: Params): Params =
       val grads = Autodiff.grad(batchLoss(trainKey, batch))(params)
       val (newParams, _) = optimizer.update(grads, params, ())
       newParams
@@ -223,12 +222,12 @@ object VariationalAutoencoderExample:
 
     /* Reconstructing images */
     val reconstructed = testImages
-      .slice(Axis[TestSample] -> (0 until 64))
+      .slice(Axis[TestSample].at(0 until 64))
       .vmap(Axis[TestSample]): sample =>
         val (mean, logVar) = vae.encoder(sample.ravel)
         val latent = reparametrize(mean, logVar, dataKey) // TODo Key management
         vae.decoder(latent)
-      .relabel(Axis[TestSample] -> Axis[Prime[Height] |*| Prime[Width]])
+      .relabel(Axis[TestSample].as(Axis[Prime[Height] |*| Prime[Width]]))
 
     plotImg(
       reconstructed
@@ -240,7 +239,7 @@ object VariationalAutoencoderExample:
 
     /* Sampling from the latent space */
     val stdNormal = Normal.standardNormal(Shape1(latentDim))
-    val sampled = dataKey.splitvmap(Axis[Prime[Height] |*| Prime[Width]], 64): key =>
+    val sampled = dataKey.splitvmap(Axis[Prime[Height] |*| Prime[Width]] -> 64): key =>
       val z = stdNormal.sample(key)
       vae.decoder(z)
 

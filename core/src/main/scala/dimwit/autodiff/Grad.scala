@@ -38,3 +38,6 @@ object Grad:
 
     def zipMap(g1: Grad[T], g2: Grad[T], f: [U <: Tuple] => Labels[U] ?=> (Tensor[U, Float], Tensor[U, Float]) => Tensor[U, Float]): Grad[T] =
       Grad(ev.zipMap(g1, g2, f))
+
+    def zipMap(g1: Grad[T], g2: Grad[T], g3: Grad[T], f: [U <: Tuple] => Labels[U] ?=> (Tensor[U, Float], Tensor[U, Float], Tensor[U, Float]) => Tensor[U, Float]): Grad[T] =
+      Grad(ev.zipMap(g1, g2, g3, f))

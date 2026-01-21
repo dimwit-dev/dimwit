@@ -124,10 +124,10 @@ class TensorOpsBroadcastSuite extends AnyFunSpec with Matchers:
       )
       val res = AB.broadcastTo(tABCD.shape)
       res.shape shouldEqual tABCD.shape
-      res.slice((Axis[C] -> 0, Axis[D] -> 0)) should approxEqual(AB)
-      res.slice((Axis[C] -> 1, Axis[D] -> 0)) should approxEqual(AB)
-      res.slice((Axis[C] -> 0, Axis[D] -> 1)) should approxEqual(AB)
-      res.slice((Axis[C] -> 1, Axis[D] -> 1)) should approxEqual(AB)
+      res.slice((Axis[C].at(0), Axis[D].at(0))) should approxEqual(AB)
+      res.slice((Axis[C].at(1), Axis[D].at(0))) should approxEqual(AB)
+      res.slice((Axis[C].at(0), Axis[D].at(1))) should approxEqual(AB)
+      res.slice((Axis[C].at(1), Axis[D].at(1))) should approxEqual(AB)
 
     it("BC broadcastTo ABCD"):
       val BC = Tensor(Shape(Axis[B] -> 2, Axis[C] -> 2)).fromArray(
@@ -135,10 +135,10 @@ class TensorOpsBroadcastSuite extends AnyFunSpec with Matchers:
       )
       val res = BC.broadcastTo(tABCD.shape)
       res.shape shouldEqual tABCD.shape
-      res.slice((Axis[A] -> 0, Axis[D] -> 0)) should approxEqual(BC)
-      res.slice((Axis[A] -> 1, Axis[D] -> 0)) should approxEqual(BC)
-      res.slice((Axis[A] -> 0, Axis[D] -> 1)) should approxEqual(BC)
-      res.slice((Axis[A] -> 1, Axis[D] -> 1)) should approxEqual(BC)
+      res.slice((Axis[A].at(0), Axis[D].at(0))) should approxEqual(BC)
+      res.slice((Axis[A].at(1), Axis[D].at(0))) should approxEqual(BC)
+      res.slice((Axis[A].at(0), Axis[D].at(1))) should approxEqual(BC)
+      res.slice((Axis[A].at(1), Axis[D].at(1))) should approxEqual(BC)
 
     it("CD broadcastTo ABCD"):
       val CD = Tensor(Shape(Axis[C] -> 2, Axis[D] -> 2)).fromArray(
@@ -146,10 +146,10 @@ class TensorOpsBroadcastSuite extends AnyFunSpec with Matchers:
       )
       val res = CD.broadcastTo(tABCD.shape)
       res.shape shouldEqual tABCD.shape
-      res.slice((Axis[A] -> 0, Axis[B] -> 0)) should approxEqual(CD)
-      res.slice((Axis[A] -> 1, Axis[B] -> 0)) should approxEqual(CD)
-      res.slice((Axis[A] -> 0, Axis[B] -> 1)) should approxEqual(CD)
-      res.slice((Axis[A] -> 1, Axis[B] -> 1)) should approxEqual(CD)
+      res.slice((Axis[A].at(0), Axis[B].at(0))) should approxEqual(CD)
+      res.slice((Axis[A].at(1), Axis[B].at(0))) should approxEqual(CD)
+      res.slice((Axis[A].at(0), Axis[B].at(1))) should approxEqual(CD)
+      res.slice((Axis[A].at(1), Axis[B].at(1))) should approxEqual(CD)
 
   describe("Disallow"):
 
@@ -170,7 +170,7 @@ class TensorOpsBroadcastSuite extends AnyFunSpec with Matchers:
   describe("Operator Precedence"):
 
     it("multiplication (*!) binds tighter than addition (+!)"):
-      val tA = Tensor(Shape1(tAB.shape.dim(Axis[A]))).fill(1f)
+      val tA = Tensor(Shape1(tAB.shape.extent(Axis[A]))).fill(1f)
       val res = tAB *! Tensor0(2.0f) +! tA
       val correct = (tAB *! Tensor0(2.0f)) +! tA
       val wrong = tAB *! (Tensor0(2.0f) +! tA)

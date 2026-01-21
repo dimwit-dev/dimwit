@@ -18,6 +18,10 @@ object ToPyTree:
 
   def apply[P](using pt: ToPyTree[P]): ToPyTree[P] = pt
 
+  given unitInstance: ToPyTree[Unit] with
+    def toPyTree(u: Unit): Jax.PyAny = py.Dynamic.global.None
+    def fromPyTree(p: Jax.PyAny): Unit = ()
+
   // Keep the tensor instance
   given [T <: Tuple: Labels, V]: ToPyTree[Tensor[T, V]] with
     def toPyTree(t: Tensor[T, V]): Jax.PyAny = t.jaxValue

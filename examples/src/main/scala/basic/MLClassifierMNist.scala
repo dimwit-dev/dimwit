@@ -16,7 +16,7 @@ def binaryCrossEntropy[L: Label](
   val maxLogit = logits.max
   val stableExp = (logits -! maxLogit).exp
   val logSumExp = stableExp.sum.log + maxLogit
-  val targetLogit = logits.slice(Axis[L] -> label)
+  val targetLogit = logits.slice(Axis[L].at(label))
   -(targetLogit - logSumExp)
 
 object MLPClassifierMNist:
@@ -34,9 +34,9 @@ object MLPClassifierMNist:
     object Params:
 
       def apply(
-          layer1Dim: Dim[Height |*| Width],
-          layer2Dim: Dim[Hidden],
-          outputDim: Dim[Output]
+          layer1Dim: AxisExtent[Height |*| Width],
+          layer2Dim: AxisExtent[Hidden],
+          outputDim: AxisExtent[Output]
       )(
           paramKey: Random.Key
       ): Params =
@@ -61,7 +61,6 @@ object MLPClassifierMNist:
 
   def main(args: Array[String]): Unit =
 
-    val learningRate = 1e-4f
     val numSamples = 59904
     val numTestSamples = 9728
     val batchSize = 512
@@ -87,21 +86,28 @@ object MLPClassifierMNist:
       Axis[Output] -> 10
     )(initKey)
 
-    def accuracy[Sample: Label](
-        predictions: Tensor1[Sample, Int],
-        targets: Tensor1[Sample, Int]
+    def accuracy[S: Label](
+        predictions: Tensor1[S, Int],
+        targets: Tensor1[S, Int]
     ): Tensor0[Float] =
-      val matches = zipvmap(Axis[Sample])(predictions, targets)(_ === _)
+      val matches = zipvmap(Axis[S])(predictions, targets)(_ === _)
       matches.asFloat.mean
 
-    val optimizer = Lion(learningRate = Tensor0(learningRate), weightDecay = Tensor0(0f))
+    // val optimizer = GradientDescent(learningRate = Tensor0(1e-4f))
+    // type OptState = Unit
+
+    // val optimizer = Lion(learningRate = Tensor0(1e-4f), weightDecay = Tensor0(0f))
+    // type OptState = MLP.Params
+
+    val optimizer = Adam(learningRate = Tensor0(1e-4f))
+    type OptState = AdamState[MLP.Params]
 
     def gradientStep(
         imageBatch: Tensor[(TrainSample, Height, Width), Float],
         labelBatch: Tensor1[TrainSample, Int],
         params: MLP.Params,
-        state: MLP.Params
-    ): (MLP.Params, MLP.Params) =
+        state: OptState
+    ): (MLP.Params, OptState) =
       val lossBatch = batchLoss(imageBatch, labelBatch)
       val grads = Autodiff.grad(lossBatch)(params)
       optimizer.update(grads, params, state)
@@ -112,8 +118,8 @@ object MLPClassifierMNist:
         labelBatches: Seq[Tensor1[TrainSample, Int]]
     )(
         params: MLP.Params,
-        initialState: MLP.Params
-    ): (MLP.Params, MLP.Params) =
+        initialState: OptState
+    ): (MLP.Params, OptState) =
       imageBatches
         .zip(labelBatches)
         .foldLeft((params, initialState)):
@@ -128,21 +134,21 @@ object MLPClassifierMNist:
       timed("Training"):
         dimwit.gc()
         trainMiniBatchGradientDescent(currentParams, state)
-    def evaluate(
+    def evaluate[S <: Sample: Label](
         params: MLP.Params,
-        dataX: Tensor[(Sample, Height, Width), Float],
-        dataY: Tensor1[Sample, Int]
+        dataX: Tensor3[S, Height, Width, Float],
+        dataY: Tensor1[S, Int]
     ): Tensor0[Float] =
       val model = MLP(params)
-      val predictions = dataX.vmap(Axis[Sample])(model)
+      val predictions = dataX.vmap(Axis[S])(model)
       accuracy(predictions, dataY)
-    val jitEvaluate = jit(evaluate)
+    val jitEvaluate = evaluate
     val (finalParams, finalState) = trainTrajectory.zipWithIndex
       .tapEach:
         case ((params, state), epoch) =>
           timed("Evaluation"):
-            val testAccuracy = jitEvaluate(params, testX, testY)
-            val trainAccuracy = jitEvaluate(params, trainX, trainY)
+            val testAccuracy = evaluate(params, testX, testY)
+            val trainAccuracy = evaluate(params, trainX, trainY)
             println(
               List(
                 s"Epoch $epoch",

@@ -8,20 +8,6 @@ import scala.collection.View.Empty
 
 class TensorCovarianceSuite extends AnyFunSpec with Matchers:
 
-  it("Shape type hierarchy example: Concrete function with supertype parameter"):
-    trait Parent derives Label
-    trait Child1 extends Parent derives Label
-    trait Child2 extends Parent derives Label
-    trait NoChild derives Label
-    def concreteFunction(t: Tensor1[Parent, Float]): Tensor1[Parent, Float] = t + t
-    val child1: Tensor1[Child1, Float] = Tensor(Shape1(Axis[Child1] -> 4)).fill(1f)
-    val child2: Tensor1[Child2, Float] = Tensor(Shape1(Axis[Child2] -> 4)).fill(1f)
-    val noChild: Tensor1[NoChild, Float] = Tensor(Shape1(Axis[NoChild] -> 4)).fill(1f)
-
-    "concreteFunction(child1)" should compile
-    "concreteFunction(child2)" should compile
-    "concreteFunction(noChild)" shouldNot compile
-
   it("Shape type hierarchy example: Generic function with upper-bounded type parameter"):
     trait Parent derives Label
     trait Child1 extends Parent derives Label

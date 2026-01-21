@@ -56,7 +56,7 @@ class AutodiffSuite extends AnyFunSpec with Matchers:
         val jf = Autodiff.jacobian(f)
 
         val x = Tensor1(Axis[A]).fromArray(Array(1.0f, 1.0f))
-        jf(x) should approxEqual(Tensor2.eye(x.dim(Axis[A]), x.vtype) *! 2.0f)
+        jf(x) should approxEqual(Tensor2.eye(x.extent(Axis[A]), x.vtype) *! 2.0f)
 
   describe("jacRev / jacFwd"):
 
@@ -77,8 +77,8 @@ class AutodiffSuite extends AnyFunSpec with Matchers:
           val (x1_dx1, x1_dx2) = x1Grad
           val (x2_dx1, x2_dx2) = x2Grad
           x1_dx1 should approxEqual(Tensor.like(x1_dx1).fill(0f))
-          x1_dx2 should approxEqual(Tensor2.eye(x1.dim(Axis[A]), x1.vtype))
-          x2_dx1 should approxEqual(Tensor2.eye(x2.dim(Axis[A]), x2.vtype))
+          x1_dx2 should approxEqual(Tensor2.eye(x1.extent(Axis[A]), x1.vtype))
+          x2_dx1 should approxEqual(Tensor2.eye(x2.extent(Axis[A]), x2.vtype))
           x2_dx2 should approxEqual(Tensor.like(x2_dx2).fill(0f))
 
         it(s"$modeName d² on f: R² -> R, f(x1, x2) = sum(x1 * x2)"):
@@ -91,8 +91,8 @@ class AutodiffSuite extends AnyFunSpec with Matchers:
           val (x1_dx1, x1_dx2) = x1Grad
           val (x2_dx1, x2_dx2) = x2Grad
           x1_dx1 should approxEqual(Tensor.like(x1_dx1).fill(0f))
-          x1_dx2 should approxEqual(Tensor2.eye(x1.dim(Axis[A]), x1.vtype) *! Tensor0(1.0f))
-          x2_dx1 should approxEqual(Tensor2.eye(x2.dim(Axis[A]), x2.vtype) *! Tensor0(1.0f))
+          x1_dx2 should approxEqual(Tensor2.eye(x1.extent(Axis[A]), x1.vtype) *! Tensor0(1.0f))
+          x2_dx1 should approxEqual(Tensor2.eye(x2.extent(Axis[A]), x2.vtype) *! Tensor0(1.0f))
           x2_dx2 should approxEqual(Tensor.like(x2_dx2).fill(0f))
 
   describe("Complex application"):

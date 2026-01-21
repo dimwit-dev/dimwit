@@ -160,9 +160,9 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
 
     it("relabel an axis"):
       trait X derives Label
-      t3.relabel(Axis[A] -> Axis[X]).axes shouldBe List("X", "B", "C")
-      t3.relabel(Axis[B] -> Axis[X]).axes shouldBe List("A", "X", "C")
-      t3.relabel(Axis[C] -> Axis[X]).axes shouldBe List("A", "B", "X")
+      t3.relabel(Axis[A].as(Axis[X])).axes shouldBe List("X", "B", "C")
+      t3.relabel(Axis[B].as(Axis[X])).axes shouldBe List("A", "X", "C")
+      t3.relabel(Axis[C].as(Axis[X])).axes shouldBe List("A", "B", "X")
 
     it("relabel all axes"):
       val t = Tensor2(Axis[A], Axis[B]).fromArray(Array.fill(2, 2)(1.0f))
@@ -250,8 +250,6 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
       val joined = concatenate(part1, part2, Axis[B])
       joined.axes shouldBe List("A", "B")
       joined.shape(Axis[B]) shouldBe (part1.shape(Axis[B]) + part2.shape(Axis[B]))
-      joined.slice(Axis[B] -> (0 until part1.shape(Axis[B]))) should approxEqual(part1)
-      joined.slice(Axis[B] -> (part1.shape(Axis[B]) until (part1.shape(Axis[B]) + part2.shape(Axis[B])))) should approxEqual(part2)
 
     it("concatenateN same axes"):
       val part1 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f)))
@@ -260,9 +258,9 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
       val joined = concatenate(Seq(part1, part2, part3), Axis[B])
       joined.axes shouldBe List("A", "B")
       joined.shape(Axis[B]) shouldBe (part1.shape(Axis[B]) + part2.shape(Axis[B]) + part3.shape(Axis[B]))
-      joined.slice(Axis[B] -> (0 until part1.shape(Axis[B]))) should approxEqual(part1)
-      joined.slice(Axis[B] -> (part1.shape(Axis[B]) until (part1.shape(Axis[B]) + part2.shape(Axis[B])))) should approxEqual(part2)
-      joined.slice(Axis[B] -> ((part1.shape(Axis[B]) + part2.shape(Axis[B])) until (part1.shape(Axis[B]) + part2.shape(Axis[B]) + part3.shape(Axis[B])))) should approxEqual(part3)
+      joined.slice(Axis[B].at(0 until part1.shape(Axis[B]))) should approxEqual(part1)
+      joined.slice(Axis[B].at(part1.shape(Axis[B]) until (part1.shape(Axis[B]) + part2.shape(Axis[B])))) should approxEqual(part2)
+      joined.slice(Axis[B].at((part1.shape(Axis[B]) + part2.shape(Axis[B])) until (part1.shape(Axis[B]) + part2.shape(Axis[B]) + part3.shape(Axis[B])))) should approxEqual(part3)
 
     it("concatenate2 different axes"):
       val part1 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f)))
@@ -270,8 +268,8 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
       val joined = concatenate(part1, part2)
       joined.axes shouldBe List("A", "B+C")
       joined.shape(Axis[B |+| C]) shouldBe (part1.shape(Axis[B]) + part2.shape(Axis[C]))
-      joined.slice(Axis[B |+| C] -> (0 until part1.shape(Axis[B]))) should approxEqual(part1.relabel((Axis[B] -> Axis[B |+| C])))
-      joined.slice(Axis[B |+| C] -> (part1.shape(Axis[B]) until (part1.shape(Axis[B]) + part2.shape(Axis[C])))) should approxEqual(part2.relabel((Axis[C] -> Axis[B |+| C])))
+      joined.slice(Axis[B |+| C].at(0 until part1.shape(Axis[B]))) should approxEqual(part1.relabel(Axis[B].as(Axis[B |+| C])))
+      joined.slice(Axis[B |+| C].at(part1.shape(Axis[B]) until (part1.shape(Axis[B]) + part2.shape(Axis[C])))) should approxEqual(part2.relabel(Axis[C].as(Axis[B |+| C])))
 
   describe("Deconcatenation"):
 

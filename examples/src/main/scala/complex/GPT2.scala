@@ -126,7 +126,8 @@ case class GPT2(params: GPT2Params) extends (Tensor2[Batch, Context, Int] => Ten
       val attnScores = (queries.dot(Axis[HeadQuery ~ HeadKey])(keys) /! dk)
       val attnWeights = causalMasking(attnScores)
         .vmap(Axis[Context])(attnScore => softmax(attnScore).relabelTo(Axis[AttnWeights]))
-      attnWeights.dot(Axis[AttnWeights ~ Context])(values)
+      val res = attnWeights.dot(Axis[AttnWeights ~ Context])(values)
+      res
 
   private case class LayerNorm(params: LayerNormalizationParams) extends (Tensor1[Embedding, Float] => Tensor1[Embedding, Float]):
 
@@ -214,8 +215,8 @@ case class Inference(gpt2: GPT2, tokenizer: Tokenizer):
       ).fromArray(
         paddedTokenIds.toArray
       )
-      val predTokensTensor = gpt2(inputTensor).slice(Axis[Batch] -> 0)
-      val nextToken = predTokensTensor.slice(Axis[Context] -> (currentTokenIds.length - 1))
+      val predTokensTensor = gpt2(inputTensor).slice((Axis[Batch].at(0)))
+      val nextToken = predTokensTensor.slice(Axis[Context].at(currentTokenIds.length - 1))
       val nextTokens = currentTokenIds :+ nextToken.item
       val decoded = tokenizer.decode(nextTokens)
       System.gc()

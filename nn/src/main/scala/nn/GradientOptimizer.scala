@@ -1,7 +1,9 @@
 package nn
 
 import dimwit.*
+import dimwit.Conversions.given
 import dimwit.autodiff.Grad
+import dimwit.autodiff.FloatTensorTree.*
 import dimwit.jax.Jax
 import dimwit.jax.Jit
 
@@ -48,16 +50,10 @@ case class GradientDescent(learningRate: Tensor0[Float]) extends GradientOptimiz
   def init[Params: ToPyTree: FloatTensorTree](params: Params): Unit = ()
 
   def update[Params: ToPyTree: FloatTensorTree](gradients: Grad[Params], params: Params, state: Unit): (Params, Unit) =
-    val paramTree = summon[FloatTensorTree[Params]]
-    val newParams = paramTree.zipMap(
-      gradients.value,
-      params,
-      [T <: Tuple] => (n: Labels[T]) ?=> (g: Tensor[T, Float], p: Tensor[T, Float]) => p - g.scale(learningRate)
-    )
+    val newParams = params -- gradients.value.scale(learningRate)
     (newParams, ())
 
 case class Lion(learningRate: Tensor0[Float], weightDecay: Tensor0[Float] = Tensor0(0.0f), beta1: Tensor0[Float] = Tensor0(0.9f), beta2: Tensor0[Float] = Tensor0(0.99f)) extends GradientOptimizer:
-  import dimwit.Conversions.given
 
   type State[P] = P // momentum state has same structure as params
 
@@ -75,31 +71,98 @@ case class Lion(learningRate: Tensor0[Float], weightDecay: Tensor0[Float] = Tens
     val paramTree = summon[FloatTensorTree[Params]]
     // the direction (1 or -1)
     // is determined by the sign of the momentum + gradient
-    val updateDirection = paramTree.zipMap(
-      gradients.value,
-      momentums,
-      [T <: Tuple] =>
-        (n: Labels[T]) ?=>
-          (grad: Tensor[T, Float], momentum: Tensor[T, Float]) =>
-            (momentum *! beta1 + grad *! (1f - beta1)).sign
-    )
+    val updateDirection = (momentums **! beta1 ++ gradients.value **! (1f - beta1)).sign
 
-    val updatedParams = paramTree.zipMap(
-      updateDirection,
-      params,
-      [T <: Tuple] =>
-        (n: Labels[T]) ?=>
-          (updateDir: Tensor[T, Float], param: Tensor[T, Float]) =>
-            param - updateDir *! learningRate - param *! weightDecay
-    )
-
-    val newMomentums = paramTree.zipMap(
-      gradients.value,
-      momentums,
-      [T <: Tuple] =>
-        (n: Labels[T]) ?=>
-          (g: Tensor[T, Float], m: Tensor[T, Float]) =>
-            m *! beta2 + g *! (1f - beta2)
-    )
+    val updatedParams = params -- updateDirection.scale(learningRate) -- params.scale(weightDecay)
+    val newMomentums = momentums **! beta2 ++ gradients.value **! (1f - beta2)
 
     (updatedParams, newMomentums)
+
+case class AdamState[P](
+    momentums: P, // momentums
+    velocities: P, // velocities
+    b1: Tensor0[Float], // decay rate for momentums mᵗ
+    b2: Tensor0[Float] // decay rate for velocities vᵗ
+)
+
+/** Implements the Adam optimization algorithm.
+  *
+  * @see [[https://arxiv.org/abs/1412.6980 Adam: A Method for Stochastic Optimization]]
+  */
+case class Adam(
+    learningRate: Tensor0[Float], // step size (learning rate)
+    b1: Tensor0[Float] = Tensor0(0.9f), // decay rate for momentums mᵗ
+    b2: Tensor0[Float] = Tensor0(0.999f), // decay rate for velocities vᵗ
+    epsilon: Tensor0[Float] = Tensor0(1e-8f) // small constant to prevent division by zero
+) extends GradientOptimizer:
+
+  private val β1 = b1
+  private val β2 = b2
+
+  type State[P] = AdamState[P]
+
+  def init[Params: ToPyTree: FloatTensorTree](params: Params): State[Params] =
+    val zeros = params.fillCopy(0f)
+    AdamState(zeros, zeros, b1 = 1f, b2 = 1f)
+
+  def update[Params: ToPyTree: FloatTensorTree](
+      gradients: Grad[Params],
+      params: Params,
+      state: State[Params]
+  ): (Params, State[Params]) =
+    // rename state variables to last time step for clarity
+    val `mₜ₋₁` = state.momentums
+    val `vₜ₋₁` = state.velocities
+    val `β1ₜ₋₁` = state.b1
+    val `β2ₜ₋₁` = state.b2
+
+    // rename parameters for internal clarity
+    val α = learningRate
+    val ε = epsilon
+    val `θₜ₋₁` = params
+
+    // update moments for bias correction
+    val β1ₜ = `β1ₜ₋₁` * β1
+    val β2ₜ = `β2ₜ₋₁` * β2
+
+    // Adam implementation
+    val gₜ = gradients.value
+    val mᵗ = `β1` **! `mₜ₋₁` ++ (1f - `β1`) **! gₜ
+    val vᵗ = `β2` **! `vₜ₋₁` ++ (1f - `β2`) **! gₜ.pow(2)
+    val m̂ = mᵗ `//!` (1f - `β1ₜ`)
+    val v̂ = vᵗ `//!` (1f - `β2ₜ`)
+    val θₜ = `θₜ₋₁` -- (α **! m̂) `//` (v̂.sqrt ++! ε)
+
+    (θₜ, AdamState(mᵗ, vᵗ, β1ₜ, β2ₜ))
+
+/** Implements the AdamW algorithm (Adam with decoupled weight decay).
+  *
+  * This implementation follows the logic described in "Decoupled Weight Decay Regularization"
+  * where weight decay is performed directly on parameters rather than added to gradients.
+  *
+  * @see [[https://arxiv.org/abs/1711.05101 Decoupled Weight Decay Regularization]]
+  *
+  * @param learningRate The step size.
+  * @param weightDecayFactor The coefficient for weight decay (lambda).
+  */
+case class AdamW(
+    val adam: Adam,
+    val weightDecayFactor: Tensor0[Float]
+) extends GradientOptimizer:
+
+  type State[P] = adam.State[P]
+
+  def init[Params: ToPyTree: FloatTensorTree](params: Params): State[Params] = adam.init(params)
+
+  def update[Params: ToPyTree: FloatTensorTree](
+      gradients: Grad[Params],
+      params: Params,
+      state: State[Params]
+  ): (Params, State[Params]) =
+    val α = adam.learningRate
+    val `θₜ₋₁` = params
+    val `λ'` = weightDecayFactor
+    val λ = `λ'` * α // Tie weight decay to learning rate
+    val decayedParams = `θₜ₋₁` -- λ **! `θₜ₋₁`
+    val (θₜ, adamState) = adam.update(gradients, decayedParams, state)
+    (θₜ, adamState)

@@ -25,8 +25,8 @@ object Random:
       (0 until num).map(i => Key(splitKeys.__getitem__(i)))
 
     /** Split this key into multiple independent keys stored in a tensor */
-    def splitToTensor[L: Label](dim: Dim[L]): Tensor1[L, Key] =
-      val (_, n) = dim
+    def splitToTensor[L: Label](dim: AxisExtent[L]): Tensor1[L, Key] =
+      val n = dim.size
       val splitKeys = Jax.jrandom.split(jaxKey, n)
       Tensor[Tuple1[L], Key](splitKeys)
 
@@ -36,8 +36,8 @@ object Random:
       (keys(0), keys(1))
 
     /** Generate a tensor of samples by splitting the key along the given axis and applying f to each sub-key ^ */
-    def splitvmap[L: Label, T <: Tuple: Labels, V](dim: Dim[L])(f: Key => Tensor[T, V]): Tensor[L *: T, V] =
-      val (axis, n) = dim
+    def splitvmap[L: Label, T <: Tuple: Labels, V](dim: AxisExtent[L])(f: Key => Tensor[T, V]): Tensor[L *: T, V] =
+      val axis = dim.axis
       this.splitToTensor(dim).vmap(axis)(k => f(k.item))
 
     /** Generate a new key by splitting */
@@ -70,8 +70,8 @@ object Random:
     * @return
     *   A 1D tensor containing a random permutation of [0, 1, ..., n-1]
     */
-  def permutation[L: Label](dim: (Axis[L], Int))(key: Key): Tensor1[L, Int] =
-    Tensor.fromPy(VType[Int])(Jax.jrandom.permutation(key.jaxKey, dim._2))
+  def permutation[L: Label](dim: AxisExtent[L])(key: Key): Tensor1[L, Int] =
+    Tensor.fromPy(VType[Int])(Jax.jrandom.permutation(key.jaxKey, dim.size))
 
   object Key:
     /** Create a random key from an integer seed */
