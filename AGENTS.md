@@ -59,35 +59,20 @@ Shapes are constructed using `Axis[L]` and dimension sizes:
 ```scala
 // Scalar (0-dimensional)
 val shape0 = Shape.empty
-// shape0: Shape[EmptyTuple] = Shape(dimensions = List())
 
 // Vector (1-dimensional)
 val shape1 = Shape(Axis[Feature] -> 10)
-// shape1: Shape[*:[Feature, EmptyTuple]] = Shape(dimensions = List(10))
 
 // Matrix (2-dimensional)
 val shape2 = Shape(Axis[Batch] -> 32, Axis[Feature] -> 10)
-// shape2: Shape[*:[Batch, *:[Feature, EmptyTuple]]] = Shape(
-//   dimensions = List(32, 10)
-// )
 
 // 3D Tensor
 val shape3 = Shape(Axis[Batch] -> 32, Axis[Feature] -> 10, Axis[Hidden] -> 128)
-// shape3: Shape[*:[Batch, *:[Feature, *:[Hidden, EmptyTuple]]]] = Shape(
-//   dimensions = List(32, 10, 128)
-// )
 
 // Type aliases for convenience
 val s1: Shape1[Feature] = Shape1(Axis[Feature] -> 10)
-// s1: Shape[*:[Feature, EmptyTuple]] = Shape(dimensions = List(10))
 val s2: Shape2[Batch, Feature] = Shape2(Axis[Batch] -> 32, Axis[Feature] -> 10)
-// s2: Shape[*:[Batch, *:[Feature, EmptyTuple]]] = Shape(
-//   dimensions = List(32, 10)
-// )
 val s3: Shape3[Batch, Feature, Hidden] = Shape3(Axis[Batch] -> 32, Axis[Feature] -> 10, Axis[Hidden] -> 128)
-// s3: Shape[*:[Batch, *:[Feature, *:[Hidden, EmptyTuple]]]] = Shape(
-//   dimensions = List(32, 10, 128)
-// )
 ```
 
 ### Type Safety Guarantees
@@ -149,30 +134,15 @@ val wrong = t.sum(Axis[C])
 ```scala
 // Integer tensor
 val intTensor = Tensor(Shape2(Axis[A] -> 4, Axis[B] -> 5)).fill(42)
-// intTensor: Tensor[Tuple2[A, B], Int] = [[42 42 42 42 42]
-//  [42 42 42 42 42]
-//  [42 42 42 42 42]
-//  [42 42 42 42 42]]
 println(s"DType: ${intTensor.dtype}") // Int32
-// DType: Int32
 
 // Float tensor
 val floatTensor = Tensor(Shape3(Axis[A] -> 2, Axis[B] -> 3, Axis[C] -> 4)).fill(3.14f)
-// floatTensor: Tensor[Tuple3[A, B, C], Float] = [[[3.14 3.14 3.14 3.14]
-//   [3.14 3.14 3.14 3.14]
-//   [3.14 3.14 3.14 3.14]]
-// 
-//  [[3.14 3.14 3.14 3.14]
-//   [3.14 3.14 3.14 3.14]
-//   [3.14 3.14 3.14 3.14]]]
 println(s"DType: ${floatTensor.dtype}") // Float32
-// DType: Float32
 
 // Boolean tensor
 val boolTensor = Tensor(Shape1(Axis[A] -> 10)).fill(true)
-// boolTensor: Tensor[Tuple1[A], Boolean] = [ True  True  True  True  True  True  True  True  True  True]
 println(s"DType: ${boolTensor.dtype}") // Bool
-// DType: Bool
 ```
 
 ### Creation from Arrays with `fromArray`
@@ -180,15 +150,12 @@ println(s"DType: ${boolTensor.dtype}") // Bool
 ```scala
 // 1D tensor from array
 val t1d = Tensor(Shape1(Axis[A] -> 3)).fromArray(Array(1.0f, 2.0f, 3.0f))
-// t1d: Tensor[Tuple1[A], Float] = [1. 2. 3.]
 
 // 2D tensor from flattened array (row-major order)
 val t2d = Tensor(Shape2(Axis[A] -> 2, Axis[B] -> 3)).fromArray(
   Array(1.0f, 2.0f, 3.0f,  // First row
         4.0f, 5.0f, 6.0f)  // Second row
 )
-// t2d: Tensor[Tuple2[A, B], Float] = [[1. 2. 3.]
-//  [4. 5. 6.]]
 
 // Using nested arrays
 val t2dNested = Tensor2(Axis[A], Axis[B]).fromArray(
@@ -197,8 +164,6 @@ val t2dNested = Tensor2(Axis[A], Axis[B]).fromArray(
     Array(4.0f, 5.0f, 6.0f)
   )
 )
-// t2dNested: Tensor[Tuple2[A, B], Float] = [[1. 2. 3.]
-//  [4. 5. 6.]]
 ```
 
 ### Type Aliases for Common Shapes
@@ -206,29 +171,18 @@ val t2dNested = Tensor2(Axis[A], Axis[B]).fromArray(
 ```scala
 // Scalar (0D)
 val scalar: Tensor0[Float] = Tensor0(42.0f)
-// scalar: Tensor[EmptyTuple, Float] = 42.0
 
 // Vector (1D)
 val vector: Tensor1[Feature, Float] = Tensor1(Axis[Feature]).fromArray(Array(1.0f, 2.0f, 3.0f))
-// vector: Tensor[Tuple1[Feature], Float] = [1. 2. 3.]
 
 // Matrix (2D)
 val matrix: Tensor2[Batch, Feature, Float] = Tensor2(Axis[Batch], Axis[Feature]).fromArray(
   Array(Array(1.0f, 2.0f), Array(3.0f, 4.0f))
 )
-// matrix: Tensor[Tuple2[Batch, Feature], Float] = [[1. 2.]
-//  [3. 4.]]
 
 // 3D Tensor
 val tensor3d: Tensor3[Batch, Feature, Hidden, Float] = 
   Tensor(Shape3(Axis[Batch] -> 2, Axis[Feature] -> 3, Axis[Hidden] -> 4)).fill(0.0f)
-// tensor3d: Tensor[Tuple3[Batch, Feature, Hidden], Float] = [[[0. 0. 0. 0.]
-//   [0. 0. 0. 0.]
-//   [0. 0. 0. 0.]]
-// 
-//  [[0. 0. 0. 0.]
-//   [0. 0. 0. 0.]
-//   [0. 0. 0. 0.]]]
 ```
 
 ### Common Creation Errors
@@ -289,58 +243,28 @@ trait B derives Label
 trait C derives Label
 trait D derives Label
 val t = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f), Array(3.0f, 4.0f)))
-// t: Tensor[Tuple2[A, B], Float] = [[1. 2.]
-//  [3. 4.]]
 
 // Arithmetic
 val added = t + t  // [[2, 4], [6, 8]]
-// added: Tensor[Tuple2[A, B], Float] = [[2. 4.]
-//  [6. 8.]]
 val subtracted = t - t  // [[0, 0], [0, 0]]
-// subtracted: Tensor[Tuple2[A, B], Float] = [[0. 0.]
-//  [0. 0.]]
 val multiplied = t * t  // [[1, 4], [9, 16]]
-// multiplied: Tensor[Tuple2[A, B], Float] = [[ 1.  4.]
-//  [ 9. 16.]]
 val divided = t / t  // [[1, 1], [1, 1]]
-// divided: Tensor[Tuple2[A, B], Float] = [[1. 1.]
-//  [1. 1.]]
 
 // Math functions
 val absolute = t.abs
-// absolute: Tensor[Tuple2[A, B], Float] = [[1. 2.]
-//  [3. 4.]]
 val exponential = t.exp
-// exponential: Tensor[Tuple2[A, B], Float] = [[ 2.7182817  7.389056 ]
-//  [20.085537  54.59815  ]]
 val logarithm = (t +! Tensor0(1.0f)).log  // Avoid log(0)
-// logarithm: Tensor[Tuple2[A, B], Float] = [[0.6931472 1.0986123]
-//  [1.3862944 1.609438 ]]
 val power = t.pow(Tensor0(2.0f))
-// power: Tensor[Tuple2[A, B], Float] = [[ 1.  4.]
-//  [ 9. 16.]]
 val sqrt = t.sqrt
-// sqrt: Tensor[Tuple2[A, B], Float] = [[1.        1.4142135]
-//  [1.7320508 2.       ]]
 val sign = t.sign
-// sign: Tensor[Tuple2[A, B], Float] = [[1. 1.]
-//  [1. 1.]]
 
 // Trigonometric
 val sine = t.sin
-// sine: Tensor[Tuple2[A, B], Float] = [[ 0.841471    0.90929747]
-//  [ 0.14112    -0.7568025 ]]
 val cosine = t.cos
-// cosine: Tensor[Tuple2[A, B], Float] = [[ 0.5403023  -0.4161468 ]
-//  [-0.9899925  -0.65364367]]
 val tanh = t.tanh
-// tanh: Tensor[Tuple2[A, B], Float] = [[0.7615942 0.9640275]
-//  [0.9950547 0.9993292]]
 
 // Clipping
 val clipped = t.clip(Tensor0(1.5f), Tensor0(3.5f))
-// clipped: Tensor[Tuple2[A, B], Float] = [[1.5 2. ]
-//  [3.  3.5]]
 ```
 
 ### Reduction Operations
@@ -354,47 +278,31 @@ val data = Tensor2(Axis[A], Axis[B]).fromArray(
     Array(4.0f, 5.0f, 6.0f)
   )
 )
-// data: Tensor[Tuple2[A, B], Float] = [[1. 2. 3.]
-//  [4. 5. 6.]]
 
 // Reduce to scalar
 val totalSum: Tensor0[Float] = data.sum
-// totalSum: Tensor[EmptyTuple, Float] = 21.0
 val totalMean: Tensor0[Float] = data.mean
-// totalMean: Tensor[EmptyTuple, Float] = 3.5
 val totalMax: Tensor0[Float] = data.max
-// totalMax: Tensor[EmptyTuple, Float] = 6.0
 val totalMin: Tensor0[Float] = data.min
-// totalMin: Tensor[EmptyTuple, Float] = 1.0
 val totalStd: Tensor0[Float] = data.std
-// totalStd: Tensor[EmptyTuple, Float] = 1.7078251
 
 println(s"Sum: ${totalSum.item}")  // 21.0
-// Sum: 21.0
 
 // Reduce along axis A (across rows)
 val sumA: Tensor1[B, Float] = data.sum(Axis[A])
-// sumA: Tensor[Tuple1[B], Float] = [5. 7. 9.]
 println(s"Sum along A: ${sumA}")  // [5.0, 7.0, 9.0]
-// Sum along A: [5. 7. 9.]
 
 // Reduce along axis B (across columns)
 val sumB: Tensor1[A, Float] = data.sum(Axis[B])
-// sumB: Tensor[Tuple1[A], Float] = [ 6. 15.]
 println(s"Sum along B: ${sumB}")  // [6.0, 15.0]
-// Sum along B: [ 6. 15.]
 
 // Mean along axes
 val meanA = data.mean(Axis[A])  // [2.5, 3.5, 4.5]
-// meanA: Tensor[*:[B, EmptyTuple], Float] = [2.5 3.5 4.5]
 val meanB = data.mean(Axis[B])  // [2.0, 5.0]
-// meanB: Tensor[*:[A, EmptyTuple], Float] = [2. 5.]
 
 // Argmax / Argmin (returns indices)
 val argmaxB: Tensor1[A, Int] = data.argmax(Axis[B])
-// argmaxB: Tensor[Tuple1[A], Int] = [2 2]
 val argminB: Tensor1[A, Int] = data.argmin(Axis[B])
-// argminB: Tensor[Tuple1[A], Int] = [0 0]
 ```
 
 **Error: Reducing on non-existent axis**
@@ -441,40 +349,22 @@ Operations with automatic broadcasting for scalars and compatible shapes.
 
 ```scala
 val tensor = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(10.0f, 20.0f), Array(30.0f, 40.0f)))
-// tensor: Tensor[Tuple2[A, B], Float] = [[10. 20.]
-//  [30. 40.]]
 
 // Scalar broadcast (note: ! suffix for broadcast operations)
 val scalarAdd = tensor +! Tensor0(5.0f)  // [[15, 25], [35, 45]]
-// scalarAdd: Tensor[Tuple2[A, B], Float] = [[15. 25.]
-//  [35. 45.]]
 val scalarMul = tensor *! Tensor0(2.0f)  // [[20, 40], [60, 80]]
-// scalarMul: Tensor[Tuple2[A, B], Float] = [[20. 40.]
-//  [60. 80.]]
 val scalarDiv = tensor /! Tensor0(10.0f) // [[1, 2], [3, 4]]
-// scalarDiv: Tensor[Tuple2[A, B], Float] = [[1. 2.]
-//  [3. 4.]]
 val scalarSub = tensor -! Tensor0(5.0f)  // [[5, 15], [25, 35]]
-// scalarSub: Tensor[Tuple2[A, B], Float] = [[ 5. 15.]
-//  [25. 35.]]
 
 // Reverse broadcast
 val reverseAdd = Tensor0(100.0f) +! tensor  // [[110, 120], [130, 140]]
-// reverseAdd: Tensor[Tuple2[A, B], Float] = [[110. 120.]
-//  [130. 140.]]
 val reverseSub = Tensor0(100.0f) -! tensor  // [[90, 80], [70, 60]]
-// reverseSub: Tensor[Tuple2[A, B], Float] = [[90. 80.]
-//  [70. 60.]]
 
 // Tensor0 broadcast to tensor shape
 val scalarBroadcast = Tensor0(5.0f).broadcastTo(tensor.shape)
-// scalarBroadcast: Tensor[Tuple2[A, B], Float] = [[5. 5.]
-//  [5. 5.]]
 
 // Comparison with broadcast (element-wise comparison)
 val greater = tensor > Tensor0(25.0f).broadcastTo(tensor.shape)
-// greater: Tensor[Tuple2[A, B], Boolean] = [[False False]
-//  [ True  True]]
 ```
 
 **Important**: Standard operators `+`, `-`, `*`, `/` require **exact shape match**. Use `+!`, `-!`, `*!`, `/!` for broadcasting.
@@ -509,13 +399,9 @@ trait D derives Label
 
 // Dot product (vector · vector)
 val v1 = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f, 3.0f))
-// v1: Tensor[Tuple1[A], Float] = [1. 2. 3.]
 val v2 = Tensor1(Axis[A]).fromArray(Array(4.0f, 5.0f, 6.0f))
-// v2: Tensor[Tuple1[A], Float] = [4. 5. 6.]
 val dotProduct: Tensor0[Float] = v1.dot(Axis[A])(v2)
-// dotProduct: Tensor[EmptyTuple, Float] = 32.0
 println(s"Dot product: ${dotProduct.item}")  // 32.0
-// Dot product: 32.0
 
 // Matrix-vector multiplication
 val matrix = Tensor2(Axis[A], Axis[B]).fromArray(
@@ -524,25 +410,14 @@ val matrix = Tensor2(Axis[A], Axis[B]).fromArray(
     Array(3.0f, 4.0f)
   )
 )
-// matrix: Tensor[Tuple2[A, B], Float] = [[1. 2.]
-//  [3. 4.]]
 val vec = Tensor1(Axis[B]).fromArray(Array(1.0f, 2.0f))
-// vec: Tensor[Tuple1[B], Float] = [1. 2.]
 val result = matrix.dot(Axis[B])(vec)
-// result: Tensor[*:[A, EmptyTuple], Float] = [ 5. 11.]
 println(s"Matrix-vec result: ${result}")  // [5.0, 11.0]
-// Matrix-vec result: [ 5. 11.]
 
 // Matrix-matrix multiplication
 val m1 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f), Array(3.0f, 4.0f)))
-// m1: Tensor[Tuple2[A, B], Float] = [[1. 2.]
-//  [3. 4.]]
 val m2 = Tensor2(Axis[B], Axis[C]).fromArray(Array(Array(5.0f, 6.0f), Array(7.0f, 8.0f)))
-// m2: Tensor[Tuple2[B, C], Float] = [[5. 6.]
-//  [7. 8.]]
 val matmul = m1.dot(Axis[B])(m2)
-// matmul: Tensor[*:[A, *:[C, EmptyTuple]], Float] = [[19. 22.]
-//  [43. 50.]]
 ```
 
 **Error: Dimension mismatch in contraction**
@@ -616,81 +491,33 @@ Reshape, transpose, and dimension manipulation.
 val original = Tensor2(Axis[A], Axis[B]).fromArray(
   Array(Array(1.0f, 2.0f, 3.0f), Array(4.0f, 5.0f, 6.0f))
 )
-// original: Tensor[Tuple2[A, B], Float] = [[1. 2. 3.]
-//  [4. 5. 6.]]
 
 // Transpose
 val transposed: Tensor2[B, A, Float] = original.transpose
-// transposed: Tensor[Tuple2[B, A], Float] = [[1. 4.]
-//  [2. 5.]
-//  [3. 6.]]
 println(s"Original shape: ${original.shape}")
-// Original shape: Shape(A -> 2, B -> 3)
 println(s"Transposed shape: ${transposed.shape}")
-// Transposed shape: Shape(B -> 3, A -> 2)
 
 // Reshape
 val reshaped = original.ravel  // Flatten to 1D
-// reshaped: Tensor[Tuple1[(A |*| B)], Float] = [1. 2. 3. 4. 5. 6.]
 // Reshaping back requires fromArray with proper data
 
 // Unsqueeze (add size-1 dimension)
 val vec1d = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f, 3.0f))
-// vec1d: Tensor[Tuple1[A], Float] = [1. 2. 3.]
 val vec2d = vec1d.appendAxis(Axis[B])  // Add new axis B
-// vec2d: Tensor[*:[A, Tuple1[B]], Float] = [[1.]
-//  [2.]
-//  [3.]]
 
 // Take (indexing with single index)
 val firstRow = original.slice(Axis[A].at(0))
-// firstRow: Tensor[*:[B, EmptyTuple], Float] = [1. 2. 3.]
 val secondRow = original.slice(Axis[A].at(1))
-// secondRow: Tensor[*:[B, EmptyTuple], Float] = [4. 5. 6.]
 
 // Take (indexing with range)
 val data3d = Tensor(Shape3(Axis[A] -> 5, Axis[B] -> 3, Axis[C] -> 4)).fill(1.0f)
-// data3d: Tensor[Tuple3[A, B, C], Float] = [[[1. 1. 1. 1.]
-//   [1. 1. 1. 1.]
-//   [1. 1. 1. 1.]]
-// 
-//  [[1. 1. 1. 1.]
-//   [1. 1. 1. 1.]
-//   [1. 1. 1. 1.]]
-// 
-//  [[1. 1. 1. 1.]
-//   [1. 1. 1. 1.]
-//   [1. 1. 1. 1.]]
-// 
-//  [[1. 1. 1. 1.]
-//   [1. 1. 1. 1.]
-//   [1. 1. 1. 1.]]
-// 
-//  [[1. 1. 1. 1.]
-//   [1. 1. 1. 1.]
-//   [1. 1. 1. 1.]]]
 val middleSlice = data3d.slice(Axis[A].at(1 until 4))  // Takes indices 1, 2, 3
-// middleSlice: Tensor[Tuple3[A, B, C], Float] = [[[1. 1. 1. 1.]
-//   [1. 1. 1. 1.]
-//   [1. 1. 1. 1.]]
-// 
-//  [[1. 1. 1. 1.]
-//   [1. 1. 1. 1.]
-//   [1. 1. 1. 1.]]
-// 
-//  [[1. 1. 1. 1.]
-//   [1. 1. 1. 1.]
-//   [1. 1. 1. 1.]]]
 println(s"Middle slice shape: ${middleSlice.shape}")  // Shape(A -> 3, B -> 3, C -> 4)
-// Middle slice shape: Shape(A -> 3, B -> 3, C -> 4)
 
 // Concatenate
 val t1 = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f))
-// t1: Tensor[Tuple1[A], Float] = [1. 2.]
 val t2 = Tensor1(Axis[A]).fromArray(Array(3.0f, 4.0f))
-// t2: Tensor[Tuple1[A], Float] = [3. 4.]
 val concatenated = concatenate(t1, t2, Axis[A])
-// concatenated: Tensor[Tuple1[A], Float] = [1. 2. 3. 4.]
 ```
 
 ---
@@ -713,9 +540,6 @@ val data = Tensor2(Axis[Batch], Axis[Feature]).fromArray(
     Array(7.0f, 8.0f, 9.0f)
   )
 )
-// data: Tensor[Tuple2[Batch, Feature], Float] = [[1. 2. 3.]
-//  [4. 5. 6.]
-//  [7. 8. 9.]]
 
 // Normalize each sample (row) independently
 def normalize(x: Tensor1[Feature, Float]): Tensor1[Feature, Float] =
@@ -724,35 +548,19 @@ def normalize(x: Tensor1[Feature, Float]): Tensor1[Feature, Float] =
   (x -! mean) /! std
 
 val normalized: Tensor2[Batch, Feature, Float] = data.vmap(Axis[Batch])(normalize)
-// normalized: Tensor[Tuple2[Batch, Feature], Float] = [[-1.2247434  0.         1.2247434]
-//  [-1.2247434  0.         1.2247434]
-//  [-1.2247434  0.         1.2247434]]
 println(s"Normalized data: ${normalized}")
-// Normalized data: [[-1.2247434  0.         1.2247434]
-//  [-1.2247434  0.         1.2247434]
-//  [-1.2247434  0.         1.2247434]]
 
 // Sum each row
 val rowSums: Tensor1[Batch, Float] = data.vmap(Axis[Batch])(_.sum)
-// rowSums: Tensor[Tuple1[Batch], Float] = [ 6. 15. 24.]
 println(s"Row sums: ${rowSums}")  // [6.0, 15.0, 24.0]
-// Row sums: [ 6. 15. 24.]
 
 // vmap over columns (note: axis moves to front)
 val colSums: Tensor1[Feature, Float] = data.vmap(Axis[Feature])(_.sum)
-// colSums: Tensor[Tuple1[Feature], Float] = [12. 15. 18.]
 println(s"Column sums: ${colSums}")  // [12.0, 15.0, 18.0]
-// Column sums: [12. 15. 18.]
 
 // Identity vmap doesn't change data, only axis order
 val identity = data.vmap(Axis[Batch])(x => x)  // Same as data
-// identity: Tensor[*:[Batch, *:[Feature, EmptyTuple]], Float] = [[1. 2. 3.]
-//  [4. 5. 6.]
-//  [7. 8. 9.]]
 val reordered = data.vmap(Axis[Feature])(x => x)  // Same as data.transpose
-// reordered: Tensor[*:[Feature, *:[Batch, EmptyTuple]], Float] = [[1. 4. 7.]
-//  [2. 5. 8.]
-//  [3. 6. 9.]]
 ```
 
 **Error: Wrong function signature for vmap**
@@ -790,32 +598,21 @@ trait A derives Label
 trait B derives Label
 
 val t1 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f), Array(3.0f, 4.0f)))
-// t1: Tensor[Tuple2[A, B], Float] = [[1. 2.]
-//  [3. 4.]]
 val t2 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(10.0f, 20.0f), Array(30.0f, 40.0f)))
-// t2: Tensor[Tuple2[A, B], Float] = [[10. 20.]
-//  [30. 40.]]
 
 // Compute L2 distance between corresponding rows
 def l2Distance(v1: Tensor1[B, Float], v2: Tensor1[B, Float]): Tensor0[Float] =
   (v1 - v2).pow(Tensor0(2.0f)).sum.sqrt
 
 val distances: Tensor1[A, Float] = zipvmap(Axis[A])(t1, t2)(l2Distance)
-// distances: Tensor[Tuple1[A], Float] = [20.12461 45.     ]
 println(s"L2 distances: ${distances}")
-// L2 distances: [20.12461 45.     ]
 
 // zipvmap with 4 tensors
 val t3 = t1 *! Tensor0(2.0f)
-// t3: Tensor[Tuple2[A, B], Float] = [[2. 4.]
-//  [6. 8.]]
 val t4 = t2 /! Tensor0(2.0f)
-// t4: Tensor[Tuple2[A, B], Float] = [[ 5. 10.]
-//  [15. 20.]]
 val result = zipvmap(Axis[A])(t1, t2, t3, t4) { (a, b, c, d) =>
   a.sum + b.sum - c.sum + d.sum
 }
-// result: Tensor[*:[A, EmptyTuple], Float] = [42. 98.]
 ```
 
 ### vapply: Axis-wise Function Application
@@ -826,21 +623,15 @@ Unlike `vmap`, `vapply` allows applying **different** functions to each slice.
 val matrix = Tensor2(Axis[A], Axis[B]).fromArray(
   Array(Array(1.0f, 2.0f), Array(3.0f, 4.0f))
 )
-// matrix: Tensor[Tuple2[A, B], Float] = [[1. 2.]
-//  [3. 4.]]
 
 // Normalize each row by its L2 norm
 val normalized = matrix.vapply(Axis[A]) { row =>
   val norm = row.pow(Tensor0(2.0f)).sum.sqrt + Tensor0(1e-8f)
   row /! norm
 }
-// normalized: Tensor[*:[A, *:[B, EmptyTuple]], Float] = [[0.31622776 0.44721365]
-//  [0.94868326 0.8944273 ]]
 
 // Identity vapply
 val same = matrix.vapply(Axis[A])(identity)
-// same: Tensor[*:[A, *:[B, EmptyTuple]], Float] = [[1. 2.]
-//  [3. 4.]]
 ```
 
 ### vreduce: Functional Reduction
@@ -852,19 +643,13 @@ trait A derives Label
 trait B derives Label
 
 val t = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f, 3.0f), Array(4.0f, 5.0f, 6.0f)))
-// t: Tensor[Tuple2[A, B], Float] = [[1. 2. 3.]
-//  [4. 5. 6.]]
 
 // Equivalent to .sum(Axis[A])
 val summedA = t.vreduce(Axis[A])(_.sum)
-// summedA: Tensor[*:[B, EmptyTuple], Float] = [5. 7. 9.]
 val summedB = t.vreduce(Axis[B])(_.sum)
-// summedB: Tensor[*:[A, EmptyTuple], Float] = [ 6. 15.]
 
 println(s"Reduced A: ${summedA}")
-// Reduced A: [5. 7. 9.]
 println(s"Reduced B: ${summedB}")
-// Reduced B: [ 6. 15.]
 ```
 
 ---
@@ -886,25 +671,17 @@ import dimwit.autodiff.Autodiff
 def f(x: Tensor0[Float]): Tensor0[Float] = x * x
 
 val df = Autodiff.grad(f)
-// df: Function1[Tensor0[Float], Grad[Tensor0[Float]]] = dimwit.autodiff.Autodiff$$$Lambda/0x00007042d4930ae0@1ac0aa03
 val x = Tensor0(3.0f)
-// x: Tensor[EmptyTuple, Float] = 3.0
 val gradient = df(x)
-// gradient: Grad[Tensor0[Float]] = 6.0
 println(s"df/dx at x=3: ${gradient.value.item}")  // 6.0
-// df/dx at x=3: 6.0
 
 // Vector function: f(x) = sum(x²)
 def g(x: Tensor1[A, Float]): Tensor0[Float] = (x * x).sum
 
 val dg = Autodiff.grad(g)
-// dg: Function1[Tensor1[A, Float], Grad[Tensor1[A, Float]]] = dimwit.autodiff.Autodiff$$$Lambda/0x00007042d4930ae0@6c098a8f
 val xVec = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f, 3.0f))
-// xVec: Tensor[Tuple1[A], Float] = [1. 2. 3.]
 val vecGradient = dg(xVec)
-// vecGradient: Grad[Tensor1[A, Float]] = [2. 4. 6.]
 println(s"dg/dx: ${vecGradient}")  // [2.0, 4.0, 6.0]
-// dg/dx: [2. 4. 6.]
 ```
 
 ### Higher-Order Derivatives
@@ -914,22 +691,16 @@ def f2(x: Tensor0[Float]): Tensor0[Float] = x * x
 
 // First derivative
 val df2 = Autodiff.grad(f2)
-// df2: Function1[Tensor0[Float], Grad[Tensor0[Float]]] = dimwit.autodiff.Autodiff$$$Lambda/0x00007042d4930ae0@dac8013
 
 // Second derivative
 val ddf2 = Autodiff.grad((x: Tensor0[Float]) => df2(x).value)
-// ddf2: Function1[Tensor0[Float], Grad[Tensor0[Float]]] = dimwit.autodiff.Autodiff$$$Lambda/0x00007042d4930ae0@19488615
 
 // Third derivative
 val dddf2 = Autodiff.grad((x: Tensor0[Float]) => ddf2(x).value)
-// dddf2: Function1[Tensor0[Float], Grad[Tensor0[Float]]] = dimwit.autodiff.Autodiff$$$Lambda/0x00007042d4930ae0@4cb93aa
 
 val x2 = Tensor0(3.0f)
-// x2: Tensor[EmptyTuple, Float] = 3.0
 println(s"f''(3) = ${ddf2(x2).value.item}")   // 2.0
-// f''(3) = 2.0
 println(s"f'''(3) = ${dddf2(x2).value.item}") // 0.0
-// f'''(3) = 0.0
 ```
 
 ### Gradients with Multiple Parameters
@@ -940,20 +711,13 @@ def twoParam(x: Tensor1[A, Float], y: Tensor1[A, Float]): Tensor0[Float] =
   ((x + (y *! Tensor0(2.0f))).pow(Tensor0(2.0f))).sum
 
 val dtwoParam = Autodiff.grad(twoParam)
-// dtwoParam: Function2[Tensor1[A, Float], Tensor1[A, Float], Grad[Tuple2[Tensor1[A, Float], Tensor1[A, Float]]]] = dimwit.autodiff.Autodiff$$$Lambda/0x00007042d4931370@7047d73e
 
 val x3 = Tensor1(Axis[A]).fromArray(Array(1.0f))
-// x3: Tensor[Tuple1[A], Float] = [1.]
 val y3 = Tensor1(Axis[A]).fromArray(Array(1.0f))
-// y3: Tensor[Tuple1[A], Float] = [1.]
 
 val (xGrad, yGrad) = dtwoParam(x3, y3).value
-// xGrad: Tensor[Tuple1[A], Float] = [6.]
-// yGrad: Tensor[Tuple1[A], Float] = [12.]
 println(s"∂f/∂x = ${xGrad}")  // [6.0]
-// ∂f/∂x = [6.]
 println(s"∂f/∂y = ${yGrad}")  // [12.0]
-// ∂f/∂y = [12.]
 ```
 
 ### Gradients with vmap
@@ -970,17 +734,10 @@ def batched(x: Tensor2[Batch, Feature, Float]): Tensor0[Float] =
   x.vmap(Axis[Batch])(_.sum).sum
 
 val dBatched = Autodiff.grad(batched)
-// dBatched: Function1[Tensor2[Batch, Feature, Float], Grad[Tensor2[Batch, Feature, Float]]] = dimwit.autodiff.Autodiff$$$Lambda/0x00007042d4930ae0@2f249e7c
 
 val xBatch = Tensor(Shape(Axis[Batch] -> 2, Axis[Feature] -> 2)).fill(1.0f)
-// xBatch: Tensor[*:[Batch, *:[Feature, EmptyTuple]], Float] = [[1. 1.]
-//  [1. 1.]]
 val batchGrad = dBatched(xBatch)
-// batchGrad: Grad[Tensor2[Batch, Feature, Float]] = [[1. 1.]
-//  [1. 1.]]
 println(s"Batch gradient: ${batchGrad}")
-// Batch gradient: [[1. 1.]
-//  [1. 1.]]
 ```
 
 ### TensorTree for Parameter Structures
@@ -1011,33 +768,16 @@ def loss(data: Tensor1[Feature, Float], target: Tensor1[Hidden, Float])(params: 
 
 // Compute gradient with respect to ALL parameters
 val sampleData = Tensor1(Axis[Feature]).fromArray(Array(1.0f, 2.0f, 3.0f))
-// sampleData: Tensor[Tuple1[Feature], Float] = [1. 2. 3.]
 val sampleTarget = Tensor1(Axis[Hidden]).fromArray(Array(0.0f, 1.0f))
-// sampleTarget: Tensor[Tuple1[Hidden], Float] = [0. 1.]
 val initParams = LinearParams(
   weight = Tensor(Shape(Axis[Feature] -> 3, Axis[Hidden] -> 2)).fill(0.1f),
   bias = Tensor(Shape(Axis[Hidden] -> 2)).fill(0.0f)
 )
-// initParams: LinearParams = LinearParams(
-//   weight = [[0.1 0.1]
-//  [0.1 0.1]
-//  [0.1 0.1]],
-//   bias = [0. 0.]
-// )
 
 val dLoss = Autodiff.grad(loss(sampleData, sampleTarget))
-// dLoss: Function1[LinearParams, Grad[LinearParams]] = dimwit.autodiff.Autodiff$$$Lambda/0x00007042d4930ae0@2e41978e
 val paramGradients: LinearParams = dLoss(initParams).value
-// paramGradients: LinearParams = LinearParams(
-//   weight = [[ 1.2        -0.79999995]
-//  [ 2.4        -1.5999999 ]
-//  [ 3.6000001  -2.3999999 ]],
-//   bias = [ 1.2        -0.79999995]
-// )
 println(s"Weight gradient shape: ${paramGradients.weight.shape}")
-// Weight gradient shape: Shape(Feature -> 3, Hidden -> 2)
 println(s"Bias gradient shape: ${paramGradients.bias.shape}")
-// Bias gradient shape: Shape(Hidden -> 2)
 ```
 
 **Error: Non-differentiable types**
@@ -1068,21 +808,13 @@ trait A derives Label
 def linearMap(x: Tensor1[A, Float]): Tensor1[A, Float] = x *! Tensor0(2.0f)
 
 val jacobian = Autodiff.jacobian(linearMap)
-// jacobian: Function1[Tensor1[A, Float], Tensor[*:[A, Tuple1[A]], Float]] = dimwit.autodiff.Autodiff$$$Lambda/0x00007042d49324c0@3afd355b
 val xJac = Tensor1(Axis[A]).fromArray(Array(1.0f, 1.0f))
-// xJac: Tensor[Tuple1[A], Float] = [1. 1.]
 val jacResult = jacobian(xJac)
-// jacResult: Tensor[*:[A, Tuple1[A]], Float] = [[2. 0.]
-//  [0. 2.]]
 println(s"Jacobian: ${jacResult}")  // Should be 2 * identity matrix
-// Jacobian: [[2. 0.]
-//  [0. 2.]]
 
 // jacRev and jacFwd for larger Jacobians
 val jacRev = Autodiff.jacRev(linearMap)
-// jacRev: Function1[Tensor1[A, Float], Tensor[*:[A, Tuple1[A]], Float]] = dimwit.autodiff.Autodiff$$$Lambda/0x00007042d4932f18@3faeca9e
 val jacFwd = Autodiff.jacFwd(linearMap)
-// jacFwd: Function1[Tensor1[A, Float], Tensor[*:[A, Tuple1[A]], Float]] = dimwit.autodiff.Autodiff$$$Lambda/0x00007042d4933970@2217c3cb
 ```
 
 ---
@@ -1112,46 +844,21 @@ def mse(data: Tensor2[Batch, Feature, Float], labels: Tensor1[Batch, Float])
 
 // Initialize parameters
 val key = Random.Key(42)
-// key: Key = Key(
-//   jaxKey = Array((), dtype=key<fry>) overlaying:
-// [ 0 42]
-// )
 val numFeatures = 5
-// numFeatures: Int = 5
 val initW = Tensor1(Axis[Feature]).fromArray(Array.fill(numFeatures)(0.1f))
-// initW: Tensor[Tuple1[Feature], Float] = [0.1 0.1 0.1 0.1 0.1]
 val initB = Tensor0(0.0f)
-// initB: Tensor[EmptyTuple, Float] = 0.0
 val initModelParams = SimpleModelParams(initW, initB)
-// initModelParams: SimpleModelParams = SimpleModelParams(
-//   w = [0.1 0.1 0.1 0.1 0.1],
-//   b = 0.0
-// )
 
 // Create dummy data
 val trainData = Tensor(Shape(Axis[Batch] -> 10, Axis[Feature] -> numFeatures)).fill(1.0f)
-// trainData: Tensor[*:[Batch, *:[Feature, EmptyTuple]], Float] = [[1. 1. 1. 1. 1.]
-//  [1. 1. 1. 1. 1.]
-//  [1. 1. 1. 1. 1.]
-//  [1. 1. 1. 1. 1.]
-//  [1. 1. 1. 1. 1.]
-//  [1. 1. 1. 1. 1.]
-//  [1. 1. 1. 1. 1.]
-//  [1. 1. 1. 1. 1.]
-//  [1. 1. 1. 1. 1.]
-//  [1. 1. 1. 1. 1.]]
 val trainLabels = Tensor1(Axis[Batch]).fromArray(Array.fill(10)(1.0f))
-// trainLabels: Tensor[Tuple1[Batch], Float] = [1. 1. 1. 1. 1. 1. 1. 1. 1. 1.]
 
 // Compute gradient function
 val lossFunc = mse(trainData, trainLabels)
-// lossFunc: Function1[SimpleModelParams, Tensor0[Float]] = repl.MdocSession$MdocApp45$$Lambda/0x00007042d4946b20@38ea3008
 val gradFunc = Autodiff.grad(lossFunc)
-// gradFunc: Function1[SimpleModelParams, Grad[SimpleModelParams]] = dimwit.autodiff.Autodiff$$$Lambda/0x00007042d4930ae0@13885e0c
 
 // Create optimizer
 val optimizer = GradientDescent(learningRate = Tensor0(0.01f))
-// optimizer: GradientDescent = GradientDescent(learningRate = 0.01)
 
 // Training loop with iterator
 val trained = optimizer.iterate(initModelParams)(gradFunc)
@@ -1160,11 +867,6 @@ val trained = optimizer.iterate(initModelParams)(gradFunc)
     val currentLoss = lossFunc(params)
     println(f"Loss: ${currentLoss.item}%.4f")
   }
-// Loss: 0.2500
-// Loss: 0.1936
-// Loss: 0.1499
-// Loss: 0.1161
-// Loss: 0.0899
 ```
 
 ### Lion Optimizer
@@ -1174,60 +876,12 @@ import nn.Lion
 
 // Lion optimizer with momentum
 val lionOptimizer = Lion(learningRate = Tensor0(1e-3f), beta1 = Tensor0(0.9f), beta2 = Tensor0(0.99f), weightDecay = Tensor0(0.0f))
-// lionOptimizer: Lion = Lion(
-//   learningRate = 0.001,
-//   weightDecay = 0.0,
-//   beta1 = 0.9,
-//   beta2 = 0.99
-// )
 
 // Training with Lion
 val trainedLion = lionOptimizer.iterate(initModelParams)(gradFunc)
   .drop(100)  // Skip first 100 iterations
   .take(10)   // Train for 10 more
   .toList     // Collect results
-// trainedLion: List[SimpleModelParams] = List(
-//   SimpleModelParams(
-//     w = [0.2000002 0.2000002 0.2000002 0.2000002 0.2000002],
-//     b = 0.100000024
-//   ),
-//   SimpleModelParams(
-//     w = [0.2010002 0.2010002 0.2010002 0.2010002 0.2010002],
-//     b = 0.101000026
-//   ),
-//   SimpleModelParams(
-//     w = [0.2020002 0.2020002 0.2020002 0.2020002 0.2020002],
-//     b = 0.10200003
-//   ),
-//   SimpleModelParams(
-//     w = [0.2030002 0.2030002 0.2030002 0.2030002 0.2030002],
-//     b = 0.10300003
-//   ),
-//   SimpleModelParams(
-//     w = [0.2040002 0.2040002 0.2040002 0.2040002 0.2040002],
-//     b = 0.10400003
-//   ),
-//   SimpleModelParams(
-//     w = [0.2050002 0.2050002 0.2050002 0.2050002 0.2050002],
-//     b = 0.105000034
-//   ),
-//   SimpleModelParams(
-//     w = [0.20600021 0.20600021 0.20600021 0.20600021 0.20600021],
-//     b = 0.106000036
-//   ),
-//   SimpleModelParams(
-//     w = [0.20700021 0.20700021 0.20700021 0.20700021 0.20700021],
-//     b = 0.10700004
-//   ),
-//   SimpleModelParams(
-//     w = [0.20800021 0.20800021 0.20800021 0.20800021 0.20800021],
-//     b = 0.10800004
-//   ),
-//   SimpleModelParams(
-//     w = [0.20900021 0.20900021 0.20900021 0.20900021 0.20900021],
-//     b = 0.10900004
-//   )
-// )
 ```
 
 ### Complete Training Example: Linear Regression
@@ -1239,78 +893,12 @@ trait InputDim derives Label
 
 // Generate synthetic data: y = 2x + 1 + noise
 val numSamples = 100
-// numSamples: Int = 100
 val xData = Tensor2(Axis[Sample], Axis[InputDim]).fromArray(
   Array.tabulate(numSamples, 1)((i, _) => i.toFloat / numSamples)
 )
-// xData: Tensor[Tuple2[Sample, InputDim], Float] = [[0.  ]
-//  [0.01]
-//  [0.02]
-//  [0.03]
-//  [0.04]
-//  [0.05]
-//  [0.06]
-//  [0.07]
-//  [0.08]
-//  [0.09]
-//  [0.1 ]
-//  [0.11]
-//  [0.12]
-//  [0.13]
-//  [0.14]
-//  [0.15]
-//  [0.16]
-//  [0.17]
-//  [0.18]
-//  [0.19]
-//  [0.2 ]
-//  [0.21]
-//  [0.22]
-//  [0.23]
-//  [0.24]
-//  [0.25]
-//  [0.26]
-//  [0.27]
-//  [0.28]
-//  [0.29]
-//  [0.3 ]
-//  [0.31]
-//  [0.32]
-//  [0.33]
-//  [0.34]
-//  [0.35]
-//  [0.36]
-//  [0.37]
-//  [0.38]
-//  [0.39]
-//  [0.4 ]
-//  [0.41]
-//  [0.42]
-//  [0.43]
-//  [0.44]
-//  [0.45]
-//  [0.46]
-//  [0.47]
-//  [0.48]
-// ...
 val yData = Tensor1(Axis[Sample]).fromArray(
   Array.tabulate(numSamples)(i => 2.0f * i.toFloat / numSamples + 1.0f)
 )
-// yData: Tensor[Tuple1[Sample], Float] = [1.        1.02      1.04      1.06      1.08      1.1       1.12
-//  1.14      1.16      1.1800001 1.2       1.22      1.24      1.26
-//  1.28      1.3       1.3199999 1.34      1.36      1.38      1.4
-//  1.42      1.44      1.46      1.48      1.5       1.52      1.54
-//  1.56      1.5799999 1.6       1.62      1.64      1.6600001 1.6800001
-//  1.7       1.72      1.74      1.76      1.78      1.8       1.8199999
-//  1.8399999 1.86      1.88      1.9       1.9200001 1.94      1.96
-//  1.98      2.        2.02      2.04      2.06      2.08      2.1
-//  2.12      2.1399999 2.1599998 2.1799998 2.2       2.22      2.24
-//  2.26      2.28      2.3       2.3200002 2.3400002 2.3600001 2.38
-//  2.4       2.42      2.44      2.46      2.48      2.5       2.52
-//  2.54      2.56      2.58      2.6       2.62      2.6399999 2.6599998
-//  2.6799998 2.7       2.72      2.74      2.76      2.78      2.8
-//  2.8200002 2.8400002 2.8600001 2.88      2.9       2.92      2.94
-//  2.96      2.98     ]
 
 // Model parameters
 case class RegressionParams(slope: Tensor1[InputDim, Float], intercept: Tensor0[Float])
@@ -1325,36 +913,21 @@ def regressionLoss(x: Tensor2[Sample, InputDim, Float], y: Tensor1[Sample, Float
 
 // Initialize
 val initSlope = Tensor(Shape1(Axis[InputDim] -> 1)).fill(0.0f)
-// initSlope: Tensor[Tuple1[InputDim], Float] = [0.]
 val initIntercept = Tensor0(0.0f)
-// initIntercept: Tensor[EmptyTuple, Float] = 0.0
 val initRegressionParams = RegressionParams(initSlope, initIntercept)
-// initRegressionParams: RegressionParams = RegressionParams(
-//   slope = [0.],
-//   intercept = 0.0
-// )
 
 // Train
 val regressionGrad = Autodiff.grad(regressionLoss(xData, yData))
-// regressionGrad: Function1[RegressionParams, Grad[RegressionParams]] = dimwit.autodiff.Autodiff$$$Lambda/0x00007042d4930ae0@5cadaea7
 val gdOptimizer = GradientDescent(learningRate = Tensor0(0.1f))
-// gdOptimizer: GradientDescent = GradientDescent(learningRate = 0.1)
 
 val finalParams = gdOptimizer.iterate(initRegressionParams)(regressionGrad)
   .take(100)
   .toList
   .last
-// finalParams: RegressionParams = RegressionParams(
-//   slope = [1.6920885],
-//   intercept = 1.1631879
-// )
 
 println(s"Learned slope: ${finalParams.slope}")
-// Learned slope: [1.6920885]
 println(s"Learned intercept: ${finalParams.intercept}")
-// Learned intercept: 1.1631879
 println(s"Expected: slope ≈ 2.0, intercept ≈ 1.0")
-// Expected: slope ≈ 2.0, intercept ≈ 1.0
 ```
 
 ---
@@ -1380,22 +953,16 @@ def complexComputation(x: Tensor1[A, Float]): Tensor1[A, Float] =
 
 // JIT compile the function
 val jitComplex = jit(complexComputation)
-// jitComplex: Function1[Tensor1[A, Float], Tensor1[A, Float]] = dimwit.jax.JitInternal$$$Lambda/0x00007042d4955268@7d9681d5
 
 // First call: compilation overhead
 val input = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f, 3.0f))
-// input: Tensor[Tuple1[A], Float] = [1. 2. 3.]
 val result1 = jitComplex(input)
-// result1: Tensor[Tuple1[A], Float] = [0.7080735  0.82682186 0.01991485]
 
 // Subsequent calls: fast execution
 val result2 = jitComplex(input *! Tensor0(2.0f))
-// result2: Tensor[Tuple1[A], Float] = [0.82682186 0.57275003 0.07807302]
 val result3 = jitComplex(input *! Tensor0(3.0f))
-// result3: Tensor[Tuple1[A], Float] = [0.01991485 0.07807302 0.16984165]
 
 println(s"JIT result: ${result1}")
-// JIT result: [0.7080735  0.82682186 0.01991485]
 ```
 
 ### JIT with Donation (Memory Efficiency)
@@ -1426,70 +993,24 @@ import dimwit.stats.{Normal, Uniform}
 
 // Create root key
 val rootKey = Random.Key(42)
-// rootKey: Key = Key(
-//   jaxKey = Array((), dtype=key<fry>) overlaying:
-// [ 0 42]
-// )
 
 // Split key for independent random streams
 val (key1, key2) = rootKey.split2()
-// key1: Key = Key(
-//   jaxKey = Array((), dtype=key<fry>) overlaying:
-// [2465931498 3679230171]
-// )
-// key2: Key = Key(
-//   jaxKey = Array((), dtype=key<fry>) overlaying:
-// [255383827 267815257]
-// )
 val keys = rootKey.split(5)  // Split into 5 keys
-// keys: Seq[Key] = Vector(
-//   Key(
-//     jaxKey = Array((), dtype=key<fry>) overlaying:
-// [2765691542 1385194879]
-//   ),
-//   Key(
-//     jaxKey = Array((), dtype=key<fry>) overlaying:
-// [ 831049250 3807460095]
-//   ),
-//   Key(
-//     jaxKey = Array((), dtype=key<fry>) overlaying:
-// [3616728933  824333390]
-//   ),
-//   Key(
-//     jaxKey = Array((), dtype=key<fry>) overlaying:
-// [1482326074 1083977345]
-//   ),
-//   Key(
-//     jaxKey = Array((), dtype=key<fry>) overlaying:
-// [2713995981 2812206153]
-//   )
-// )
 
 // Generate random numbers
 val normalDist = Normal(loc = Tensor0(0.0f), scale = Tensor0(1.0f))
-// normalDist: Normal[EmptyTuple] = dimwit.stats.Normal@3676277f
 val randomSample = normalDist.sample(key1)
-// randomSample: Tensor[EmptyTuple, Float] = 0.13790321
 println(s"Normal samples: ${randomSample}")
-// Normal samples: 0.13790321
 
 val uniformDist = Uniform(low = Tensor0(0.0f), high = Tensor0(1.0f))
-// uniformDist: Uniform[EmptyTuple] = dimwit.stats.Uniform@4ac8deb3
 val uniformSample = uniformDist.sample(key2)
-// uniformSample: Tensor[EmptyTuple, Float] = 0.91457367
 println(s"Uniform samples: ${uniformSample}")
-// Uniform samples: 0.91457367
 
 // Permutations
 val (permKey, _) = rootKey.split2()
-// permKey: Key = Key(
-//   jaxKey = Array((), dtype=key<fry>) overlaying:
-// [2465931498 3679230171]
-// )
 val shuffled = Random.permutation(Axis[A] -> 5)(permKey)
-// shuffled: Tensor[Tuple1[A], Int] = [1 0 4 3 2]
 println(s"Shuffled: ${shuffled}")
-// Shuffled: [1 0 4 3 2]
 ```
 
 ### Random Key Splitting with vmap
@@ -1499,15 +1020,9 @@ trait B derives Label
 
 // Split keys in parallel
 val batchKey = Random.Key(123)
-// batchKey: Key = Key(
-//   jaxKey = Array((), dtype=key<fry>) overlaying:
-// [  0 123]
-// )
 val batchKeys = batchKey.splitvmap(Axis[A] -> 8)(k => Normal.standardSample(k))
-// batchKeys: Tensor[*:[A, EmptyTuple], Float] = [ 0.7345024  -1.2327704  -0.2328729  -0.3326209   0.59855974 -0.5103833
-//   0.83037174  0.596546  ]
 println(s"Batch keys shape: ${batchKeys.shape}")
-// Batch keys shape: Shape(A -> 8)
+
 ```
 
 ---
@@ -1746,55 +1261,6 @@ trait SeqLen derives Label
 trait EmbedDim derives Label
 
 val embeddings = Tensor(Shape3(Axis[Batch] -> 8, Axis[SeqLen] -> 128, Axis[EmbedDim] -> 64)).fill(0.0f)
-// embeddings: Tensor[Tuple3[Batch, SeqLen, EmbedDim], Float] = [[[0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]
-//   ...
-//   [0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]]
-// 
-//  [[0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]
-//   ...
-//   [0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]]
-// 
-//  [[0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]
-//   ...
-//   [0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]]
-// 
-//  ...
-// 
-//  [[0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]
-//   ...
-//   [0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]]
-// 
-//  [[0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]
-//   ...
-//   [0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]]
-// 
-//  [[0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]
-//   ...
-//   [0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]
-//   [0. 0. 0. ... 0. 0. 0.]]]
 
 // AVOID: Generic A, B, C in production code
 ```
@@ -1834,15 +1300,11 @@ case class ModelParams(
 trait Sample derives Label
 
 val data = Tensor1(Axis[Sample]).fromArray(Array(1.0f, 2.0f, 3.0f))
-// data: Tensor[Tuple1[Sample], Float] = [1. 2. 3.]
 val mean = data.mean
-// mean: Tensor[EmptyTuple, Float] = 2.0
 val std = data.std
-// std: Tensor[EmptyTuple, Float] = 0.81649655
 
 // GOOD: Clear intent
 val normalized = (data -! mean) /! std
-// normalized: Tensor[Tuple1[Sample], Float] = [-1.2247449  0.         1.2247449]
 
 // AVOID: Mixing broadcast and non-broadcast without clarity
 ```
@@ -1856,29 +1318,13 @@ import dimwit.stats.{Normal, Uniform}
 trait A derives Label
 
 val rootKey = Random.Key(42)
-// rootKey: Key = Key(
-//   jaxKey = Array((), dtype=key<fry>) overlaying:
-// [ 0 42]
-// )
 val normalDist = Normal(loc = Tensor0(0.0f), scale = Tensor0(1.0f))
-// normalDist: Normal[EmptyTuple] = dimwit.stats.Normal@2563115e
 val uniformDist = Uniform(low = Tensor0(0.0f), high = Tensor0(1.0f))
-// uniformDist: Uniform[EmptyTuple] = dimwit.stats.Uniform@6368ffd3
 
 // GOOD: Explicit key threading
 val (key1, key2) = rootKey.split2()
-// key1: Key = Key(
-//   jaxKey = Array((), dtype=key<fry>) overlaying:
-// [2465931498 3679230171]
-// )
-// key2: Key = Key(
-//   jaxKey = Array((), dtype=key<fry>) overlaying:
-// [255383827 267815257]
-// )
 val sample1 = normalDist.sample(key1)
-// sample1: Tensor[EmptyTuple, Float] = 0.13790321
 val sample2 = uniformDist.sample(key2)
-// sample2: Tensor[EmptyTuple, Float] = 0.91457367
 
 // AVOID: Stateful random number generators
 ```
@@ -1891,15 +1337,11 @@ import dimwit.jax.Jit.jit
 trait Input derives Label
 
 val simpleFunc = (x: Tensor1[Input, Float]) => x *! Tensor0(2.0f)
-// simpleFunc: Function1[Tensor1[Input, Float], Tensor[Tuple1[Input], Float]] = repl.MdocSession$MdocApp67$$Lambda/0x00007042d4963eb8@11aeae3c
 
 // GOOD: JIT for repeated calls
 val jitFunc = jit(simpleFunc)
-// jitFunc: Function1[Tensor1[Input, Float], Tensor[Tuple1[Input], Float]] = dimwit.jax.JitInternal$$$Lambda/0x00007042d4955268@6523aea
 val testData = Tensor1(Axis[Input]).fromArray(Array(1.0f, 2.0f, 3.0f))
-// testData: Tensor[Tuple1[Input], Float] = [1. 2. 3.]
 val predictions = jitFunc(testData)
-// predictions: Tensor[Tuple1[Input], Float] = [2. 4. 6.]
 
 // AVOID: JIT for one-off computations (overhead exceeds benefit)
 ```
