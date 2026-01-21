@@ -1,6 +1,7 @@
 import scala.annotation.targetName
 
 import dimwit.jax.Jax
+import dimwit.tensor.{Axis, AxisExtent, AxisSelector, AxisAtIndex, AxisAtRange, AxisAtIndices, AxisAtTensorIndex}
 
 package object dimwit:
 
@@ -61,7 +62,22 @@ package object dimwit:
   export dimwit.tensor.{Tensor, Tensor0, Tensor1, Tensor2, Tensor3}
   export dimwit.tensor.{Shape, Shape0, Shape1, Shape2, Shape3}
   export dimwit.tensor.{DType, Device}
-  export dimwit.tensor.{VType, ExecutionType, ExecutionTypeFor, Label, Labels, Axis, AxisIndex, AxisIndices, Dim}
+  export dimwit.tensor.{
+    VType,
+    ExecutionType,
+    ExecutionTypeFor,
+    Label,
+    Labels,
+    Axis,
+    AxisIndex,
+    AxisIndices,
+    AxisExtent,
+    AxisSelector,
+    AxisAtIndex,
+    AxisAtRange,
+    AxisAtIndices,
+    AxisAtTensorIndex
+  }
 
   // Export operations
   export dimwit.tensor.TensorOps.*

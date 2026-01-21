@@ -15,7 +15,7 @@ final case class Shape[+T <: Tuple: Labels] @publicInBinary private (
 
   def rank: Int = dimensions.size
   def size: Int = dimensions.foldLeft(1)((acc, d) => acc * d.asInstanceOf[Int])
-  def dim[L](axis: Axis[L])(using axisIndex: AxisIndex[T @uncheckedVariance, L]): Dim[L] = axis -> this(axis)
+  def extent[L](axis: Axis[L])(using axisIndex: AxisIndex[T @uncheckedVariance, L]): AxisExtent[L] = AxisExtent(axis, this(axis))
   def apply[L](axis: Axis[L])(using axisIndex: AxisIndex[T @uncheckedVariance, L]): Int = this.dimensions(axisIndex.value)
 
   override def toString: String =
@@ -33,12 +33,12 @@ final case class Shape[+T <: Tuple: Labels] @publicInBinary private (
 object Shape:
 
   private[tensor] type ExtractLabels[Args <: Tuple] <: Tuple = Args match
-    case EmptyTuple             => EmptyTuple
-    case (Axis[l], Int) *: tail => l *: ExtractLabels[tail]
+    case EmptyTuple            => EmptyTuple
+    case AxisExtent[l] *: tail => l *: ExtractLabels[tail]
 
   def empty: Shape[EmptyTuple] = new Shape(Nil)
 
-  def apply[L: Label](dim: Dim[L]): Shape[L *: EmptyTuple] =
+  def apply[L: Label](dim: AxisExtent[L]): Shape[L *: EmptyTuple] =
     Shape.fromTuple(Tuple1(dim))
 
   def apply[A <: Tuple](args: A)(using n: Labels[ExtractLabels[A]]): Shape[ExtractLabels[A]] =
@@ -46,7 +46,7 @@ object Shape:
 
   def fromTuple[A <: Tuple](args: A)(using n: Labels[ExtractLabels[A]]): Shape[ExtractLabels[A]] =
     val sizes = args.toList.collect:
-      case (_, s: Int) => s
+      case ae: AxisExtent[?] => ae.size
     new Shape(sizes)
 
   private[tensor] def fromSeq[T <: Tuple: Labels](dims: Seq[Int]) = new Shape[T](dims.toList)
@@ -59,17 +59,17 @@ type Shape3[L1, L2, L3] = Shape[L1 *: L2 *: L3 *: EmptyTuple]
 val Shape0 = Shape.empty
 
 object Shape1:
-  def apply[L: Label](dim: Dim[L]): Shape[Tuple1[L]] = Shape(dim)
+  def apply[L: Label](dim: AxisExtent[L]): Shape[Tuple1[L]] = Shape(dim)
 
 object Shape2:
   def apply[L1: Label, L2: Label](
-      dim1: Dim[L1],
-      dim2: Dim[L2]
+      dim1: AxisExtent[L1],
+      dim2: AxisExtent[L2]
   ): Shape[(L1, L2)] = Shape.fromTuple(dim1, dim2)
 
 object Shape3:
   def apply[L1: Label, L2: Label, L3: Label](
-      dim1: Dim[L1],
-      dim2: Dim[L2],
-      dim3: Dim[L3]
+      dim1: AxisExtent[L1],
+      dim2: AxisExtent[L2],
+      dim3: AxisExtent[L3]
   ): Shape[(L1, L2, L3)] = Shape.fromTuple(dim1, dim2, dim3)

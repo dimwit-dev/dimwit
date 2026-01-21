@@ -63,8 +63,8 @@ class Tensor[T <: Tuple: Labels, V] private[tensor] (
         s"TracerTensor(${shape.toString})"
       case _ => jaxValue.toString()
 
-  def dim[L](axis: Axis[L])(using axisIndex: AxisIndex[T @uncheckedVariance, L]): Dim[L] =
-    shape.dim(axis)
+  def extent[L](axis: Axis[L])(using axisIndex: AxisIndex[T @uncheckedVariance, L]): AxisExtent[L] =
+    shape.extent(axis)
 
   private val jaxTypeName: String = py.Dynamic.global.`type`(jaxValue).`__name__`.as[String]
 
@@ -116,7 +116,7 @@ object Tensor0:
 object Tensor1:
 
   case class Factory[L: Label](val axis: Axis[L]):
-    private def createShape(l: Int): Shape1[L] = Shape1(axis -> l)
+    private def createShape(l: Int): Shape1[L] = Shape1(AxisExtent(axis, l))
     def fromArray[A: ExecutionType, V](values: Array[A])(using t2a: ArrayWriter.Aux[A, V]): Tensor[Tuple1[L], V] = Tensor(createShape(values.length)).fromArray(values)
 
   def apply[L: Label](axis: Axis[L]): Tensor1.Factory[L] = Tensor1.Factory(axis)
@@ -124,21 +124,21 @@ object Tensor1:
 object Tensor2:
 
   case class Factory[L1: Label, L2: Label](val axis1: Axis[L1], val axis2: Axis[L2]):
-    private def createShape[V](valeus: Array[Array[V]]): Shape2[L1, L2] = Shape2(axis1 -> valeus.length, axis2 -> valeus.head.length)
+    private def createShape[V](values: Array[Array[V]]): Shape2[L1, L2] = Shape2(AxisExtent(axis1, values.length), AxisExtent(axis2, values.head.length))
     def fromArray[A: ClassTag: ExecutionType, V](values: Array[Array[A]])(using t2a: ArrayWriter.Aux[A, V]): Tensor[(L1, L2), V] = Tensor(createShape(values)).fromArray(values.flatten)
 
   def apply[L1: Label, L2: Label](axis1: Axis[L1], axis2: Axis[L2]): Tensor2.Factory[L1, L2] = Tensor2.Factory(axis1, axis2)
 
-  private def eyeImpl[L: Label, V](dim: Dim[L], dtype: DType): Tensor2[L, L, V] = Tensor(Jax.jnp.eye(dim._2, dtype = dtype.jaxType))
-  def eye[L: Label](dim: Dim[L])(using et: ExecutionType[Float]): Tensor2[L, L, Float] = eyeImpl(dim, et.dtype)
-  def eye[L: Label, V](dim: Dim[L], vtype: VType[V]): Tensor2[L, L, V] = eyeImpl(dim, vtype.dtype)
+  private def eyeImpl[L: Label, V](dim: AxisExtent[L], dtype: DType): Tensor2[L, L, V] = Tensor(Jax.jnp.eye(dim.size, dtype = dtype.jaxType))
+  def eye[L: Label](dim: AxisExtent[L])(using et: ExecutionType[Float]): Tensor2[L, L, Float] = eyeImpl(dim, et.dtype)
+  def eye[L: Label, V](dim: AxisExtent[L], vtype: VType[V]): Tensor2[L, L, V] = eyeImpl(dim, vtype.dtype)
   def diag[L: Label, V](diag: Tensor1[L, V]): Tensor2[L, L, V] = Tensor(Jax.jnp.diag(diag.jaxValue))
 
 object Tensor3:
 
   case class Factory[L1: Label, L2: Label, L3: Label](val axis1: Axis[L1], val axis2: Axis[L2], val axis3: Axis[L3]):
     private def createShape[V](values: Array[Array[Array[V]]]): Shape3[L1, L2, L3] =
-      Shape3(axis1 -> values.length, axis2 -> values.head.length, axis3 -> values.head.head.length)
+      Shape3(AxisExtent(axis1, values.length), AxisExtent(axis2, values.head.length), AxisExtent(axis3, values.head.head.length))
     def fromArray[A: ExecutionType: ClassTag, V](values: Array[Array[Array[A]]])(using t2a: ArrayWriter.Aux[A, V]): Tensor3[L1, L2, L3, V] =
       Tensor(createShape(values)).fromArray(values.flatten.flatten)
 

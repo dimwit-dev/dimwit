@@ -215,8 +215,8 @@ case class Inference(gpt2: GPT2, tokenizer: Tokenizer):
       ).fromArray(
         paddedTokenIds.toArray
       )
-      val predTokensTensor = gpt2(inputTensor).slice(Axis[Batch] -> 0)
-      val nextToken = predTokensTensor.slice(Axis[Context] -> (currentTokenIds.length - 1))
+      val predTokensTensor = gpt2(inputTensor).slice((Axis[Batch].at(0)))
+      val nextToken = predTokensTensor.slice(Axis[Context].at(currentTokenIds.length - 1))
       val nextTokens = currentTokenIds :+ nextToken.item
       val decoded = tokenizer.decode(nextTokens)
       System.gc()

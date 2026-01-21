@@ -204,11 +204,11 @@ object AutoencoderExample:
     val ae = Autoencoder(trainedParams)
 
     val reconstructed = testX
-      .slice(Axis[TestSample] -> (0 until 64))
+      .slice(Axis[TestSample].at(0 until 64))
       .vmap(Axis[TestSample]): sample =>
         val latent = ae.encoder(sample.ravel)
         ae.decoder(latent)
-      .relabel(Axis[TestSample] -> Axis[Prime[Height] |*| Prime[Width]])
+      .relabel(Axis[TestSample].as(Axis[Prime[Height] |*| Prime[Width]]))
 
     val img2d = reconstructed.rearrange(
       (Axis[Prime[Height] |*| Height], Axis[Prime[Width] |*| Width]),

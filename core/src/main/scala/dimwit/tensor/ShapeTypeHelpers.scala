@@ -14,8 +14,8 @@ object ShapeTypeHelpers:
     case h *: tail       => h *: UnwrapAxes[tail]
 
   type UnwrapDims[T <: Tuple] <: Tuple = T match
-    case EmptyTuple             => EmptyTuple
-    case (Axis[a], Int) *: tail => a *: UnwrapDims[tail]
+    case EmptyTuple            => EmptyTuple
+    case AxisExtent[a] *: tail => a *: UnwrapDims[tail]
 
   @implicitNotFound("Axis[${Axis}] not found in Tensor[${TensorShape}]")
   trait AxisInTensor[TensorShape <: Tuple, Axis]:
@@ -125,11 +125,11 @@ object ShapeTypeHelpers:
     given [L, Tail <: Tuple](using
         label: Label[L],
         tailExtractor: DimExtractor[Tail]
-    ): DimExtractor[(Axis[L], Int) *: Tail] with
-      def extract(t: (Axis[L], Int) *: Tail) =
-        val (_, size) = t.head
+    ): DimExtractor[AxisExtent[L] *: Tail] with
+      def extract(t: AxisExtent[L] *: Tail) =
+        val size = t.head.size
         Map(label.name -> size) ++ tailExtractor.extract(t.tail)
 
-    given single[L](using label: Label[L]): DimExtractor[(Axis[L], Int)] with
-      def extract(t: (Axis[L], Int)) =
-        Map(label.name -> t._2)
+    given single[L](using label: Label[L]): DimExtractor[AxisExtent[L]] with
+      def extract(t: AxisExtent[L]) =
+        Map(label.name -> t.size)

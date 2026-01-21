@@ -15,8 +15,8 @@ class ShapeSuite extends AnyFunSpec with Matchers:
     shape.size shouldBe 6
     shape(Axis[A]) shouldBe 2
     shape(Axis[B]) shouldBe 3
-    shape.dim(Axis[A]) shouldBe a[Dim[A]]
-    shape.dim(Axis[A])._2 shouldBe shape(Axis[A])
-    shape.dim(Axis[B]) shouldBe a[Dim[B]]
-    shape.dim(Axis[B])._2 shouldBe shape(Axis[B])
+    shape.extent(Axis[A]) shouldBe a[AxisExtent[A]]
+    shape.extent(Axis[A]).size shouldBe shape(Axis[A])
+    shape.extent(Axis[B]) shouldBe a[AxisExtent[B]]
+    shape.extent(Axis[B]).size shouldBe shape(Axis[B])
     shape.labels shouldBe List("A", "B")
