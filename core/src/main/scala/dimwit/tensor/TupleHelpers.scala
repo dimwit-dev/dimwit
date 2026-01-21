@@ -249,3 +249,14 @@ object TupleHelpers:
     ): PrimeConcat.Aux[R1, R2, Tuple.Concat[R1, Suffix]] =
       new PrimeConcat[R1, R2]:
         type Out = Tuple.Concat[R1, Suffix]
+
+  // Match type versions for compile-time reduction
+  // PrimeRest: Transform tuple elements, adding Prime[H] if H is in Fixed
+  type PrimeRestType[Fixed <: Tuple, Incoming <: Tuple] <: Tuple = Incoming match
+    case EmptyTuple => EmptyTuple
+    case h *: t     => Member[h, Fixed] match
+        case true  => Prime[h] *: PrimeRestType[Fixed, t]
+        case false => h *: PrimeRestType[Fixed, t]
+
+  // PrimeConcat: Concatenate R1 with primed version of R2
+  type PrimeConcatType[R1 <: Tuple, R2 <: Tuple] = Tuple.Concat[R1, PrimeRestType[R1, R2]]

@@ -14,6 +14,7 @@ import me.shadaj.scalapy.readwrite.Writer
 import scala.reflect.ClassTag
 import scala.annotation.unchecked.uncheckedVariance
 import dimwit.stats.IndependentDistribution
+import dimwit.Prime
 
 enum Device(val platform: String):
   case CPU extends Device("cpu")
@@ -129,10 +130,10 @@ object Tensor2:
 
   def apply[L1: Label, L2: Label](axis1: Axis[L1], axis2: Axis[L2]): Tensor2.Factory[L1, L2] = Tensor2.Factory(axis1, axis2)
 
-  private def eyeImpl[L: Label, V](dim: AxisExtent[L], dtype: DType): Tensor2[L, L, V] = Tensor(Jax.jnp.eye(dim.size, dtype = dtype.jaxType))
-  def eye[L: Label](dim: AxisExtent[L])(using et: ExecutionType[Float]): Tensor2[L, L, Float] = eyeImpl(dim, et.dtype)
-  def eye[L: Label, V](dim: AxisExtent[L], vtype: VType[V]): Tensor2[L, L, V] = eyeImpl(dim, vtype.dtype)
-  def diag[L: Label, V](diag: Tensor1[L, V]): Tensor2[L, L, V] = Tensor(Jax.jnp.diag(diag.jaxValue))
+  private def eyeImpl[L: Label, V](dim: AxisExtent[L], dtype: DType): Tensor2[L, Prime[L], V] = Tensor(Jax.jnp.eye(dim.size, dtype = dtype.jaxType))
+  def eye[L: Label](dim: AxisExtent[L])(using et: ExecutionType[Float]): Tensor2[L, Prime[L], Float] = eyeImpl(dim, et.dtype)
+  def eye[L: Label, V](dim: AxisExtent[L], vtype: VType[V]): Tensor2[L, Prime[L], V] = eyeImpl(dim, vtype.dtype)
+  def diag[L: Label, V](diag: Tensor1[L, V]): Tensor2[L, Prime[L], V] = Tensor(Jax.jnp.diag(diag.jaxValue))
 
 object Tensor3:
 
