@@ -11,6 +11,9 @@ opaque type LogProb <: Float = Float
 opaque type Prob <: Float = Float
 
 object LogProb:
+
+  given IsFloating[LogProb] = summon[IsFloating[Float]]
+
   def apply[T <: Tuple: Labels](t: Tensor[T, Float]): Tensor[T, LogProb] = t
 
   extension [T <: Tuple: Labels](t: Tensor[T, LogProb])

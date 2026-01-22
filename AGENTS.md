@@ -1042,7 +1042,7 @@ trait C derives Label
 trait D derives Label
 // ERROR: Cannot perform floating-point operations on Int tensors
 val intTensor = Tensor1(Axis[A]).fromArray(Array(1, 2, 3))
-val wrong = intTensor.exp  // exp requires IsFloat constraint
+val wrong = intTensor.exp  // exp requires IsFloating constraint
 // error:
 // value exp is not a member of dimwit.tensor.Tensor[Tuple1[MdocApp11.this.A], Int].
 // An extension method was tried, but could not be fully constructed:
@@ -1050,12 +1050,12 @@ val wrong = intTensor.exp  // exp requires IsFloat constraint
 //     dimwit.exp[Tuple1[MdocApp11.this.A], Int](this.intTensor)(
 //       dimwit.tensor.Labels.concat[MdocApp11.this.A, EmptyTuple.type](
 //         this.A.derived$Label, dimwit.tensor.Labels.namesOfEmpty),
-//       /* missing */summon[dimwit.tensor.TensorOps.IsFloat[Int]])
+//       /* missing */summon[dimwit.tensor.TensorOps.IsFloating[Int]])
 // 
 //     failed with:
 // 
-//         Operation only valid for Float tensors.
-// val wrong = intTensor.exp  // exp requires IsFloat constraint
+//         Operation only valid for Floating tensors.
+// val wrong = intTensor.exp  // exp requires IsFloating constraint
 //             ^^^^^^^^^^^^^
 ```
 

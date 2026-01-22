@@ -862,7 +862,7 @@ trait C derives Label
 trait D derives Label
 // ERROR: Cannot perform floating-point operations on Int tensors
 val intTensor = Tensor1(Axis[A]).fromArray(Array(1, 2, 3))
-val wrong = intTensor.exp  // exp requires IsFloat constraint
+val wrong = intTensor.exp  // exp requires IsFloating constraint
 ```
 
 ```scala mdoc:fail

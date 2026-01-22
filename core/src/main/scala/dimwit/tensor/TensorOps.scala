@@ -38,18 +38,18 @@ object TensorOps:
 
   @implicitNotFound("Operation only valid for Int or Float tensors.")
   object IsNumber:
-    given [V](using ev1: IsFloat[V]): IsNumber[V] = ev1
-    given [V](using ev2: IsInt[V]): IsNumber[V] = ev2
+    given [V](using ev1: IsFloating[V]): IsNumber[V] = ev1
+    given [V](using ev2: IsInteger[V]): IsNumber[V] = ev2
 
-  @implicitNotFound("Operation only valid for Float tensors.")
-  trait IsFloat[V] extends IsNumber[V]
-  object IsFloat:
-    given IsFloat[Float] with {}
+  @implicitNotFound("Operation only valid for Floating tensors.")
+  trait IsFloating[V] extends IsNumber[V]
+  object IsFloating:
+    given IsFloating[Float] with {}
 
-  @implicitNotFound("Operation only valid for Int tensors.")
-  trait IsInt[V] extends IsNumber[V]
-  object IsInt:
-    given IsInt[Int] with {}
+  @implicitNotFound("Operation only valid for Integer tensors.")
+  trait IsInteger[V] extends IsNumber[V]
+  object IsInteger:
+    given IsInteger[Int] with {}
 
   @implicitNotFound("Operation only valid for Boolean tensors.")
   sealed trait IsBoolean[V]
@@ -125,10 +125,10 @@ object TensorOps:
     // IsFloat operations
     // ---------------------------------------------------------
 
-    def divide[T <: Tuple: Labels, V: IsFloat](t1: Tensor[T, V], t2: Tensor[T, V]): Tensor[T, V] = Tensor(Jax.jnp.divide(t1.jaxValue, t2.jaxValue))
-    def divideScalar[T <: Tuple: Labels, V: IsFloat](t1: Tensor[T, V], t2: Tensor0[V]): Tensor[T, V] = Tensor(Jax.jnp.divide(t1.jaxValue, t2.jaxValue))
+    def divide[T <: Tuple: Labels, V: IsFloating](t1: Tensor[T, V], t2: Tensor[T, V]): Tensor[T, V] = Tensor(Jax.jnp.divide(t1.jaxValue, t2.jaxValue))
+    def divideScalar[T <: Tuple: Labels, V: IsFloating](t1: Tensor[T, V], t2: Tensor0[V]): Tensor[T, V] = Tensor(Jax.jnp.divide(t1.jaxValue, t2.jaxValue))
 
-    extension [T <: Tuple: Labels, V: IsFloat](t: Tensor[T, V])
+    extension [T <: Tuple: Labels, V: IsFloating](t: Tensor[T, V])
 
       def /(other: Tensor[T, V]): Tensor[T, V] = divide(t, other)
       def /![O <: Tuple](other: Tensor[O, V])(using join: Broadcast[T, O, V]): Tensor[join.Out, V] = join.applyTo(t, other)(divide)
@@ -205,7 +205,7 @@ object TensorOps:
     // IsFloat operations (IsFloat or IsInt)
     // ---------------------------------------------------------
 
-    extension [T <: Tuple: Labels, V: IsFloat](t: Tensor[T, V])
+    extension [T <: Tuple: Labels, V: IsFloating](t: Tensor[T, V])
 
       // --- Mean ---
       def mean: Tensor0[V] = Tensor0(Jax.jnp.mean(t.jaxValue))
@@ -292,7 +292,7 @@ object TensorOps:
 
     type Stride1[S1] = AxisExtent[S1]
 
-    extension [S1: Label, InChannel: Label, V: IsFloat](input: Tensor[S1 *: InChannel *: EmptyTuple, V])
+    extension [S1: Label, InChannel: Label, V: IsFloating](input: Tensor[S1 *: InChannel *: EmptyTuple, V])
 
       def conv1d[OutChannel: Label](
           kernel: Tensor[S1 *: InChannel *: OutChannel *: EmptyTuple, Float],
@@ -318,7 +318,7 @@ object TensorOps:
         val unbatchedRes = Jax.jnp.squeeze(convResult, axis = 0) // remove dummy dim
         Tensor(unbatchedRes)
 
-    extension [S1: Label, OutChannel: Label, V: IsFloat](input: Tensor[S1 *: OutChannel *: EmptyTuple, V])
+    extension [S1: Label, OutChannel: Label, V: IsFloating](input: Tensor[S1 *: OutChannel *: EmptyTuple, V])
 
       def transposeConv1d[InChannel: Label](
           kernel: Tensor[S1 *: InChannel *: OutChannel *: EmptyTuple, Float],
@@ -350,7 +350,7 @@ object TensorOps:
 
     type Stride2[S1, S2] = (AxisExtent[S1], AxisExtent[S2])
 
-    extension [S1: Label, S2: Label, InChannel: Label, V: IsFloat](input: Tensor[S1 *: S2 *: InChannel *: EmptyTuple, V])
+    extension [S1: Label, S2: Label, InChannel: Label, V: IsFloating](input: Tensor[S1 *: S2 *: InChannel *: EmptyTuple, V])
 
       def conv2d[OutChannel: Label](
           kernel: Tensor[S1 *: S2 *: InChannel *: OutChannel *: EmptyTuple, Float],
@@ -376,7 +376,7 @@ object TensorOps:
         val unbatchedRes = Jax.jnp.squeeze(convResult, axis = 0) // remove dummy dim
         Tensor(unbatchedRes)
 
-    extension [S1: Label, S2: Label, OutChannel: Label, V: IsFloat](input: Tensor[S1 *: S2 *: OutChannel *: EmptyTuple, V])
+    extension [S1: Label, S2: Label, OutChannel: Label, V: IsFloating](input: Tensor[S1 *: S2 *: OutChannel *: EmptyTuple, V])
 
       def transposeConv2d[InChannel: Label](
           kernel: Tensor[S1 *: S2 *: InChannel *: OutChannel *: EmptyTuple, Float],
@@ -411,7 +411,7 @@ object TensorOps:
 
     type Stride3[S1, S2, S3] = (AxisExtent[S1], AxisExtent[S2], AxisExtent[S3])
 
-    extension [S1: Label, S2: Label, S3: Label, InChannel: Label, V: IsFloat](input: Tensor[S1 *: S2 *: S3 *: InChannel *: EmptyTuple, V])
+    extension [S1: Label, S2: Label, S3: Label, InChannel: Label, V: IsFloating](input: Tensor[S1 *: S2 *: S3 *: InChannel *: EmptyTuple, V])
 
       def conv3d[OutChannel: Label](
           kernel: Tensor[S1 *: S2 *: S3 *: InChannel *: OutChannel *: EmptyTuple, Float],
@@ -439,7 +439,7 @@ object TensorOps:
         val unbatchedRes = Jax.jnp.squeeze(convResult, axis = 0) // remove dummy dim
         Tensor(unbatchedRes)
 
-    extension [S1: Label, S2: Label, S3: Label, OutChannel: Label, V: IsFloat](input: Tensor[S1 *: S2 *: S3 *: OutChannel *: EmptyTuple, V])
+    extension [S1: Label, S2: Label, S3: Label, OutChannel: Label, V: IsFloating](input: Tensor[S1 *: S2 *: S3 *: OutChannel *: EmptyTuple, V])
 
       def transposeConv3d[InChannel: Label](
           kernel: Tensor[S1 *: S2 *: S3 *: InChannel *: OutChannel *: EmptyTuple, Float],
@@ -512,7 +512,7 @@ object TensorOps:
     // IsFloat operations
     // ---------------------------------------------------------
 
-    extension [T <: Tuple: Labels, V: IsFloat](t: Tensor[T, V])
+    extension [T <: Tuple: Labels, V: IsFloating](t: Tensor[T, V])
 
       def norm: Tensor0[V] = Tensor0(Jax.jnp.linalg.norm(t.jaxValue))
       def inv: Tensor[T, V] = Tensor(Jax.jnp.linalg.inv(t.jaxValue))
@@ -528,7 +528,7 @@ object TensorOps:
         )
         Tensor(Jax.jnp.linalg.det(moved))
 
-    extension [L1: Label, L2: Label, V: IsFloat](t: Tensor2[L1, L2, V])
+    extension [L1: Label, L2: Label, V: IsFloating](t: Tensor2[L1, L2, V])
 
       def det: Tensor0[V] = Tensor0(Jax.jnp.linalg.det(t.jaxValue))
 
@@ -1275,7 +1275,7 @@ object TensorOps:
         given ExecutionType[V] = ExecutionTypeFor[V](t.dtype)
         Tensor0(scalar).broadcastTo(t.shape) * t
 
-    extension [V: IsFloat: Writer](scalar: V)
+    extension [V: IsFloating: Writer](scalar: V)
 
       def /![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] =
         given ExecutionType[V] = ExecutionTypeFor[V](t.dtype)
