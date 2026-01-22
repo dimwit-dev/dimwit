@@ -849,7 +849,6 @@ object TensorOps:
       ): Tensor[R, V] =
         val (before, after) = tensor.shape.dimensions.splitAt(ev.index)
         val newShape = before ++ Seq(newDim1.size, newDim2.size) ++ after.drop(1)
-        println(newShape)
         Tensor(
           Jax.jnp.reshape(
             tensor.jaxValue,
@@ -1262,7 +1261,6 @@ object TensorOps:
     extension [V: Reader](scalar: Tensor0[V])
 
       def item: V =
-        println(scalar)
         require(
           !scalar.isTracer,
           """
