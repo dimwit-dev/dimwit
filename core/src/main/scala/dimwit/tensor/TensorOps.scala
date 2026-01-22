@@ -21,6 +21,7 @@ import dimwit.tensor.TupleHelpers.{ValidationResult, CanForm, ComputeMissing, Ch
 import dimwit.tensor.ShapeTypeHelpers.UnwrapDims
 import dimwit.tensor.ShapeTypeHelpers.DimExtractor
 import dimwit.tensor.ShapeTypeHelpers.AxisReplacerAll
+import dimwit.OnError
 
 object TensorOps:
 
@@ -971,13 +972,13 @@ object TensorOps:
           val names = Nil
 
         val fpy = (args: py.Dynamic) =>
-          val tensorList = args.as[Seq[py.Dynamic]].zipWithIndex.map { (jaxArr, i) =>
-            Tensor(jaxArr)(using dummyLabels)
-          }
+          OnError.traceStack:
+            val tensorList = args.as[Seq[py.Dynamic]].zipWithIndex.map: (jaxArr, i) =>
+              Tensor(jaxArr)(using dummyLabels)
 
-          val inputTuple = Tuple.fromArray(tensorList.toArray)
-          val result = f(inputTuple.asInstanceOf[TensorsOf[R, ValuesOf[Inputs]]])
-          result.jaxValue
+            val inputTuple = Tuple.fromArray(tensorList.toArray)
+            val result = f(inputTuple.asInstanceOf[TensorsOf[R, ValuesOf[Inputs]]])
+            result.jaxValue
 
         val jaxInputs = py.Dynamic.global.tuple(tensors.toArray.map(_.asInstanceOf[Tensor[?, ?]].jaxValue).toPythonProxy)
         val indicesAsTuple = py.Dynamic.global.tuple(ev.indices.toPythonProxy)
@@ -1002,9 +1003,10 @@ object TensorOps:
           labels: Labels[R]
       ): Tensor[VmapAxis *: OuterShape, V2] =
         val fpy = (jxpr: Jax.PyDynamic) =>
-          val innerTensor = Tensor[R, V](jxpr)
-          val result = f(innerTensor)
-          result.jaxValue
+          OnError.traceStack:
+            val innerTensor = Tensor[R, V](jxpr)
+            val result = f(innerTensor)
+            result.jaxValue
 
         Tensor(Jax.jax_helper.vmap(fpy, ev.index)(t.jaxValue))
 
@@ -1017,9 +1019,10 @@ object TensorOps:
           labels: Labels[R]
       ): Tensor[R, V] =
         val fpy = (jxpr: Jax.PyDynamic) =>
-          val inputTensor = Tensor[Tuple1[L], V](jxpr)
-          val result = f(inputTensor)
-          result.jaxValue
+          OnError.traceStack:
+            val inputTensor = Tensor[Tuple1[L], V](jxpr)
+            val result = f(inputTensor)
+            result.jaxValue
 
         Tensor(
           Jax.jnp.apply_along_axis(
@@ -1038,9 +1041,10 @@ object TensorOps:
           labels: Labels[R]
       ): Tensor[R, V] =
         val fpy = (jxpr: Jax.PyDynamic) =>
-          val inputTensor = Tensor[Tuple1[L], V](jxpr)
-          val result = f(inputTensor)
-          result.jaxValue
+          OnError.traceStack:
+            val inputTensor = Tensor[Tuple1[L], V](jxpr)
+            val result = f(inputTensor)
+            result.jaxValue
 
         Tensor(
           Jax.jnp.apply_along_axis(
@@ -1065,7 +1069,17 @@ object TensorOps:
   object Tensor0Ops:
     extension [V: Reader](scalar: Tensor0[V])
 
-      def item: V = scalar.jaxValue.item().as[V]
+      def item: V =
+        println(scalar)
+        require(
+          !scalar.isTracer,
+          """
+          | Cannot convert a JAX Tracer to a scalar value. Tensor0 is part of a JAX computation graph (e.g., inside vmap or a jitted function).
+          | Common mistakes leading to this error:
+          |   - calling .slice(t0.item) rather than .slice(t0); breaking the computation graph unintentionally.
+          |""".stripMargin
+        )
+        scalar.jaxValue.item().as[V]
 
   object ValueOps:
 

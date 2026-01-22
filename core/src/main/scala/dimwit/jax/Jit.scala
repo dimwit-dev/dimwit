@@ -6,6 +6,8 @@ import dimwit.autodiff.ToPyTree
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
 import dimwit.jax.Jax.PyDynamic
+import me.shadaj.scalapy.py.PythonException
+import dimwit.OnError
 
 object Jit:
 
@@ -46,9 +48,10 @@ private object JitInternal:
   def toPyJit[T: ToPyTree, R: ToPyTree](f: T => R, pyKwargs: Map[String, Any]): T => R =
 
     val fpy = (pyTreePy: Jax.PyDynamic) =>
-      val pyTree = ToPyTree[T].fromPyTree(pyTreePy)
-      val result = f(pyTree)
-      ToPyTree[R].toPyTree(result)
+      OnError.traceStack:
+        val pyTree = ToPyTree[T].fromPyTree(pyTreePy)
+        val result = f(pyTree)
+        ToPyTree[R].toPyTree(result)
 
     val jitted = pyJit(fpy, Map.empty)
 
@@ -59,10 +62,11 @@ private object JitInternal:
 
   def toPyJit[T1: ToPyTree, T2: ToPyTree, R: ToPyTree](f: (T1, T2) => R, pyKwargs: Map[String, Any]): (T1, T2) => R =
     val fpy = (t1: Jax.PyDynamic, t2: Jax.PyDynamic) =>
-      val pyT1 = ToPyTree[T1].fromPyTree(t1)
-      val pyT2 = ToPyTree[T2].fromPyTree(t2)
-      val result = f(pyT1, pyT2)
-      ToPyTree[R].toPyTree(result)
+      OnError.traceStack:
+        val pyT1 = ToPyTree[T1].fromPyTree(t1)
+        val pyT2 = ToPyTree[T2].fromPyTree(t2)
+        val result = f(pyT1, pyT2)
+        ToPyTree[R].toPyTree(result)
 
     val jitted = pyJit(fpy, pyKwargs)
 
@@ -74,11 +78,12 @@ private object JitInternal:
 
   def toPyJit[T1: ToPyTree, T2: ToPyTree, T3: ToPyTree, R: ToPyTree](f: (T1, T2, T3) => R, pyKwargs: Map[String, Any]): (T1, T2, T3) => R =
     val fpy = (t1: Jax.PyDynamic, t2: Jax.PyDynamic, t3: Jax.PyDynamic) =>
-      val pyT1 = ToPyTree[T1].fromPyTree(t1)
-      val pyT2 = ToPyTree[T2].fromPyTree(t2)
-      val pyT3 = ToPyTree[T3].fromPyTree(t3)
-      val result = f(pyT1, pyT2, pyT3)
-      ToPyTree[R].toPyTree(result)
+      OnError.traceStack:
+        val pyT1 = ToPyTree[T1].fromPyTree(t1)
+        val pyT2 = ToPyTree[T2].fromPyTree(t2)
+        val pyT3 = ToPyTree[T3].fromPyTree(t3)
+        val result = f(pyT1, pyT2, pyT3)
+        ToPyTree[R].toPyTree(result)
 
     val jitted = pyJit(fpy, pyKwargs)
 
@@ -91,12 +96,13 @@ private object JitInternal:
 
   def toPyJit[T1: ToPyTree, T2: ToPyTree, T3: ToPyTree, T4: ToPyTree, R: ToPyTree](f: (T1, T2, T3, T4) => R, pyKwargs: Map[String, Any]): (T1, T2, T3, T4) => R =
     val fpy = (t1: Jax.PyDynamic, t2: Jax.PyDynamic, t3: Jax.PyDynamic, t4: Jax.PyDynamic) =>
-      val pyT1 = ToPyTree[T1].fromPyTree(t1)
-      val pyT2 = ToPyTree[T2].fromPyTree(t2)
-      val pyT3 = ToPyTree[T3].fromPyTree(t3)
-      val pyT4 = ToPyTree[T4].fromPyTree(t4)
-      val result = f(pyT1, pyT2, pyT3, pyT4)
-      ToPyTree[R].toPyTree(result)
+      OnError.traceStack:
+        val pyT1 = ToPyTree[T1].fromPyTree(t1)
+        val pyT2 = ToPyTree[T2].fromPyTree(t2)
+        val pyT3 = ToPyTree[T3].fromPyTree(t3)
+        val pyT4 = ToPyTree[T4].fromPyTree(t4)
+        val result = f(pyT1, pyT2, pyT3, pyT4)
+        ToPyTree[R].toPyTree(result)
 
     val jitted = pyJit(fpy, pyKwargs)
 
@@ -147,19 +153,21 @@ object JitDonating:
 
   case class JitReducer1[R: ToPyTree](f: R => R) extends (Donatable => Donatable) with JitReducer[R]:
     val fpy = (r: Donatable) =>
-      val rPy = ToPyTree[R].fromPyTree(r)
-      val result = f(rPy)
-      ToPyTree[R].toPyTree(result)
+      OnError.traceStack:
+        val rPy = ToPyTree[R].fromPyTree(r)
+        val result = f(rPy)
+        ToPyTree[R].toPyTree(result)
     val jitted = pyJit(fpy, Map("donate_argnums" -> Tuple1(0)))
     def apply(r: Donatable): Donatable =
       jitted(r)
 
   case class JitReducer2[R: ToPyTree, T1: ToPyTree](f: (T1, R) => R) extends JitReducer[R]:
     val fpy = (t1: Jax.PyDynamic, r: Donatable) =>
-      val pyT1 = ToPyTree[T1].fromPyTree(t1)
-      val rPy = ToPyTree[R].fromPyTree(r)
-      val result = f(pyT1, rPy)
-      ToPyTree[R].toPyTree(result)
+      OnError.traceStack:
+        val pyT1 = ToPyTree[T1].fromPyTree(t1)
+        val rPy = ToPyTree[R].fromPyTree(r)
+        val result = f(pyT1, rPy)
+        ToPyTree[R].toPyTree(result)
     val jitted = pyJit(fpy, Map("donate_argnums" -> Tuple1(1)))
     def apply(t1: T1)(r: Donatable): Donatable =
       val pyT1 = ToPyTree[T1].toPyTree(t1)
@@ -167,11 +175,12 @@ object JitDonating:
 
   case class JitReducer3[R: ToPyTree, T1: ToPyTree, T2: ToPyTree](f: (T1, T2, R) => R) extends JitReducer[R]:
     val fpy = (t1: Jax.PyDynamic, t2: Jax.PyDynamic, r: Donatable) =>
-      val pyT1 = ToPyTree[T1].fromPyTree(t1)
-      val pyT2 = ToPyTree[T2].fromPyTree(t2)
-      val rPy = ToPyTree[R].fromPyTree(r)
-      val result = f(pyT1, pyT2, rPy)
-      ToPyTree[R].toPyTree(result)
+      OnError.traceStack:
+        val pyT1 = ToPyTree[T1].fromPyTree(t1)
+        val pyT2 = ToPyTree[T2].fromPyTree(t2)
+        val rPy = ToPyTree[R].fromPyTree(r)
+        val result = f(pyT1, pyT2, rPy)
+        ToPyTree[R].toPyTree(result)
     val jitted = pyJit(fpy, Map("donate_argnums" -> Tuple1(2)))
     def apply(t1: T1, t2: T2)(r: Donatable): Donatable =
       val pyT1 = ToPyTree[T1].toPyTree(t1)
@@ -180,12 +189,13 @@ object JitDonating:
 
   case class JitReducer4[R: ToPyTree, T1: ToPyTree, T2: ToPyTree, T3: ToPyTree](f: (T1, T2, T3, R) => R) extends JitReducer[R]:
     val fpy = (t1: Jax.PyDynamic, t2: Jax.PyDynamic, t3: Jax.PyDynamic, r: Donatable) =>
-      val pyT1 = ToPyTree[T1].fromPyTree(t1)
-      val pyT2 = ToPyTree[T2].fromPyTree(t2)
-      val pyT3 = ToPyTree[T3].fromPyTree(t3)
-      val rPy = ToPyTree[R].fromPyTree(r)
-      val result = f(pyT1, pyT2, pyT3, rPy)
-      ToPyTree[R].toPyTree(result)
+      OnError.traceStack:
+        val pyT1 = ToPyTree[T1].fromPyTree(t1)
+        val pyT2 = ToPyTree[T2].fromPyTree(t2)
+        val pyT3 = ToPyTree[T3].fromPyTree(t3)
+        val rPy = ToPyTree[R].fromPyTree(r)
+        val result = f(pyT1, pyT2, pyT3, rPy)
+        ToPyTree[R].toPyTree(result)
     val jitted = pyJit(fpy, Map("donate_argnums" -> Tuple1(3)))
     def apply(t1: T1, t2: T2, t3: T3)(r: Donatable): Donatable =
       val pyT1 = ToPyTree[T1].toPyTree(t1)

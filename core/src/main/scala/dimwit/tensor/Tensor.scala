@@ -68,6 +68,9 @@ class Tensor[T <: Tuple: Labels, V] private[tensor] (
     shape.extent(axis)
 
   private val jaxTypeName: String = py.Dynamic.global.`type`(jaxValue).`__name__`.as[String]
+  lazy val isTracer: Boolean =
+    val jaxCoreTracer = py.module("jax.core").Tracer
+    py.Dynamic.global.isinstance(jaxValue, jaxCoreTracer).as[Boolean]
 
 object Tensor:
 

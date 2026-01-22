@@ -1,5 +1,6 @@
 package dimwit.autodiff
 
+import dimwit.OnError
 import dimwit.tensor.{Tensor, Tensor0, Tensor1, Tensor2, Shape, AxisIndices}
 import dimwit.tensor.TupleHelpers.PrimeConcatType
 import dimwit.jax.Jax
@@ -29,8 +30,9 @@ object Autodiff:
   ): Input => Grad[Input] =
 
     val fpy = (jxpr: py.Dynamic) =>
-      val x = inTree.fromPyTree(jxpr)
-      outTree.toPyTree(f(x))
+      OnError.traceStack:
+        val x = inTree.fromPyTree(jxpr)
+        outTree.toPyTree(f(x))
 
     val gpy = Jax.jax_helper.grad(fpy)
 
@@ -46,8 +48,9 @@ object Autodiff:
   ): In => Gradient[In, Out] =
 
     val fpy = (jxpr: py.Dynamic) =>
-      val x = inTree.fromPyTree(jxpr)
-      outTree.toPyTree(f(x))
+      OnError.traceStack:
+        val x = inTree.fromPyTree(jxpr)
+        outTree.toPyTree(f(x))
 
     val jpy = Jax.jax_helper.jacobian(fpy)
 
@@ -61,7 +64,9 @@ object Autodiff:
       outTree: ToPyTree[Out],
       gradTree: ToPyTree[Gradient[In, Out]]
   ): In => Gradient[In, Out] =
-    val fpy = (jxpr: py.Dynamic) => outTree.toPyTree(f(inTree.fromPyTree(jxpr)))
+    val fpy = (jxpr: py.Dynamic) =>
+      OnError.traceStack:
+        outTree.toPyTree(f(inTree.fromPyTree(jxpr)))
     val jpy = Jax.jax_helper.jacrev(fpy)
     (params: In) => gradTree.fromPyTree(jpy(inTree.toPyTree(params)))
 
@@ -70,6 +75,8 @@ object Autodiff:
       outTree: ToPyTree[Out],
       gradTree: ToPyTree[Gradient[In, Out]]
   ): In => Gradient[In, Out] =
-    val fpy = (jxpr: py.Dynamic) => outTree.toPyTree(f(inTree.fromPyTree(jxpr)))
+    val fpy = (jxpr: py.Dynamic) =>
+      OnError.traceStack:
+        outTree.toPyTree(f(inTree.fromPyTree(jxpr)))
     val jpy = Jax.jax_helper.jacfwd(fpy)
     (params: In) => gradTree.fromPyTree(jpy(inTree.toPyTree(params)))
