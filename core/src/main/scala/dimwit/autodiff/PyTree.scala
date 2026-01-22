@@ -14,6 +14,28 @@ trait ToPyTree[P]:
   def toPyTree(p: P): Jax.PyAny
   def fromPyTree(p: Jax.PyAny): P
 
+import scala.deriving.*
+import scala.compiletime.*
+
+class ProductToPyTree[P <: Product](
+    m: Mirror.ProductOf[P],
+    elems: List[ToPyTree[Any]]
+) extends ToPyTree[P]:
+
+  def toPyTree(p: P): Jax.PyAny =
+    val fields = p.productIterator.toList
+    val pyTreeElems = fields.zip(elems).map: (field, tc) =>
+      tc.toPyTree(field)
+    py.Dynamic.global.tuple(pyTreeElems.toPythonProxy)
+
+  def fromPyTree(pyTree: Jax.PyAny): P =
+    val pyTuple = pyTree.as[py.Dynamic]
+    val reconstructedArgs = elems.zipWithIndex.map: (tc, index) =>
+      val item = pyTuple.bracketAccess(index)
+      tc.fromPyTree(item)
+    val tupleProduct = Tuple.fromArray(reconstructedArgs.toArray)
+    m.fromProduct(tupleProduct)
+
 object ToPyTree:
 
   def apply[P](using pt: ToPyTree[P]): ToPyTree[P] = pt
@@ -44,16 +66,9 @@ object ToPyTree:
       (a, b)
 
   inline given derived[P <: Product](using m: Mirror.ProductOf[P]): ToPyTree[P] =
-    new ToPyTree[P]:
-      def toPyTree(p: P): Jax.PyAny =
-        val productElems = Tuple.fromProductTyped(p)
-        val pyTreeElems = convertFieldsAtCompileTime[m.MirroredElemTypes](productElems)
-        py.Dynamic.global.tuple(pyTreeElems.toPythonProxy)
-
-      def fromPyTree(pyTree: Jax.PyAny): P =
-        val pyTuple = pyTree.as[py.Dynamic]
-        val reconstructedTuple = reconstructFields[m.MirroredElemTypes](pyTuple, 0)
-        m.fromProduct(reconstructedTuple)
+    val elemInstances = summonAll[Tuple.Map[m.MirroredElemTypes, ToPyTree]]
+    val elemsList = elemInstances.toList.map(_.asInstanceOf[ToPyTree[Any]])
+    new ProductToPyTree[P](m, elemsList)
 
   // Compile-time reconstruction using field types
   inline def reconstructFields[Types <: Tuple](pyTuple: py.Dynamic, index: Int): Tuple =
