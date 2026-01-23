@@ -111,7 +111,7 @@ object MLPClassifierMNist:
       val lossBatch = batchLoss(imageBatch, labelBatch)
       val grads = Autodiff.grad(lossBatch)(params)
       optimizer.update(grads, params, state)
-    val jitStep = jit(gradientStep)
+    val (jitDonate, jitStep, jitReclaim) = jitDonating(gradientStep)
 
     def miniBatchGradientDescent(
         imageBatches: Seq[Tensor[(TrainSample, Height, Width), Float]],
@@ -120,11 +120,12 @@ object MLPClassifierMNist:
         params: MLP.Params,
         initialState: OptState
     ): (MLP.Params, OptState) =
-      imageBatches
+      val res = imageBatches
         .zip(labelBatches)
-        .foldLeft((params, initialState)):
+        .foldLeft(jitDonate(params, initialState)):
           case ((currentParams, state), (imageBatch, labelBatch)) =>
             jitStep(imageBatch, labelBatch, currentParams, state)
+      jitReclaim(res)
 
     val trainMiniBatchGradientDescent = miniBatchGradientDescent(
       trainX.chunk(Axis[TrainSample], numSamples / batchSize),
