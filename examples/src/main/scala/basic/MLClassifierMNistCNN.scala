@@ -113,7 +113,7 @@ object MNistCNN:
         val lblBatches = trainY.chunk(Axis[TrainSample], numSamples / batchSize)
         val newParams = imgBatches.zip(lblBatches).foldLeft(jitDonate(params)):
           case (params, (imgB, lblB)) =>
-            jitStep(imgB, lblB)(params)
+            jitStep(imgB, lblB, params)
         jitReclaim(newParams)
 
     // Evaluation
