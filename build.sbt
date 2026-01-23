@@ -1,7 +1,7 @@
 import ai.kien.python.Python
 
 ThisBuild / version := "0.1.0-SNAPSHOT"
-ThisBuild / scalaVersion := "3.7.0"
+ThisBuild / scalaVersion := "3.8.1"
 ThisBuild / organization := "ch.contrafactus"
 
 // Add resolver for snapshot dependencies
@@ -28,8 +28,8 @@ lazy val core = (project in file("core"))
     coverageMinimumStmtTotal := 80,
     coverageFailOnMinimum := false,
     coverageHighlighting := true,
-    publishArtifact in (Compile, packageSrc) := true,
-    publishArtifact in (Compile, packageDoc) := true
+    Compile / packageSrc / publishArtifact := true,
+    Compile / packageDoc / publishArtifact := true
   )
 
 lazy val nn = (project in file("nn"))
