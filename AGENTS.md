@@ -106,12 +106,12 @@ val wrong = t.sum(Axis[C])
 //       repl.MdocSession.MdocApp.C, Tuple](
 //       dimwit.tensor.AxisIndex.tail[repl.MdocSession.MdocApp.A,
 //         repl.MdocSession.MdocApp.B *: EmptyTuple.type, L](
-//         dimwit.tensor.AxisIndex.tail[repl.MdocSession.MdocApp.B, EmptyTuple.type, L²
-//           ](dimwit.tensor.AxisIndex.concatRight[A², B², L³])
+//         dimwit.tensor.AxisIndex.tail[repl.MdocSession.MdocApp.B, EmptyTuple.type, L]
+//           (dimwit.tensor.AxisIndex.concatRight[A², B², L²])
 //       ),
 //     ???)
 // 
-// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.AxisIndex[EmptyTuple.type, L²]
+// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.AxisIndex[EmptyTuple.type, L]
 // 
 // where:    A  is a trait in object MdocApp
 //           A² is a type variable with constraint <: Tuple
@@ -119,7 +119,6 @@ val wrong = t.sum(Axis[C])
 //           B² is a type variable with constraint <: Tuple
 //           L  is a type variable
 //           L² is a type variable
-//           L³ is a type variable
 // .
 // val wrong = t.sum(Axis[C])
 //                          ^
@@ -319,12 +318,12 @@ val wrong = t.sum(Axis[C])
 //       (MdocApp0.this.A, MdocApp0.this.B), MdocApp0.this.C, Tuple](
 //       dimwit.tensor.AxisIndex.tail[MdocApp0.this.A,
 //         MdocApp0.this.B *: EmptyTuple.type, L](
-//         dimwit.tensor.AxisIndex.tail[MdocApp0.this.B, EmptyTuple.type, L²](
-//           dimwit.tensor.AxisIndex.concatRight[A², B², L³])
+//         dimwit.tensor.AxisIndex.tail[MdocApp0.this.B, EmptyTuple.type, L](
+//           dimwit.tensor.AxisIndex.concatRight[A², B², L²])
 //       ),
 //     ???)
 // 
-// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.AxisIndex[EmptyTuple.type, L²]
+// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.AxisIndex[EmptyTuple.type, L]
 // 
 // where:    A  is a trait in class MdocApp0
 //           A² is a type variable with constraint <: Tuple
@@ -332,12 +331,11 @@ val wrong = t.sum(Axis[C])
 //           B² is a type variable with constraint <: Tuple
 //           L  is a type variable
 //           L² is a type variable
-//           L³ is a type variable
 // .
 // val wrong = t.sum(Axis[C])
 //                          ^
 // error: 
-// Double definition:
+// Conflicting definitions:
 // val t: dimwit.tensor.Tensor[(MdocApp0.this.A, MdocApp0.this.B), Float] in class MdocApp0 at line 53 and
 // val t: dimwit.tensor.Tensor[(MdocApp0.this.A, MdocApp0.this.B), Float] in class MdocApp0 at line 88
 //
@@ -373,13 +371,11 @@ val greater = tensor > Tensor0(25.0f).broadcastTo(tensor.shape)
 val t = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f)))
 // ERROR: Shape mismatch - cannot add scalar without broadcast operator
 val wrong = t + 5.0f  // Use +! instead
-// error:
+// error: 
 // Found:    (5.0f : Float)
 // Required: dimwit.tensor.Tensor[(MdocApp0.this.A, MdocApp0.this.B), Float]
-// val wrong = t + 5.0f  // Use +! instead
-//                 ^^^^
 // error: 
-// Double definition:
+// Conflicting definitions:
 // val t: dimwit.tensor.Tensor[(MdocApp0.this.A, MdocApp0.this.B), Float] in class MdocApp0 at line 53 and
 // val t: dimwit.tensor.Tensor[(MdocApp0.this.A, MdocApp0.this.B), Float] in class MdocApp0 at line 97
 //
@@ -435,18 +431,17 @@ val wrong = m1.dot(Axis[B])(m2)
 //       (MdocApp1.this.C, MdocApp1.this.D), MdocApp1.this.B, Tuple](
 //       dimwit.tensor.AxisIndex.tail[MdocApp1.this.C,
 //         MdocApp1.this.D *: EmptyTuple.type, L](
-//         dimwit.tensor.AxisIndex.tail[MdocApp1.this.D, EmptyTuple.type, L²](
-//           dimwit.tensor.AxisIndex.concatRight[A, B², L³])
+//         dimwit.tensor.AxisIndex.tail[MdocApp1.this.D, EmptyTuple.type, L](
+//           dimwit.tensor.AxisIndex.concatRight[A, B², L²])
 //       ),
 //     ???)
 // 
-// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.AxisIndex[EmptyTuple.type, L²]
+// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.AxisIndex[EmptyTuple.type, L]
 // 
 // where:    B  is a trait in class MdocApp1
 //           B² is a type variable with constraint <: Tuple
 //           L  is a type variable
 //           L² is a type variable
-//           L³ is a type variable
 // .
 // error:
 // Axis[MdocApp1.this.B] not found in Tensor[(MdocApp1.this.C, MdocApp1.this.D)].
@@ -456,28 +451,27 @@ val wrong = m1.dot(Axis[B])(m2)
 //       (MdocApp1.this.C, MdocApp1.this.D), MdocApp1.this.B, Tuple](
 //       dimwit.tensor.AxisIndex.tail[MdocApp1.this.C,
 //         MdocApp1.this.D *: EmptyTuple.type, L](
-//         dimwit.tensor.AxisIndex.tail[MdocApp1.this.D, EmptyTuple.type, L²](
-//           dimwit.tensor.AxisIndex.concatRight[A, B², L³])
+//         dimwit.tensor.AxisIndex.tail[MdocApp1.this.D, EmptyTuple.type, L](
+//           dimwit.tensor.AxisIndex.concatRight[A, B², L²])
 //       ),
 //     ???)
 // 
-// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.AxisIndex[EmptyTuple.type, L²]
+// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.AxisIndex[EmptyTuple.type, L]
 // 
 // where:    B  is a trait in class MdocApp1
 //           B² is a type variable with constraint <: Tuple
 //           L  is a type variable
 //           L² is a type variable
-//           L³ is a type variable
 // .
 // val wrong = m1.dot(Axis[B])(m2)
 //                               ^
 // error: 
-// Double definition:
+// Conflicting definitions:
 // val m1: dimwit.tensor.Tensor[(MdocApp1.this.A, MdocApp1.this.B), Float] in class MdocApp1 at line 119 and
 // val m1: dimwit.tensor.Tensor[(MdocApp1.this.A, MdocApp1.this.B), Float] in class MdocApp1 at line 122
 // 
 // error: 
-// Double definition:
+// Conflicting definitions:
 // val m2: dimwit.tensor.Tensor[(MdocApp1.this.B, MdocApp1.this.C), Float] in class MdocApp1 at line 120 and
 // val m2: dimwit.tensor.Tensor[(MdocApp1.this.C, MdocApp1.this.D), Float] in class MdocApp1 at line 123
 //
@@ -1043,7 +1037,7 @@ trait D derives Label
 // ERROR: Cannot perform floating-point operations on Int tensors
 val intTensor = Tensor1(Axis[A]).fromArray(Array(1, 2, 3))
 val wrong = intTensor.exp  // exp requires IsFloating constraint
-// error:
+// error: 
 // value exp is not a member of dimwit.tensor.Tensor[Tuple1[MdocApp11.this.A], Int].
 // An extension method was tried, but could not be fully constructed:
 // 
@@ -1055,8 +1049,6 @@ val wrong = intTensor.exp  // exp requires IsFloating constraint
 //     failed with:
 // 
 //         Operation only valid for Floating tensors.
-// val wrong = intTensor.exp  // exp requires IsFloating constraint
-//             ^^^^^^^^^^^^^
 ```
 
 ```scala
@@ -1084,8 +1076,10 @@ val wrong = t1 + t2  // Different labels AND different sizes
 // Not found: type A
 // error: 
 // Not found: Axis
-// error: 
+// error:
 // Not found: Tensor1
+// val wrong = t1 + t2  // Different labels AND different sizes
+//                     ^
 // error: 
 // Not found: type B
 // error: 
@@ -1215,26 +1209,18 @@ val wrong = Autodiff.grad(intFunc)
 // ERROR: Function doesn't return scalar for grad
 def nonScalar(x: Tensor1[A, Float]): Tensor1[A, Float] = x * x
 val wrong = Autodiff.grad(nonScalar)  // Use jacobian instead
+// error: 
+// Not found: type Tensor1
+// error: 
+// Not found: type A
 // error:
 // Not found: type Tensor1
-// def nonScalar(x: Tensor1[A, Float]): Tensor1[A, Float] = x * x
-//                  ^^^^^^^
-// error:
-// Not found: type A
-// def nonScalar(x: Tensor1[A, Float]): Tensor1[A, Float] = x * x
-//                          ^
-// error:
-// Not found: type Tensor1
-// def nonScalar(x: Tensor1[A, Float]): Tensor1[A, Float] = x * x
-//                                      ^^^^^^^
-// error:
-// Not found: type A
-// def nonScalar(x: Tensor1[A, Float]): Tensor1[A, Float] = x * x
-//                                              ^
-// error:
-// Not found: Autodiff
 // val wrong = Autodiff.grad(nonScalar)  // Use jacobian instead
-//             ^^^^^^^^
+//                                     ^
+// error: 
+// Not found: type A
+// error: 
+// Not found: Autodiff
 ```
 
 ### Device Mismatches
