@@ -13,7 +13,6 @@ import dimwit.stats.{Normal, Uniform}
 import me.shadaj.scalapy.readwrite.Writer
 import scala.reflect.ClassTag
 import scala.annotation.unchecked.uncheckedVariance
-import dimwit.stats.IndependentDistribution
 import dimwit.Prime
 
 enum Device(val platform: String):

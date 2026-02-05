@@ -29,22 +29,72 @@ object Prob:
     def exp: Tensor[T, Float] = TensorOps.exp(t) // Lose Prob if we exp again
     def log: Tensor[T, LogProb] = TensorOps.log(t)
 
-/** Independent Distributions over all the given dimensions
+trait Distribution[EventShape <: Tuple: Labels, V]:
+
+  /** Sample from the distribution */
+  def sample(k: Random.Key): Tensor[EventShape, V]
+
+  /** Compute log probability (always returns scalar) */
+  def logProb(x: Tensor[EventShape, V]): Tensor0[LogProb]
+
+  /** Probability (exponentiated log probability) */
+  def prob(x: Tensor[EventShape, V]): Tensor0[Prob] =
+    logProb(x).exp
+
+/** Independent distribution - tensor of independent random variables.
+  *
+  * Represents a tensor of independent values, each drawn from the same distribution.
+  * This extends Distribution, so logProb returns a scalar (joint probability).
+  *
+  * - logProb returns scalar: sum of element-wise log probabilities
+  * - elementWiseLogProb returns tensor: individual log probabilities per element
+  * - Use vmap for batching: samples.vmap(Axis[Batch])(dist.logProb)
+  *
+  * @tparam EventShape Shape of the tensor of independent values
+  * @tparam V Value type
   */
-trait IndependentDistribution[T <: Tuple: Labels, V]:
+trait IndependentDistribution[EventShape <: Tuple: Labels, V: ExecutionType: IsNumber] extends Distribution[EventShape, V]:
 
-  def prob(x: Tensor[T, V]): Tensor[T, Prob] =
-    logProb(x).exp
+  /** Element-wise log probabilities (primitive operation) */
+  def elementWiseLogProb(x: Tensor[EventShape, V]): Tensor[EventShape, LogProb]
 
-  def logProb(x: Tensor[T, V]): Tensor[T, LogProb]
+  /** Joint log probability - sums element-wise log probs (final implementation) */
+  final override def logProb(x: Tensor[EventShape, V]): Tensor0[LogProb] =
+    elementWiseLogProb(x).sum
 
-  def sample(k: Random.Key): Tensor[T, V]
+  /** Element-wise probabilities */
+  def elementWiseProb(x: Tensor[EventShape, V]): Tensor[EventShape, Prob] =
+    elementWiseLogProb(x).exp
 
-trait MultivariateDistribution[T <: Tuple, V]:
+object IndependentDistribution:
 
-  def prob(x: Tensor[T, V]): Tensor0[Prob] =
-    logProb(x).exp
+  /** Create an Independent distribution from a univariate and a shape.
+    *
+    * Each element of the resulting tensor is an independent sample from
+    * the same univariate distribution.
+    */
+  def fromUnivariate[EventShape <: Tuple: Labels, V: ExecutionType: IsNumber](
+      shape: Shape[EventShape],
+      univariate: UnivariateDistribution[V]
+  ): IndependentDistribution[EventShape, V] =
+    new IndependentDistribution[EventShape, V]:
+      override def sample(k: Random.Key): Tensor[EventShape, V] =
+        // sample using vmap for efficiency
 
-  def logProb(x: Tensor[T, V]): Tensor0[LogProb]
+        val flatSize = shape.dimensions.product
+        trait Samples derives Label
+        val samples = k.splitvmap(Axis[Samples] -> flatSize) { key =>
+          univariate.sample(key)
+        }
+        samples.reshape(shape)
 
-  def sample(k: Random.Key): Tensor[T, V]
+      override def elementWiseLogProb(x: Tensor[EventShape, V]): Tensor[EventShape, LogProb] =
+        trait Sample derives Label
+        val xflattened = x.reshape(Shape(Axis[Sample] -> x.shape.dimensions.product))
+        val logprobs = xflattened.vmap(Axis[Sample]) { xi =>
+          univariate.logProb(xi)
+        }
+        logprobs.reshape(shape)
+
+type UnivariateDistribution[V] = Distribution[EmptyTuple, V]
+type MultivariateDistribution[L, V] = Distribution[Tuple1[L], V]

@@ -24,7 +24,7 @@ class DistributionSuite extends AnyFunSpec with Matchers:
       val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 1.5f, -1.0f))
 
       val dist = Normal(loc, scale)
-      val scalaLogProbs = dist.logProb(x)
+      val scalaLogProbs = dist.elementWiseLogProb(x)
       val jaxLogProbs = Tensor.fromPy[Tuple1[A], Float](VType[Float])(
         jstats.norm.logpdf(x.jaxValue, loc = loc.jaxValue, scale = scale.jaxValue)
       )
@@ -48,7 +48,7 @@ class DistributionSuite extends AnyFunSpec with Matchers:
       val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 0.0f, 3.0f))
 
       val dist = Uniform(low, high)
-      val scalaLogProbs = dist.logProb(x)
+      val scalaLogProbs = dist.elementWiseLogProb(x)
       val jaxLogProbs = Tensor.fromPy[Tuple1[A], Float](VType[Float])(
         jstats.uniform.logpdf(x.jaxValue, loc = low.jaxValue, scale = (high - low).jaxValue)
       )
@@ -71,7 +71,7 @@ class DistributionSuite extends AnyFunSpec with Matchers:
       val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0, 1, 1))
 
       val dist = Bernoulli(probs)
-      val scalaLogProbs = dist.logProb(x)
+      val scalaLogProbs = dist.elementWiseLogProb(x)
       val jaxLogProbs = Tensor.fromPy[Tuple1[A], Float](VType[Float])(
         jstats.bernoulli.logpmf(x.jaxValue, p = probs.jaxValue)
       )
@@ -94,7 +94,7 @@ class DistributionSuite extends AnyFunSpec with Matchers:
       val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 1.5f, -1.0f))
 
       val dist = Cauchy(loc, scale)
-      val scalaLogProbs = dist.logProb(x)
+      val scalaLogProbs = dist.elementWiseLogProb(x)
       val jaxLogProbs = Tensor.fromPy[Tuple1[A], Float](VType[Float])(
         jstats.cauchy.logpdf(x.jaxValue, loc = loc.jaxValue, scale = scale.jaxValue)
       )
@@ -118,7 +118,7 @@ class DistributionSuite extends AnyFunSpec with Matchers:
       val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 1.0f, 0.8f))
 
       val dist = HalfNormal(loc, scale)
-      val scalaLogProbs = dist.logProb(x)
+      val scalaLogProbs = dist.elementWiseLogProb(x)
       // Compute expected manually: log(2) + norm.logpdf for x >= loc
       val expectedLogProbs = Tensor.fromPy[Tuple1[A], Float](VType[Float])(
         jstats.norm.logpdf(x.jaxValue, loc = loc.jaxValue, scale = scale.jaxValue)
@@ -146,7 +146,7 @@ class DistributionSuite extends AnyFunSpec with Matchers:
       val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 1.5f, -1.0f))
 
       val dist = StudentT(df, loc, scale)
-      val scalaLogProbs = dist.logProb(x)
+      val scalaLogProbs = dist.elementWiseLogProb(x)
       val jaxLogProbs = Tensor.fromPy[Tuple1[A], Float](VType[Float])(
         jstats.t.logpdf(x.jaxValue, df = df, loc = loc.jaxValue, scale = scale.jaxValue)
       )
