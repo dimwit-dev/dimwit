@@ -131,6 +131,16 @@ object TupleHelpers:
           Has[A, I]
       ): CanForm[A, S, I] = new CanForm[A, S, I] {}
 
+    @implicitNotFound("The shape ${A} is not a valid permutation of ${B}.")
+    trait IsPermutation[A <: Tuple, B <: Tuple]
+    object IsPermutation:
+      given base: IsPermutation[EmptyTuple, EmptyTuple] with {}
+
+      given recurse[H, T <: Tuple, B <: Tuple, RemainingB <: Tuple](using
+          evRem: Remover.Aux[B, H, RemainingB],
+          evNext: IsPermutation[T, RemainingB]
+      ): IsPermutation[H *: T, B] with {}
+
     // Result Types
     sealed trait ValidationResult
     final class AllOk extends ValidationResult

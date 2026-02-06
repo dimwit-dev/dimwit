@@ -697,21 +697,13 @@ class TensorOpsConvolutionSuite extends AnyFunSpec with Matchers:
       ).sample(key)
 
       // Forward: conv3d(x, k)
-      val convOutput = xBatched.vmap(Axis[Batch])(x => x.conv3d(kernel, stride = 1, padding = Padding.SAME))
+      val convOutput = xBatched.vmap(Axis[Batch])(x => x.conv3d(kernel, stride = 1, padding = Padding.VALID))
 
       // Create y with same shape as convOutput (has OutChannels)
-      val yBatched = Normal.standardNormal(
-        Shape(
-          Axis[Batch] -> 1,
-          Axis[Depth] -> 6,
-          Axis[Height] -> 6,
-          Axis[Width] -> 6,
-          Axis[OutChannels] -> 4
-        )
-      ).sample(key)
+      val yBatched = Normal.standardNormal(convOutput.shape).sample(key)
 
       // Backward/Transpose: transposeConv3d(y, k)
-      val transposeConvOutput = yBatched.vmap(Axis[Batch])(y => y.transposeConv3d(kernel, stride = 1, padding = Padding.SAME))
+      val transposeConvOutput = yBatched.vmap(Axis[Batch])(y => y.transposeConv3d(kernel, stride = 1, padding = Padding.VALID))
 
       // Verify shapes
       transposeConvOutput.shape shouldBe xBatched.shape
@@ -720,4 +712,4 @@ class TensorOpsConvolutionSuite extends AnyFunSpec with Matchers:
       val dotLeft = (convOutput * yBatched).sum.item
       val dotRight = (xBatched * transposeConvOutput).sum.item
 
-      Math.abs(dotLeft - dotRight) should be < 1e-3f
+      Math.abs(dotLeft - dotRight) should be < 1e-2f

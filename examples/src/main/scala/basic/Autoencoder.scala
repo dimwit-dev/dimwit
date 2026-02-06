@@ -163,7 +163,7 @@ object AutoencoderExample:
     def loss[S <: Sample: Label](trainData: Tensor3[S, Height, Width, Float])(params: Autoencoder.Params): Tensor0[Float] =
       val ae = Autoencoder(params)
       trainData
-        .vmap(Axis[S])(sample => ae.loss(sample.ravel))
+        .vmap(Axis[S])(sample => ae.loss(sample.flatten))
         .mean
 
     val batches = trainX.chunk(Axis[TrainSample], numSamples / batchSize)
@@ -206,7 +206,7 @@ object AutoencoderExample:
     val reconstructed = testX
       .slice(Axis[TestSample].at(0 until 64))
       .vmap(Axis[TestSample]): sample =>
-        val latent = ae.encoder(sample.ravel)
+        val latent = ae.encoder(sample.flatten)
         ae.decoder(latent)
       .relabel(Axis[TestSample].as(Axis[Prime[Height] |*| Prime[Width]]))
 

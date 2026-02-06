@@ -65,7 +65,7 @@ object MNistCNN:
       val input = image.appendAxis(Axis[Channel])
       val hidden = relu(conv1(input))
       val features = relu(conv2(hidden))
-      output(features.ravel)
+      output(features.flatten)
 
     override def apply(image: Tensor2[Height, Width, Float]): Tensor0[Int] =
       logits(image).argmax(Axis[Output])

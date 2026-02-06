@@ -104,7 +104,7 @@ DimWit requires **Python 3.9+** and **JAX** since it uses JAX as the backend for
 
 ## Status 
 
-**Early but functional.** DimWit successfully runs complex models including GPT-2 (see [example](examples/src/main/scala/basic/GPT2.scala)). The core concepts are stable, but the API is still evolving.
+**Early but functional.** DimWit successfully runs complex models including GPT-2 (see [example](examples/src/main/scala/complex/GPT2.scala)). The core concepts are stable, but the API is still evolving.
 
 **Not production-ready** - expect breaking changes.
 

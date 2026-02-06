@@ -104,21 +104,21 @@ val wrong = t.sum(Axis[C])
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
 //       (repl.MdocSession.MdocApp.A, repl.MdocSession.MdocApp.B),
 //       repl.MdocSession.MdocApp.C, Tuple](
-//       dimwit.tensor.AxisIndex.tail[repl.MdocSession.MdocApp.A,
-//         repl.MdocSession.MdocApp.B *: EmptyTuple.type, L](
-//         dimwit.tensor.AxisIndex.tail[repl.MdocSession.MdocApp.B, EmptyTuple.type, L]
-//           (dimwit.tensor.AxisIndex.concatRight[A², B², L²])
+//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[repl.MdocSession.MdocApp.A,
+//         repl.MdocSession.MdocApp.B *: EmptyTuple.type, repl.MdocSession.MdocApp.C](
+//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[repl.MdocSession.MdocApp.B,
+//           EmptyTuple.type, repl.MdocSession.MdocApp.C](
+//           dimwit.tensor.ShapeTypeHelpers.AxisIndex.concatRight[A², B², L])
 //       ),
 //     ???)
 // 
-// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.AxisIndex[EmptyTuple.type, L]
+// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.ShapeTypeHelpers.AxisIndex[EmptyTuple.type,
+//   repl.MdocSession.MdocApp.C]
 // 
 // where:    A  is a trait in object MdocApp
 //           A² is a type variable with constraint <: Tuple
 //           B  is a trait in object MdocApp
 //           B² is a type variable with constraint <: Tuple
-//           L  is a type variable
-//           L² is a type variable
 // .
 // val wrong = t.sum(Axis[C])
 //                          ^
@@ -209,18 +209,18 @@ val summed = wrongAxis.sum(Axis[B])  // B not in shape!
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
 //       Tuple1[repl.MdocSession.MdocApp.A], repl.MdocSession.MdocApp.B, Tuple](
-//       dimwit.tensor.AxisIndex.tail[repl.MdocSession.MdocApp.A, EmptyTuple.type, L](
-//         dimwit.tensor.AxisIndex.concatRight[A², B², L²]),
+//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[repl.MdocSession.MdocApp.A,
+//         EmptyTuple.type, repl.MdocSession.MdocApp.B](
+//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.concatRight[A², B², L]),
 //     ???)
 // 
-// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.AxisIndex[EmptyTuple.type, L]
+// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.ShapeTypeHelpers.AxisIndex[EmptyTuple.type,
+//   repl.MdocSession.MdocApp.B]
 // 
 // where:    A  is a trait in object MdocApp
 //           A² is a type variable with constraint <: Tuple
 //           B  is a trait in object MdocApp
 //           B² is a type variable with constraint <: Tuple
-//           L  is a type variable
-//           L² is a type variable
 // .
 // val summed = wrongAxis.sum(Axis[B])  // B not in shape!
 //                                   ^
@@ -316,21 +316,20 @@ val wrong = t.sum(Axis[C])
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
 //       (MdocApp0.this.A, MdocApp0.this.B), MdocApp0.this.C, Tuple](
-//       dimwit.tensor.AxisIndex.tail[MdocApp0.this.A,
-//         MdocApp0.this.B *: EmptyTuple.type, L](
-//         dimwit.tensor.AxisIndex.tail[MdocApp0.this.B, EmptyTuple.type, L](
-//           dimwit.tensor.AxisIndex.concatRight[A², B², L²])
+//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp0.this.A,
+//         MdocApp0.this.B *: EmptyTuple.type, MdocApp0.this.C](
+//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp0.this.B,
+//           EmptyTuple.type, MdocApp0.this.C](
+//           dimwit.tensor.ShapeTypeHelpers.AxisIndex.concatRight[A², B², L])
 //       ),
 //     ???)
 // 
-// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.AxisIndex[EmptyTuple.type, L]
+// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.ShapeTypeHelpers.AxisIndex[EmptyTuple.type, MdocApp0.this.C]
 // 
 // where:    A  is a trait in class MdocApp0
 //           A² is a type variable with constraint <: Tuple
 //           B  is a trait in class MdocApp0
 //           B² is a type variable with constraint <: Tuple
-//           L  is a type variable
-//           L² is a type variable
 // .
 // val wrong = t.sum(Axis[C])
 //                          ^
@@ -429,19 +428,18 @@ val wrong = m1.dot(Axis[B])(m2)
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
 //       (MdocApp1.this.C, MdocApp1.this.D), MdocApp1.this.B, Tuple](
-//       dimwit.tensor.AxisIndex.tail[MdocApp1.this.C,
-//         MdocApp1.this.D *: EmptyTuple.type, L](
-//         dimwit.tensor.AxisIndex.tail[MdocApp1.this.D, EmptyTuple.type, L](
-//           dimwit.tensor.AxisIndex.concatRight[A, B², L²])
+//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp1.this.C,
+//         MdocApp1.this.D *: EmptyTuple.type, MdocApp1.this.B](
+//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp1.this.D,
+//           EmptyTuple.type, MdocApp1.this.B](
+//           dimwit.tensor.ShapeTypeHelpers.AxisIndex.concatRight[A, B², L])
 //       ),
 //     ???)
 // 
-// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.AxisIndex[EmptyTuple.type, L]
+// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.ShapeTypeHelpers.AxisIndex[EmptyTuple.type, MdocApp1.this.B]
 // 
 // where:    B  is a trait in class MdocApp1
 //           B² is a type variable with constraint <: Tuple
-//           L  is a type variable
-//           L² is a type variable
 // .
 // error:
 // Axis[MdocApp1.this.B] not found in Tensor[(MdocApp1.this.C, MdocApp1.this.D)].
@@ -449,19 +447,18 @@ val wrong = m1.dot(Axis[B])(m2)
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
 //       (MdocApp1.this.C, MdocApp1.this.D), MdocApp1.this.B, Tuple](
-//       dimwit.tensor.AxisIndex.tail[MdocApp1.this.C,
-//         MdocApp1.this.D *: EmptyTuple.type, L](
-//         dimwit.tensor.AxisIndex.tail[MdocApp1.this.D, EmptyTuple.type, L](
-//           dimwit.tensor.AxisIndex.concatRight[A, B², L²])
+//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp1.this.C,
+//         MdocApp1.this.D *: EmptyTuple.type, MdocApp1.this.B](
+//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp1.this.D,
+//           EmptyTuple.type, MdocApp1.this.B](
+//           dimwit.tensor.ShapeTypeHelpers.AxisIndex.concatRight[A, B², L])
 //       ),
 //     ???)
 // 
-// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.AxisIndex[EmptyTuple.type, L]
+// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.ShapeTypeHelpers.AxisIndex[EmptyTuple.type, MdocApp1.this.B]
 // 
 // where:    B  is a trait in class MdocApp1
 //           B² is a type variable with constraint <: Tuple
-//           L  is a type variable
-//           L² is a type variable
 // .
 // val wrong = m1.dot(Axis[B])(m2)
 //                               ^
@@ -492,7 +489,6 @@ println(s"Original shape: ${original.shape}")
 println(s"Transposed shape: ${transposed.shape}")
 
 // Reshape
-val reshaped = original.ravel  // Flatten to 1D
 // Reshaping back requires fromArray with proper data
 
 // Unsqueeze (add size-1 dimension)

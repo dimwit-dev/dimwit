@@ -343,7 +343,6 @@ println(s"Original shape: ${original.shape}")
 println(s"Transposed shape: ${transposed.shape}")
 
 // Reshape
-val reshaped = original.ravel  // Flatten to 1D
 // Reshaping back requires fromArray with proper data
 
 // Unsqueeze (add size-1 dimension)

@@ -7,7 +7,7 @@ import scala.util.NotGiven
 import dimwit.jax.{Jax, Einops}
 import dimwit.tensor.{Label, Labels}
 import dimwit.tensor.TupleHelpers.{Subset, StrictSubset, PrimeConcat}
-import dimwit.tensor.ShapeTypeHelpers.{AxisRemover, AxesRemover, SharedAxisRemover, AxisReplacer, AxesConditionalRemover, UnwrapAxes}
+import dimwit.tensor.ShapeTypeHelpers.{AxisRemover, AxesRemover, SharedAxisRemover, AxisReplacer, AxesConditionalRemover, WrapAxes, UnwrapAxes}
 import dimwit.{~, `|*|`, `|+|`}
 
 import me.shadaj.scalapy.py
@@ -17,14 +17,18 @@ import me.shadaj.scalapy.readwrite.Writer
 import me.shadaj.scalapy.readwrite.Reader
 
 import scala.compiletime.ops.int.<=
-import dimwit.tensor.TupleHelpers.{ValidationResult, CanForm, ComputeMissing, CheckValid, AllOk, MissingAxis}
+import dimwit.tensor.TupleHelpers.{ValidationResult, CanForm, IsPermutation, ComputeMissing, CheckValid, AllOk, MissingAxis}
 import dimwit.tensor.ShapeTypeHelpers.UnwrapDims
 import dimwit.tensor.ShapeTypeHelpers.DimExtractor
 import dimwit.tensor.ShapeTypeHelpers.AxisReplacerAll
+import dimwit.tensor.ShapeTypeHelpers.AxisIndex
+import dimwit.tensor.ShapeTypeHelpers.AxisIndices
+import dimwit.tensor.ShapeTypeHelpers.AxesMerger
 import dimwit.OnError
 
 import Tuple.:*
 import Tuple.++
+import dimwit.tensor.ShapeTypeHelpers.MergeLabels
 
 object TensorOps:
 
@@ -611,20 +615,6 @@ object TensorOps:
         case B *: tail  => A *: Swap[tail, A, B]
         case h *: tail  => h *: Swap[tail, A, B]
 
-      type TupleReduce[T <: Tuple, Op[_ <: String, _ <: String]] = T match
-        case EmptyTuple      => ""
-        case h *: EmptyTuple => h
-        case h *: t          => Op[h, TupleReduce[t, Op]]
-
-      type TupleUnion[T <: Tuple] = T match
-        case EmptyTuple      => EmptyTuple
-        case h *: EmptyTuple => h
-        case h *: t          => h | TupleUnion[t]
-
-      type FoldLeft[T <: Tuple, Z, F[_, _]] = T match
-        case EmptyTuple => Z
-        case h *: t     => FoldLeft[t, F[Z, h], F]
-
       @implicitNotFound("The axis ${L} is already present in the tensor shape ${T}.")
       trait AxisAbsent[T, L]
       object AxisAbsent:
@@ -666,7 +656,7 @@ object TensorOps:
         axisIndex: AxisIndex[T, L]
     ): Tensor[InsertAfter[T, L, NewL], V] =
       require(tensors.nonEmpty, "Cannot stack an empty sequence of tensors")
-      val axisIdx = axisIndex.value + 1 // we are inserting after the given axis, so shift by 1
+      val axisIdx = axisIndex.index + 1 // we are inserting after the given axis, so shift by 1
       val jaxValuesSeq = tensors.map(_.jaxValue).toPythonProxy
       val stackedJaxValue = Jax.jnp.stack(jaxValuesSeq, axis = axisIdx)
       val names = summon[Labels[T]].names
@@ -682,7 +672,7 @@ object TensorOps:
         axisIndex: AxisIndex[T, L]
     ): Tensor[T, V] =
       require(tensors.nonEmpty, "Cannot concatenate an empty sequence of tensors")
-      val axisIdx = axisIndex.value
+      val axisIdx = axisIndex.index
       val jaxValuesSeq = tensors.map(_.jaxValue).toPythonProxy
       val concatenatedJaxValue = Jax.jnp.concatenate(jaxValuesSeq, axis = axisIdx)
       Tensor(concatenatedJaxValue)
@@ -795,10 +785,10 @@ object TensorOps:
 
         val splitIndices = orderedSizes.scanLeft(0)(_ + _).tail.init
         val pyIndices = me.shadaj.scalapy.py.Dynamic.global.list(splitIndices.toPythonProxy)
-        val splitArrays = Jax.jnp.split(tensor.jaxValue, pyIndices, axis = axisIndex.value).as[Seq[Jax.PyDynamic]]
+        val splitArrays = Jax.jnp.split(tensor.jaxValue, pyIndices, axis = axisIndex.index).as[Seq[Jax.PyDynamic]]
         val originalNames = summon[Labels[T]].names.toSeq
 
-        maker.apply(splitArrays, decon.labels, originalNames, axisIndex.value)
+        maker.apply(splitArrays, decon.labels, originalNames, axisIndex.index)
 
       private def calcPyIndices[Inputs <: Tuple](
           inputs: Inputs,
@@ -839,33 +829,64 @@ object TensorOps:
 
         Jax.Dynamic.global.tuple(indicesBuffer.toSeq.toPythonProxy)
 
-      def split[SplitL, NewL1, NewL2, R <: Tuple](
+      def unflatten[SplitL, NewT <: Tuple, R <: Tuple](
           splitAxis: Axis[SplitL],
-          newDim1: AxisExtent[NewL1],
-          newDim2: AxisExtent[NewL2]
+          newShape: Shape[NewT]
       )(using
-          ev: AxisReplacerAll.Aux[T, SplitL, (NewL1, NewL2), R],
+          ev: AxisReplacerAll.Aux[T, SplitL, NewT, R],
           labels: Labels[R]
       ): Tensor[R, V] =
-        val (before, after) = tensor.shape.dimensions.splitAt(ev.index)
-        val newShape = before ++ Seq(newDim1.size, newDim2.size) ++ after.drop(1)
+        val before = tensor.shape.dimensions.take(ev.index)
+        val after = tensor.shape.dimensions.drop(ev.index + 1)
+        val fullNewShape = before ++ newShape.dimensions ++ after
         Tensor(
           Jax.jnp.reshape(
             tensor.jaxValue,
             py.Dynamic.global.tuple(
-              newShape.map(py.Any.from).toPythonProxy
+              fullNewShape.map(py.Any.from).toPythonProxy
             )
           )
         )
 
+      def transpose[NewOrder <: Tuple, Status <: ValidationResult](newOrder: NewOrder)(using
+          ev: AxisIndices[T, UnwrapAxes[NewOrder]],
+          newLabels: Labels[UnwrapAxes[NewOrder]]
+      )(using
+          allAxesEv: IsPermutation[T, UnwrapAxes[NewOrder]]
+      ): Tensor[UnwrapAxes[NewOrder], V] =
+        val indices = ev.indices
+        Tensor(Jax.jnp.transpose(tensor.jaxValue, indices.toPythonProxy))
+
+      // merge all tensor axes to a single vector axis
+      def flatten: Tensor1[MergeLabels[T], V] =
+        given Labels[Tuple1[MergeLabels[T]]] with
+          def names = List(summon[Labels[T]].names.mkString("*"))
+        Tensor(Jax.jnp.ravel(tensor.jaxValue))
+
+      def flatten[ToMerge <: Tuple, R <: Tuple](
+          axes: ToMerge
+      )(using
+          merger: AxesMerger.Aux[T, UnwrapAxes[ToMerge], R],
+          labels: Labels[R]
+      ): Tensor[R, V] =
+        val permuted = Jax.jnp.transpose(tensor.jaxValue, merger.permutation.toPythonProxy)
+
+        val originalDims = tensor.shape.dimensions
+        val mergedSize = merger.mergeIndices.map(originalDims).product
+
+        val remainingDims = originalDims.zipWithIndex
+          .filterNot((d, i) => merger.mergeIndices.contains(i))
+          .map(_._1)
+
+        val newDimensions = remainingDims.patch(merger.mergedIndex, Seq(mergedSize), 0)
+
+        Tensor(Jax.jnp.reshape(permuted, newDimensions.toPythonProxy))
+
       def chunk[splitL: Label](splitAxis: Axis[splitL], chunkSize: Int)(using
           axisIndex: AxisIndex[T, splitL]
       ): Seq[Tensor[T, V]] =
-        val res = Jax.jnp.split(tensor.jaxValue, chunkSize, axis = axisIndex.value).as[Seq[Jax.PyDynamic]]
+        val res = Jax.jnp.split(tensor.jaxValue, chunkSize, axis = axisIndex.index).as[Seq[Jax.PyDynamic]]
         res.map(x => Tensor[T, V](x))
-
-      def tile = ???
-      def repeat = ???
 
       def slice[Inputs <: Tuple, LabelsToRemove <: Tuple, R <: Tuple](
           inputs: Inputs
@@ -930,7 +951,7 @@ object TensorOps:
       )(using
           axesIndices: AxisIndices[T, ExtractLabels[Inputs]]
       )(value: Tensor[R, V]): Tensor[T, V] =
-        val pyIndices = tensor.calcPyIndices(inputs, axesIndices.values)
+        val pyIndices = tensor.calcPyIndices(inputs, axesIndices.indices)
         val result = tensor.jaxValue.at.bracketAccess(pyIndices).set(value.jaxValue)
         Tensor(result)
 
@@ -1098,12 +1119,7 @@ object TensorOps:
               case n if n == ax2Name => ax1Name
               case n                 => n
             }
-        Tensor(Jax.jnp.swapaxes(tensor.jaxValue, axisIndex1.value, axisIndex2.value))
-
-      def ravel: Tensor1[FoldLeft[Tuple.Tail[T], Tuple.Head[T], |*|], V] =
-        given Labels[Tuple1[FoldLeft[Tuple.Tail[T], Tuple.Head[T], |*|]]] with
-          def names = List(summon[Labels[T]].names.mkString("*"))
-        Tensor(Jax.jnp.ravel(tensor.jaxValue))
+        Tensor(Jax.jnp.swapaxes(tensor.jaxValue, axisIndex1.index, axisIndex2.index))
 
       def appendAxis[L: Label](axis: Axis[L])(using AxisAbsent[T, L]): Tensor[Tuple.Concat[T, Tuple1[L]], V] =
         import Labels.ForConcat.given
@@ -1303,7 +1319,9 @@ object TensorOps:
 
     extension [L1: Label, L2: Label, V](t: Tensor2[L1, L2, V])
 
-      def transpose: Tensor2[L2, L1, V] = t.rearrange((Axis[L2], Axis[L1]))
+      // Support .transpose without arguments for 2D tensors while keeping (not shadowing) the general .transpose with arguments
+      def transpose: Tensor2[L2, L1, V] = t.transpose(Axis[L2], Axis[L1])
+      def transpose(axis2: Axis[L2], axis1: Axis[L1]): Tensor2[L2, L1, V] = TensorOps.Structural.transpose(t)(axis2, axis1)
 
   export Tensor0Ops.*
   export ValueOps.*

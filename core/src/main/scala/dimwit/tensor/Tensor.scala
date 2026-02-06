@@ -14,6 +14,7 @@ import me.shadaj.scalapy.readwrite.Writer
 import scala.reflect.ClassTag
 import scala.annotation.unchecked.uncheckedVariance
 import dimwit.Prime
+import ShapeTypeHelpers.AxisIndex
 
 enum Device(val platform: String):
   case CPU extends Device("cpu")
@@ -63,7 +64,7 @@ class Tensor[T <: Tuple: Labels, V] private[tensor] (
         s"TracerTensor(${shape.toString})"
       case _ => jaxValue.toString()
 
-  def extent[L](axis: Axis[L])(using axisIndex: AxisIndex[T @uncheckedVariance, L]): AxisExtent[L] =
+  def extent[L](axis: Axis[L])(using ev: AxisIndex[T, L]): AxisExtent[L] =
     shape.extent(axis)
 
   private val jaxTypeName: String = py.Dynamic.global.`type`(jaxValue).`__name__`.as[String]

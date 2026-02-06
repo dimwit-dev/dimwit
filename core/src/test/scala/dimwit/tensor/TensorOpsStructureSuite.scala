@@ -23,11 +23,6 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
       val res = t3.rearrange((Axis[C], Axis[A], Axis[B]))
       res.axes shouldBe List("C", "A", "B")
 
-    it("flattening (ravel): a b c -> (a b c)"):
-      val res = t3.ravel
-      res.axes shouldBe List("A*B*C")
-      res shouldEqual t3.rearrange(Tuple1(Axis[A |*| B |*| C]))
-
     it("merging axes: a b c -> (a b) c"):
       // Merges 2x2 into 4. Result shape (4, 1)
       val res = t3.rearrange((Axis[A |*| B], Axis[C]))
@@ -113,7 +108,7 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
         )
       ))
 
-    it("splitting axes: (a b) c -> a b c"):
+    it("reshaping axes: (a b) c -> a b c"):
       val flattened = t3.rearrange((Axis[A |*| B], Axis[C]))
       val res = flattened.rearrange(
         (Axis[A], Axis[B], Axis[C]),
@@ -121,21 +116,80 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
       )
       res should approxEqual(t3)
 
-  describe("split function"):
+  describe("unflatten function"):
 
-    it("split axis into two axes"):
+    it("unflatten axis into two axes"):
       val ab = Tensor(Shape(Axis[A] -> 4, Axis[B] -> 12)).fill(1f)
-      val acd = ab.split(Axis[B], Axis[C] -> 6, Axis[D] -> 2)
+      val acd = ab.unflatten(Axis[B], Shape(Axis[C] -> 6, Axis[D] -> 2))
       acd.axes shouldBe (List("A", "C", "D"))
       acd.shape(Axis[C]) shouldBe (6)
       acd.shape(Axis[D]) shouldBe (2)
 
-    it("split axis into two axes, one being the type of original axis"):
+    it("unflatten axis into two axes, one being the type of original axis"):
       val ab = Tensor(Shape(Axis[A] -> 4, Axis[B] -> 12)).fill(1f)
-      val acd = ab.split(Axis[B], Axis[B] -> 6, Axis[D] -> 2)
+      val acd = ab.unflatten(Axis[B], Shape(Axis[B] -> 6, Axis[D] -> 2))
       acd.axes shouldBe (List("A", "B", "D"))
       acd.shape(Axis[B]) shouldBe (6)
       acd.shape(Axis[D]) shouldBe (2)
+
+    it("unflatten axis into three axes"):
+      val ab = Tensor(Shape(Axis[A] -> 4, Axis[B] -> 12)).fill(1f)
+      val acde = ab.unflatten(Axis[B], Shape(Axis[C] -> 3, Axis[D] -> 2, Axis[E] -> 2))
+      acde.axes shouldBe (List("A", "C", "D", "E"))
+      acde.shape(Axis[C]) shouldBe (3)
+      acde.shape(Axis[D]) shouldBe (2)
+      acde.shape(Axis[E]) shouldBe (2)
+
+  describe("flatten function"):
+
+    it("flatten all axes"):
+      val ab = Tensor(Shape(Axis[A] -> 3, Axis[B] -> 5)).fill(1f)
+      val t = ab.flatten
+      t.axes shouldBe (List("A*B"))
+      t.shape(Axis[A |*| B]) shouldBe (3 * 5)
+
+    it("flatten two axes in Tensor2"):
+      val ab = Tensor(Shape(Axis[A] -> 3, Axis[B] -> 5)).fill(1f)
+      val t = ab.flatten((Axis[A], Axis[B]))
+      t.axes shouldBe (List("A*B"))
+      t.shape(Axis[A |*| B]) shouldBe (3 * 5)
+
+    it("flatten two axes in Tensor4"):
+      val abcd = Tensor(Shape(Axis[A] -> 1, Axis[B] -> 3, Axis[C] -> 5, Axis[D] -> 7)).fill(1f)
+      val t = abcd.flatten((Axis[B], Axis[C]))
+      t.axes shouldBe (List("A", "B*C", "D"))
+      t.shape(Axis[B |*| C]) shouldBe (3 * 5)
+
+    it("flatten three axes in Tensor5"):
+      val abcd = Tensor(Shape(Axis[A] -> 1, Axis[B] -> 3, Axis[C] -> 5, Axis[D] -> 7, Axis[E] -> 9)).fill(1f)
+      val t = abcd.flatten((Axis[B], Axis[C], Axis[E]))
+      t.axes shouldBe (List("A", "B*C*E", "D"))
+      t.shape(Axis[B |*| C |*| E]) shouldBe (3 * 5 * 9)
+
+  describe("transpose function"):
+
+    val ab = Tensor(Shape(Axis[A] -> 3, Axis[B] -> 5)).fill(1f)
+
+    it("transpose Tensor2"):
+      val t = ab.transpose(Axis[B], Axis[A])
+      t.axes shouldBe (List("B", "A"))
+      t.shape(Axis[B]) shouldBe (5)
+      t.shape(Axis[A]) shouldBe (3)
+
+    it("transpose Tensor2 (implicitly)"):
+      val t = ab.transpose
+      t.axes shouldBe (List("B", "A"))
+      t.shape(Axis[B]) shouldBe (5)
+      t.shape(Axis[A]) shouldBe (3)
+
+    it("transpose Tensor4"):
+      val abcd = Tensor(Shape(Axis[A] -> 2, Axis[B] -> 3, Axis[C] -> 4, Axis[D] -> 5)).fill(1f)
+      val t = abcd.transpose(Axis[D], Axis[A], Axis[B], Axis[C])
+      t.axes shouldBe (List("D", "A", "B", "C"))
+      t.shape(Axis[D]) shouldBe (5)
+      t.shape(Axis[A]) shouldBe (2)
+      t.shape(Axis[B]) shouldBe (3)
+      t.shape(Axis[C]) shouldBe (4)
 
   describe("Dimension manipulation"):
 

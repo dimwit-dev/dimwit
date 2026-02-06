@@ -69,8 +69,6 @@ package object dimwit:
     Label,
     Labels,
     Axis,
-    AxisIndex,
-    AxisIndices,
     AxisExtent,
     AxisSelector,
     AxisAtIndex,
@@ -78,6 +76,7 @@ package object dimwit:
     AxisAtIndices,
     AxisAtTensorIndex
   }
+  export dimwit.tensor.ShapeTypeHelpers.{AxisInTensor, AxisIndex, AxisRemover, AxisReplacer, AxisIndices, AxesRemover, AxesConditionalRemover, SharedAxisRemover}
 
   // Export operations
   export dimwit.tensor.TensorOps.*

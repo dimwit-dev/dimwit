@@ -20,6 +20,7 @@ trait A derives Label
 trait B derives Label
 trait C derives Label
 trait D derives Label
+trait E derives Label
 
 def approxEqual[T <: Tuple: Labels, V](right: Tensor[T, V], tolerance: Float = 1e-6f)(using ev: MustBeFloat[V]): Matcher[Tensor[T, V]] =
   new Matcher[Tensor[T, V]]:

@@ -101,7 +101,7 @@ case class GPT2(params: GPT2Params) extends (Tensor2[Batch, Context, Int] => Ten
     def apply(x: Tensor2[Context, Embedding, Float]): Tensor2[Context, Embedding, Float] =
       val heads = zipvmap(Axis[Head])(params.wq.weights, params.wq.bias, params.wk.weights, params.wk.bias, params.wv.weights, params.wv.bias):
         attention.tupled(_)(x)
-      heads.vmap(Axis[Context])(heads => projection(heads.ravel))
+      heads.vmap(Axis[Context])(heads => projection(heads.flatten))
 
     private def attention(
         wq: Tensor2[Embedding, HeadQuery, Float],

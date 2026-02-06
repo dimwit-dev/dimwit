@@ -2,12 +2,12 @@ package dimwit.tensor
 
 import scala.collection.View.Empty
 import scala.annotation.publicInBinary
+import ShapeTypeHelpers.AxisIndex
 import dimwit.tensor.{Labels, Label}
-import scala.annotation.unchecked.uncheckedVariance
 
 /** Represents the (typed) Shape of a tensor with runtime labels
   */
-final case class Shape[+T <: Tuple: Labels] @publicInBinary private (
+final case class Shape[T <: Tuple: Labels] @publicInBinary private (
     val dimensions: List[Int]
 ):
 
@@ -15,8 +15,8 @@ final case class Shape[+T <: Tuple: Labels] @publicInBinary private (
 
   def rank: Int = dimensions.size
   def size: Int = dimensions.foldLeft(1)((acc, d) => acc * d.asInstanceOf[Int])
-  def extent[L](axis: Axis[L])(using axisIndex: AxisIndex[T @uncheckedVariance, L]): AxisExtent[L] = AxisExtent(axis, this(axis))
-  def apply[L](axis: Axis[L])(using axisIndex: AxisIndex[T @uncheckedVariance, L]): Int = this.dimensions(axisIndex.value)
+  def extent[L](axis: Axis[L])(using ev: AxisIndex[T, L]): AxisExtent[L] = AxisExtent(axis, this(axis))
+  def apply[L](axis: Axis[L])(using ev: AxisIndex[T, L]): Int = this.dimensions(ev.index)
 
   override def toString: String =
     labels

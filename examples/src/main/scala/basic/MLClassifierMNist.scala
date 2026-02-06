@@ -54,7 +54,7 @@ object MLPClassifierMNist:
     def logits(
         image: Tensor2[Height, Width, Float]
     ): Tensor1[Output, Float] =
-      val hidden = relu(layer1(image.ravel))
+      val hidden = relu(layer1(image.flatten))
       layer2(hidden)
 
     override def apply(image: Tensor2[Height, Width, Float]): Tensor0[Int] = logits(image).argmax(Axis[Output])
