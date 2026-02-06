@@ -166,6 +166,32 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
       t.axes shouldBe (List("A", "B*C*E", "D"))
       t.shape(Axis[B |*| C |*| E]) shouldBe (3 * 5 * 9)
 
+  describe("flatten ∘ unflatten is identity"):
+    it("basic case (with axis)"):
+      val ab = Tensor(Shape(Axis[A] -> 3, Axis[B] -> 5)).fill(1f)
+      val t = ab.flatten
+      val ab2 = t.unflatten(Axis[A |*| B], ab.shape)
+      ab should approxEqual(ab2)
+
+    it("basic case (without axis)"):
+      val ab = Tensor(Shape(Axis[A] -> 3, Axis[B] -> 5)).fill(1f)
+      val t = ab.flatten
+      val ab2 = t.unflatten(ab.shape)
+      ab should approxEqual(ab2)
+
+    it("generic shape in function"):
+      def f[T <: Tuple: Labels](t: Tensor[T, Float]): Tensor[T, Float] =
+        val unflattened = t.flatten
+        unflattened.unflatten(t.shape)
+
+      val ab = Tensor(Shape(Axis[A] -> 3, Axis[B] -> 5)).fill(1f)
+      f(ab) should approxEqual(ab)
+
+    it(".unflatten without axis not supported for Tensor2"):
+      val abc = Tensor(Shape(Axis[A] -> 3, Axis[B] -> 5, Axis[C] -> 7)).fill(1f)
+      val t = abc.flatten((Axis[B], Axis[C]))
+      "val res = t.unflatten(Shape(Axis[B] -> 5, Axis[C] -> 7))" shouldNot compile
+
   describe("transpose function"):
 
     val ab = Tensor(Shape(Axis[A] -> 3, Axis[B] -> 5)).fill(1f)

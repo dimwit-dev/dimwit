@@ -765,12 +765,13 @@ object TensorOps:
             val headTensor = Tensor[NewShape, V](currentArr)(using newLabelsWitness)
             headTensor *: tailMaker(arrays.tail, compLabels.tail, originalLabels, splitIndex)
 
-    extension [T <: Tuple: Labels, V](tensor: Tensor[T, V])
+    extension [T <: Tuple, V](tensor: Tensor[T, V])
 
       def deconcatenate[L, Dims <: Tuple, Comps <: Tuple, Result](
           axis: Axis[L],
           dims: Dims
       )(using
+          labels: Labels[T],
           axisIndex: AxisIndex[T, L],
           decon: Deconcatenator.Aux[L, Comps],
           extractor: DimExtractor[Dims],
@@ -848,6 +849,22 @@ object TensorOps:
           )
         )
 
+      def unflatten[NewT <: Tuple: Labels](
+          newShape: Shape[NewT]
+      )(using
+          @implicitNotFound("unflatten without axis can only be used on Tensor1 types.")
+          ev: T <:< Tuple1[Any] // <--- Ensures this only works on Tensor1
+      ): Tensor[NewT, V] =
+        val fullNewShape = newShape.dimensions
+        Tensor(
+          Jax.jnp.reshape(
+            tensor.jaxValue,
+            py.Dynamic.global.tuple(
+              fullNewShape.map(py.Any.from).toPythonProxy
+            )
+          )
+        )
+
       def transpose[NewOrder <: Tuple, Status <: ValidationResult](newOrder: NewOrder)(using
           ev: AxisIndices[T, UnwrapAxes[NewOrder]],
           newLabels: Labels[UnwrapAxes[NewOrder]]
@@ -858,7 +875,7 @@ object TensorOps:
         Tensor(Jax.jnp.transpose(tensor.jaxValue, indices.toPythonProxy))
 
       // merge all tensor axes to a single vector axis
-      def flatten: Tensor1[MergeLabels[T], V] =
+      def flatten(using labels: Labels[T]): Tensor1[MergeLabels[T], V] =
         given Labels[Tuple1[MergeLabels[T]]] with
           def names = List(summon[Labels[T]].names.mkString("*"))
         Tensor(Jax.jnp.ravel(tensor.jaxValue))
@@ -883,6 +900,7 @@ object TensorOps:
         Tensor(Jax.jnp.reshape(permuted, newDimensions.toPythonProxy))
 
       def chunk[splitL: Label](splitAxis: Axis[splitL], chunkSize: Int)(using
+          labels: Labels[T],
           axisIndex: AxisIndex[T, splitL]
       ): Seq[Tensor[T, V]] =
         val res = Jax.jnp.split(tensor.jaxValue, chunkSize, axis = axisIndex.index).as[Seq[Jax.PyDynamic]]
@@ -949,6 +967,7 @@ object TensorOps:
       def set[Inputs <: Tuple, R <: Tuple](
           inputs: Inputs
       )(using
+          labels: Labels[T],
           axesIndices: AxisIndices[T, ExtractLabels[Inputs]]
       )(value: Tensor[R, V]): Tensor[T, V] =
         val pyIndices = tensor.calcPyIndices(inputs, axesIndices.indices)
@@ -958,6 +977,7 @@ object TensorOps:
       def set[L, I, LabelsToRemove <: Tuple, R <: Tuple](
           axisWithSliceIndex: (Axis[L], I)
       )(using
+          labels: Labels[T],
           axesIndices: AxisIndices[T, ExtractLabels[Tuple1[(Axis[L], I)]]]
       )(value: Tensor[R, V]): Tensor[T, V] = set(Tuple1(axisWithSliceIndex))(value)
 
@@ -965,6 +985,7 @@ object TensorOps:
       def set[L, R <: Tuple](
           selector: AxisSelector[L]
       )(using
+          labels: Labels[T],
           axesIndices: AxisIndices[T, ExtractLabels[Tuple1[AxisSelector[L]]]]
       )(value: Tensor[R, V]): Tensor[T, V] = set(Tuple1(selector))(value)
 
@@ -1044,6 +1065,7 @@ object TensorOps:
         )
 
       def broadcastTo[O <: Tuple: Labels](newShape: Shape[O])(using
+          labels: Labels[T],
           ev: StrictSubset[T, O]
       ): Tensor[O, V] =
         /* Disallow implicit broadcasting where an *existing* axis changes size (implicitly).
@@ -1106,6 +1128,7 @@ object TensorOps:
           axis1: Axis[L1],
           axis2: Axis[L2]
       )(using
+          labels: Labels[T],
           axisIndex1: AxisIndex[T, L1],
           axisIndex2: AxisIndex[T, L2]
       ): Tensor[Swap[T, L1, L2], V] =
@@ -1121,12 +1144,12 @@ object TensorOps:
             }
         Tensor(Jax.jnp.swapaxes(tensor.jaxValue, axisIndex1.index, axisIndex2.index))
 
-      def appendAxis[L: Label](axis: Axis[L])(using AxisAbsent[T, L]): Tensor[Tuple.Concat[T, Tuple1[L]], V] =
+      def appendAxis[L: Label](axis: Axis[L])(using labels: Labels[T], ev: AxisAbsent[T, L]): Tensor[Tuple.Concat[T, Tuple1[L]], V] =
         import Labels.ForConcat.given
         val newShape = tensor.shape.dimensions :+ 1
         Tensor(Jax.jnp.reshape(tensor.jaxValue, newShape.toPythonProxy))
 
-      def prependAxis[L: Label](axis: Axis[L])(using AxisAbsent[T, L]): Tensor[Tuple.Concat[Tuple1[L], T], V] =
+      def prependAxis[L: Label](axis: Axis[L])(using labels: Labels[T], ev: AxisAbsent[T, L]): Tensor[Tuple.Concat[Tuple1[L], T], V] =
         import Labels.ForConcat.given
         val newShape = 1 +: tensor.shape.dimensions
         Tensor(Jax.jnp.reshape(tensor.jaxValue, newShape.toPythonProxy))
@@ -1311,7 +1334,7 @@ object TensorOps:
 
   object Tensor1Ops:
 
-    extension [L: Label, V](t: Tensor1[L, V])
+    extension [L, V](t: Tensor1[L, V])
 
       def relabelTo[NewL: Label](newAxis: Axis[NewL]): Tensor1[NewL, V] = Tensor[Tuple1[NewL], V](t.jaxValue)
 

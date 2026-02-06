@@ -192,6 +192,10 @@ object ShapeTypeHelpers:
     case EmptyTuple   => Acc
     case head *: tail => MergeLabelsRec[tail, Acc |*| head]
 
+  object MergeLabels:
+    given [T <: Tuple: Labels]: Label[MergeLabels[T]] with
+      def name = summon[Labels[T]].names.mkString("*")
+
   object AxesMerger:
     type Aux[S <: Tuple, TM <: Tuple, Out <: Tuple] = AxesMerger[S, TM] { type NewShape = Out }
 
