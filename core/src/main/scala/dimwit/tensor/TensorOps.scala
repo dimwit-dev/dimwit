@@ -960,7 +960,6 @@ object TensorOps:
           ev: AxisRemover[T, L1, R],
           labels: Labels[R]
       ): Tensor[Tuple.Concat[Tuple1[L2], R], V] =
-        import Labels.ForConcat.given
         val result = Jax.jnp.take(tensor.jaxValue, indices.jaxValue, axis = ev.index)
         Tensor(result)
 
@@ -1145,12 +1144,10 @@ object TensorOps:
         Tensor(Jax.jnp.swapaxes(tensor.jaxValue, axisIndex1.index, axisIndex2.index))
 
       def appendAxis[L: Label](axis: Axis[L])(using labels: Labels[T], ev: AxisAbsent[T, L]): Tensor[Tuple.Concat[T, Tuple1[L]], V] =
-        import Labels.ForConcat.given
         val newShape = tensor.shape.dimensions :+ 1
         Tensor(Jax.jnp.reshape(tensor.jaxValue, newShape.toPythonProxy))
 
       def prependAxis[L: Label](axis: Axis[L])(using labels: Labels[T], ev: AxisAbsent[T, L]): Tensor[Tuple.Concat[Tuple1[L], T], V] =
-        import Labels.ForConcat.given
         val newShape = 1 +: tensor.shape.dimensions
         Tensor(Jax.jnp.reshape(tensor.jaxValue, newShape.toPythonProxy))
 

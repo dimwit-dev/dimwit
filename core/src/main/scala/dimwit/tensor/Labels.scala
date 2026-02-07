@@ -34,8 +34,6 @@ trait Labels[T]:
 
 private class LabelsImpl[T](val names: List[String]) extends Labels[T]
 
-private trait LabelsLowPriority
-
 object Labels extends LabelsLowPriority:
 
   given namesOfEmpty: Labels[EmptyTuple] = new LabelsImpl[EmptyTuple](Nil)
@@ -62,8 +60,6 @@ object Labels extends LabelsLowPriority:
     t.names :+ v.name
   )
 
-  object ForConcat:
-    given [T1 <: Tuple, T2 <: Tuple](using
-        n1: Labels[T1],
-        n2: Labels[T2]
-    ): Labels[Tuple.Concat[T1, T2]] = new LabelsImpl(n1.names ++ n2.names)
+private trait LabelsLowPriority:
+  given [T1 <: Tuple, T2 <: Tuple](using n1: Labels[T1], n2: Labels[T2]): Labels[Tuple.Concat[T1, T2]] =
+    new LabelsImpl(n1.names ++ n2.names)
