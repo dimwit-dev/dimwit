@@ -53,7 +53,7 @@ object Uniform:
     new Uniform(low, high)
 
 /** Bernoulli distribution */
-class Bernoulli[T <: Tuple: Labels](val probs: Tensor[T, Float]) extends IndependentDistribution[T, Int]:
+class Bernoulli[T <: Tuple: Labels](val probs: Tensor[T, Prob]) extends IndependentDistribution[T, Int]:
 
   override def elementWiseLogProb(x: Tensor[T, Int]): Tensor[T, LogProb] =
     Tensor.fromPy(VType[LogProb])(jstats.bernoulli.logpmf(x.jaxValue, p = probs.jaxValue))
@@ -64,7 +64,7 @@ class Bernoulli[T <: Tuple: Labels](val probs: Tensor[T, Float]) extends Indepen
 object Bernoulli:
 
   /** Create a Bernoulli distribution from probability tensor */
-  def apply[T <: Tuple: Labels](probs: Tensor[T, Float]): Bernoulli[T] =
+  def apply[T <: Tuple: Labels](probs: Tensor[T, Prob]): Bernoulli[T] =
     new Bernoulli(probs)
 
 /** Cauchy distribution */
@@ -87,15 +87,18 @@ object Cauchy:
 class HalfNormal[T <: Tuple: Labels](val loc: Tensor[T, Float], val scale: Tensor[T, Float]) extends IndependentDistribution[T, Float]:
 
   override def elementWiseLogProb(x: Tensor[T, Float]): Tensor[T, LogProb] =
-    // Half-normal is a folded normal: logpdf = log(2) + norm.logpdf
-    Tensor.fromPy(VType[LogProb])(
+    // Half-normal logpdf = log(2) + norm.logpdf for x >= loc, -inf otherwise
+    val rawLogProb = Tensor.fromPy[T, LogProb](VType[LogProb])(
       Jax.jnp.log(2.0) + jstats.norm.logpdf(x.jaxValue, loc = loc.jaxValue, scale = scale.jaxValue)
     )
+    val valid = x >= loc
+    val negInf = LogProb(Tensor.like(x).fill(Float.NegativeInfinity))
+    where(valid, rawLogProb, negInf)
 
   override def sample(k: Random.Key): Tensor[T, Float] =
-    // Half-normal: sample from normal and take absolute value
+    // Half-normal: |N(0,1)| * scale + loc
     val normal = Tensor.fromPy[T, Float](VType[Float])(Jax.jrandom.normal(k.jaxKey, shape = loc.shape.dimensions.toPythonProxy))
-    (normal * scale + loc).abs
+    normal.abs * scale + loc
 
 object HalfNormal:
 
@@ -105,7 +108,7 @@ object HalfNormal:
     new HalfNormal(loc, scale)
 
 /** Student's t-distribution */
-class StudentT[T <: Tuple: Labels](val df: Int, val loc: Tensor[T, Float], val scale: Tensor[T, Float]) extends IndependentDistribution[T, Float]:
+class StudentT[T <: Tuple: Labels](val df: Float, val loc: Tensor[T, Float], val scale: Tensor[T, Float]) extends IndependentDistribution[T, Float]:
 
   override def elementWiseLogProb(x: Tensor[T, Float]): Tensor[T, LogProb] =
     Tensor.fromPy(VType[LogProb])(jstats.t.logpdf(x.jaxValue, df = df, loc = loc.jaxValue, scale = scale.jaxValue))
@@ -118,6 +121,6 @@ class StudentT[T <: Tuple: Labels](val df: Int, val loc: Tensor[T, Float], val s
 object StudentT:
 
   /** Create a Student's t-distribution from parameters */
-  def apply[T <: Tuple: Labels](df: Int, loc: Tensor[T, Float], scale: Tensor[T, Float]): StudentT[T] =
+  def apply[T <: Tuple: Labels](df: Float, loc: Tensor[T, Float], scale: Tensor[T, Float]): StudentT[T] =
     require(loc.shape.dimensions == scale.shape.dimensions, "loc, and scale must have the same dimensions")
     new StudentT(df, loc, scale)

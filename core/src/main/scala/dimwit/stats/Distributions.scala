@@ -20,14 +20,19 @@ object LogProb:
 
     def exp: Tensor[T, Prob] = TensorOps.exp(t)
     def log: Tensor[T, Float] = TensorOps.log(t) // Lose LogProb if we log again
+    def asFloat: Tensor[T, Float] = t
 
 object Prob:
+
+  given IsFloating[Prob] = summon[IsFloating[Float]]
+
   def apply[T <: Tuple: Labels](t: Tensor[T, Float]): Tensor[T, Prob] = t
 
   extension [T <: Tuple: Labels](t: Tensor[T, Prob])
 
     def exp: Tensor[T, Float] = TensorOps.exp(t) // Lose Prob if we exp again
     def log: Tensor[T, LogProb] = TensorOps.log(t)
+    def asFloat: Tensor[T, Float] = t
 
 trait Distribution[EventShape <: Tuple: Labels, V]:
 
@@ -79,22 +84,30 @@ object IndependentDistribution:
   ): IndependentDistribution[EventShape, V] =
     new IndependentDistribution[EventShape, V]:
       override def sample(k: Random.Key): Tensor[EventShape, V] =
-        // sample using vmap for efficiency
 
         val flatSize = shape.dimensions.product
         trait Samples derives Label
-        val samples = k.splitvmap(Axis[Samples] -> flatSize) { key =>
+        val samples = k.splitvmap(Axis[Samples] -> flatSize): key =>
           univariate.sample(key)
-        }
-        samples.reshape(shape)
+
+        samples.unflatten(shape)
 
       override def elementWiseLogProb(x: Tensor[EventShape, V]): Tensor[EventShape, LogProb] =
-        trait Sample derives Label
-        val xflattened = x.reshape(Shape(Axis[Sample] -> x.shape.dimensions.product))
-        val logprobs = xflattened.vmap(Axis[Sample]) { xi =>
+        trait Samples derives Label
+        val flattened = x.flatten.relabelTo(Axis[Samples])
+        val logprobs = flattened.vmap(Axis[Samples]) { xi =>
           univariate.logProb(xi)
         }
-        logprobs.reshape(shape)
+        logprobs.unflatten(shape)
 
-type UnivariateDistribution[V] = Distribution[EmptyTuple, V]
-type MultivariateDistribution[L, V] = Distribution[Tuple1[L], V]
+/** Distribution over a single random variable.
+  * Note that most distributions are
+  * directly implemented as IndependentDistributions, for which
+  * Univariate is a special case with EventShape = EmptyTuple.
+  * so this is only used for special cases like Categorical.
+  */
+trait UnivariateDistribution[V] extends Distribution[EmptyTuple, V]
+
+/** Distribution over a vector of random variables.
+  */
+trait MultivariateDistribution[L: Label, V] extends Distribution[Tuple1[L], V]
