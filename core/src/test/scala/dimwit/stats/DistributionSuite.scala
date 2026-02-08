@@ -87,6 +87,52 @@ class DistributionSuite extends AnyFunSpec with Matchers:
       val expectedMeans = bernoulli.probs.asFloat
       sampleMeans should approxEqual(expectedMeans, 0.1f)
 
+  describe("Binomial"):
+    it("logProbs matches JAX"):
+      val n = 10
+      val probs = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.3f, 0.5f, 0.8f))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(3, 5, 8))
+
+      val dist = Binomial(n, Prob(probs))
+      val scalaLogProbs = dist.elementWiseLogProb(x)
+      val jaxLogProbs = Tensor.fromPy[Tuple1[A], Float](VType[Float])(
+        jstats.binom.logpmf(x.jaxValue, n = n, p = probs.jaxValue)
+      )
+      scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
+
+    it("sample means approximates n*p"):
+      val n = 20
+      val binomial = Binomial(
+        n,
+        Prob(Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.3f, 0.7f)))
+      )
+      val key = Random.Key(42)
+      val samples = key.splitvmap(Axis[Samples] -> 10000)(k => binomial.sample(k))
+      val sampleMeans = samples.asFloat.mean(Axis[Samples])
+      val expectedMeans = binomial.probs.asFloat *! n.toFloat
+      sampleMeans should approxEqual(expectedMeans, 0.5f)
+
+    it("reduces to Bernoulli when n=1"):
+      val n = 1
+      val probs = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.2f, 0.5f, 0.9f))
+
+      val binomial = Binomial(n, Prob(probs))
+      val key = Random.Key(123)
+      val samples = key.splitvmap(Axis[Samples] -> 5000)(k => binomial.sample(k))
+      val sampleMeans = samples.asFloat.mean(Axis[Samples])
+      sampleMeans should approxEqual(probs, 0.1f)
+
+    it("handles edge cases p=0 and p=1"):
+      val n = 5
+      val probsEdge = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.0f, 1.0f))
+
+      val binomial = Binomial(n, Prob(probsEdge))
+      val key = Random.Key(456)
+      val samples = key.splitvmap(Axis[Samples] -> 100)(k => binomial.sample(k))
+      val sampleMeans = samples.asFloat.mean(Axis[Samples])
+      val expectedMeans = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.0f, n.toFloat))
+      sampleMeans should approxEqual(expectedMeans, 0.1f)
+
   describe("Cauchy"):
     it("logProbs matches JAX"):
       val loc = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.0f, 1.0f, -0.5f))

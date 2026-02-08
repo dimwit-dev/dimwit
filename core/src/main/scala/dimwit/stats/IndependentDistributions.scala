@@ -67,6 +67,27 @@ object Bernoulli:
   def apply[T <: Tuple: Labels](probs: Tensor[T, Prob]): Bernoulli[T] =
     new Bernoulli(probs)
 
+/** Binomial distribution - number of successes in n independent Bernoulli trials */
+class Binomial[T <: Tuple: Labels](val n: Int, val probs: Tensor[T, Prob]) extends IndependentDistribution[T, Int]:
+
+  override def elementWiseLogProb(x: Tensor[T, Int]): Tensor[T, LogProb] =
+    Tensor.fromPy(VType[LogProb])(jstats.binom.logpmf(x.jaxValue, n = n, p = probs.jaxValue))
+
+  override def sample(key: Random.Key): Tensor[T, Int] =
+    // Sum n independent Bernoulli(p) trials
+    trait Trials derives Label
+    val trialSamples = key.splitvmap(Axis[Trials] -> n) { k =>
+      Tensor.fromPy(VType[Int])(Jax.jrandom.bernoulli(k.jaxKey, p = probs.jaxValue))
+    }
+    trialSamples.sum(Axis[Trials])
+
+object Binomial:
+
+  /** Create a Binomial distribution from number of trials and probability tensor */
+  def apply[T <: Tuple: Labels](n: Int, probs: Tensor[T, Prob]): Binomial[T] =
+    require(n > 0, "Number of trials must be positive")
+    new Binomial(n, probs)
+
 /** Cauchy distribution */
 class Cauchy[T <: Tuple: Labels](val loc: Tensor[T, Float], val scale: Tensor[T, Float]) extends IndependentDistribution[T, Float]:
 
