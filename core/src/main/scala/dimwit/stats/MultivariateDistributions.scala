@@ -6,6 +6,10 @@ import dimwit.jax.Jax
 import dimwit.jax.Jax.scipy_stats as jstats
 import dimwit.jax.Jax.PyDynamic
 
+/** Distribution over a vector of random variables.
+  */
+trait MultivariateDistribution[L: Label, V] extends Distribution[Tuple1[L], V]
+
 class MVNormal[L: Label](
     val mean: Tensor1[L, Float],
     val covariance: Tensor2[L, Prime[L], Float]
@@ -55,17 +59,3 @@ class Multinomial[L: Label](
     Tensor.fromPy(VType[Int])(
       Jax.jnp.bincount(draws.jaxValue, length = probs.shape.dimensions(0))
     )
-
-class Categorical[L: Label](val probs: Tensor1[L, Prob]) extends UnivariateDistribution[Int]:
-
-  private val logProbs: Tensor1[L, LogProb] = probs.log
-
-  override def logProb(x: Tensor0[Int]): Tensor0[LogProb] =
-    Tensor.fromPy(VType[LogProb])(logProbs.jaxValue.__getitem__(x.jaxValue))
-
-  override def sample(key: Random.Key): Tensor0[Int] =
-    Tensor.fromPy(VType[Int])(Jax.jrandom.categorical(key.jaxKey, logProbs.jaxValue))
-
-object Categorical:
-  def apply[L: Label](probs: Tensor1[L, Prob]): Categorical[L] = new Categorical(probs)
-  def fromFloat[L: Label](probs: Tensor1[L, Float]): Categorical[L] = new Categorical(Prob(probs))

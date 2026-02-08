@@ -99,15 +99,3 @@ object IndependentDistribution:
           univariate.logProb(xi)
         }
         logprobs.unflatten(shape)
-
-/** Distribution over a single random variable.
-  * Note that most distributions are
-  * directly implemented as IndependentDistributions, for which
-  * Univariate is a special case with EventShape = EmptyTuple.
-  * so this is only used for special cases like Categorical.
-  */
-trait UnivariateDistribution[V] extends Distribution[EmptyTuple, V]
-
-/** Distribution over a vector of random variables.
-  */
-trait MultivariateDistribution[L: Label, V] extends Distribution[Tuple1[L], V]

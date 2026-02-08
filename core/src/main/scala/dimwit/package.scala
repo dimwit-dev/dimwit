@@ -95,4 +95,4 @@ package object dimwit:
 
   // export some stats types
   export dimwit.stats.{Prob, LogProb}
-  export dimwit.stats.{Distribution, IndependentDistribution, MultivariateDistribution}
+  export dimwit.stats.{Distribution, IndependentDistribution, MultivariateDistribution, UnivariateDistribution}
