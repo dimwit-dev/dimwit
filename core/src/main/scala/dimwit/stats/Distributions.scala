@@ -7,8 +7,8 @@ import dimwit.jax.Jax.scipy_stats as jstats
 import dimwit.jax.Jax.PyDynamic
 import dimwit.tensor.TensorOps
 
-opaque type LogProb <: Float = Float
-opaque type Prob <: Float = Float
+opaque type LogProb = Float
+opaque type Prob = Float
 
 object LogProb:
 
