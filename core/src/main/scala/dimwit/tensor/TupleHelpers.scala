@@ -8,6 +8,7 @@ import scala.compiletime.ops.string.+
 import scala.quoted.Type
 import scala.quoted.Quotes
 import scala.quoted.Expr
+import scala.compiletime.ops
 
 /* Helpers for manipulating Tuple types */
 object TupleHelpers:
@@ -93,6 +94,10 @@ object TupleHelpers:
         next: Replacer.Aux[Tail, Target, Replacement, TailOut]
     ): Replacer[Head *: Tail, Target, Replacement] with
       type Out = Head *: TailOut
+
+  type TupleNOf[N <: Int, T] <: Tuple = N match
+    case 0 => EmptyTuple
+    case _ => T *: TupleNOf[ops.int.-[N, 1], T]
 
   import dimwit.Prime
   import scala.compiletime.ops.boolean.*

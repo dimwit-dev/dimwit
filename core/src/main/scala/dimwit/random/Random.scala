@@ -5,6 +5,9 @@ import dimwit.tensor.TensorOps.*
 import dimwit.jax.{Jax, JaxDType}
 import me.shadaj.scalapy.py.SeqConverters
 import dimwit.python.PyBridge.liftPyTensor
+import scala.compiletime.{requireConst, constValue, ops}
+import Tuple.Size
+import dimwit.tensor.TupleHelpers.TupleNOf
 
 /** JAX-based random number generation with proper key management.
   *
@@ -24,6 +27,14 @@ object Random:
     def split(num: Int): Seq[Key] =
       val splitKeys = Jax.jrandom.split(jaxKey, num)
       (0 until num).map(i => Key(splitKeys.__getitem__(i)))
+
+    /** Split this key into N independent keys as a Tuple */
+    inline def splitToTuple[N <: Int & Singleton](inline n: N): TupleNOf[N, Key] =
+      requireConst(n)
+      val num = n.asInstanceOf[Int]
+      val splitKeys = Jax.jrandom.split(jaxKey, num)
+      val keysArray = Array.tabulate(num)(i => Key(splitKeys.__getitem__(i)))
+      Tuple.fromArray(keysArray).asInstanceOf[TupleNOf[N, Key]]
 
     /** Split this key into multiple independent keys stored in a tensor */
     def splitToTensor[L: Label](dim: AxisExtent[L]): Tensor1[L, Key] =

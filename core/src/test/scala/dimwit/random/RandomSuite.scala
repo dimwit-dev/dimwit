@@ -5,21 +5,32 @@ import dimwit.Conversions.given
 import dimwit.jax.Jax
 import me.shadaj.scalapy.py
 
-import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 import dimwit.stats.Normal
 
-class RandomSuite extends AnyFunSuite with Matchers:
+class RandomSuite extends AnyFunSpec with Matchers:
   trait A derives Label
   trait Samples derives Label
 
-  test("splitToTensor creates tensor of correct shape"):
+  describe("splitToTuple creates tuple"):
+    val key = Random.Key(42)
+    it("of 'constant int'"):
+      val (a, b, c, d, e) = key.splitToTuple(5)
+    it("of 'inline val int'"):
+      inline val n = 5
+      val (a, b, c, d, e) = key.splitToTuple(n)
+    it("does not accept 'val int'"):
+      val n = 5
+      "val (a, b, c, d, e) = key.splitToTuple(n)" shouldNot compile
+
+  it("splitToTensor creates tensor of correct shape"):
     val key = Random.Key(42)
     val n = 5
     val tensorKeys = key.splitToTensor(Axis[Samples] -> n)
     tensorKeys.shape should equal(Shape(Axis[Samples] -> n))
 
-  test("splitToTensor creates same keys as manual split"):
+  it("splitToTensor creates same keys as manual split"):
 
     val key = Random.Key(42)
     val n = 5
@@ -31,7 +42,7 @@ class RandomSuite extends AnyFunSuite with Matchers:
       val splitKey = splitKeys(i)
       tensorKey should equal(splitKey)
 
-  test("item returns the jax key"):
+  it("item returns the jax key"):
     val key = Random.Key(123)
     val tensor0Key = Tensor0[Random.Key](key.jaxKey)
     val extractedKey = tensor0Key.item
@@ -39,7 +50,7 @@ class RandomSuite extends AnyFunSuite with Matchers:
     // The extracted key should have the same underlying JAX key
     extractedKey should equal(key)
 
-  test("splitvmap generates same random numbers as individual calls"):
+  it("splitvmap generates same random numbers as individual calls"):
     val key = Random.Key(456)
     val n = 3
 
@@ -53,7 +64,7 @@ class RandomSuite extends AnyFunSuite with Matchers:
 
     vmapResults should approxEqual(individualResults)
 
-  test("permutation creates valid permutation of indices"):
+  it("permutation creates valid permutation of indices"):
     val key = Random.Key(789)
     val n = 10
     val perm = Random.permutation(Axis[A] -> n)(key)
@@ -77,7 +88,7 @@ class RandomSuite extends AnyFunSuite with Matchers:
     val isIdentity = (perm === original).item
     isIdentity shouldBe false
 
-  test("permutation with take can shuffle tensor rows"):
+  it("permutation with take can shuffle tensor rows"):
     val key = Random.Key(101112)
     trait Row derives Label
     trait Col derives Label
