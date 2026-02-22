@@ -15,19 +15,8 @@ import scala.reflect.ClassTag
 import scala.annotation.unchecked.uncheckedVariance
 import dimwit.Prime
 import ShapeTypeHelpers.AxisIndex
-
-enum Device(val platform: String):
-  case CPU extends Device("cpu")
-  case GPU extends Device("gpu")
-  case Other extends Device("other")
-
-object Device:
-  val default: Device = Device.CPU
-  extension (device: Device)
-    def toJaxDevice: Jax.PyDynamic =
-      val devices = Jax.devices(device.platform)
-      require(devices.nonEmpty, s"No JAX devices found for platform: ${device.platform}")
-      devices.head
+import dimwit.hardware.Device
+import me.shadaj.scalapy.readwrite.Writer.stringWriter.given
 
 class Tensor[T <: Tuple: Labels, V] private[dimwit] (
     private[dimwit] val jaxValue: Jax.PyDynamic
@@ -38,12 +27,7 @@ class Tensor[T <: Tuple: Labels, V] private[dimwit] (
   lazy val shape: Shape[T] = Shape.fromSeq[T](jaxValue.shape.as[Seq[Int]])
   lazy val vtype: VType[V] = VType(this)
 
-  lazy val device: Device =
-    val jaxDevice = Jax.device_get(jaxValue)
-    jaxDevice.platform.as[String] match
-      case "cpu" => Device.CPU
-      case "gpu" => Device.GPU
-      case _     => Device.Other
+  lazy val device: Device = Device(jaxValue.device)
 
   def asType[V2](vtype: VType[V2]): Tensor[T, V2] = new Tensor(Jax.jnp.astype(jaxValue, JaxDType.jaxDtype(vtype.dtype)))
 

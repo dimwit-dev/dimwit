@@ -61,7 +61,7 @@ package object dimwit:
   // Export tensor and related types
   export dimwit.tensor.{Tensor, Tensor0, Tensor1, Tensor2, Tensor3}
   export dimwit.tensor.{Shape, Shape0, Shape1, Shape2, Shape3}
-  export dimwit.tensor.{DType, Device}
+  export dimwit.tensor.DType
   export dimwit.tensor.{
     VType,
     ExecutionType,
@@ -80,6 +80,9 @@ package object dimwit:
 
   // Export operations
   export dimwit.tensor.TensorOps.*
+
+  // Export devices
+  export dimwit.hardware.Device
 
   // Export automatic differentiation
   export dimwit.autodiff.{Autodiff, TensorTree, FloatTensorTree, ToPyTree, Grad}
