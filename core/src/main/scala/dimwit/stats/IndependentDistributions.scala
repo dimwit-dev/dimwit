@@ -89,17 +89,14 @@ class Binomial[T <: Tuple: Labels](val n: Tensor0[Int], val probs: Tensor[T, Pro
     liftPyTensor(jstats.binom.logpmf(x.jaxValue, n = n.jaxValue, p = probs.jaxValue))
 
   override def sample(key: Random.Key): Tensor[T, Int] =
-    // Sum n independent Bernoulli(p) trials
-    trait Trials derives Label
-    val trialSamples = key.splitvmap(Axis[Trials] -> n.item): k =>
-      liftPyTensor(probs.shape, VType[Int])(Jax.jrandom.bernoulli(k.jaxKey, p = probs.jaxValue))
-    trialSamples.asInt.sum(Axis[Trials])
+    liftPyTensor(probs.shape, VType[Int])(
+      Jax.jrandom.binomial(key.jaxKey, n = n.jaxValue, p = probs.jaxValue)
+    )
 
 object Binomial:
 
   /** Create a Binomial distribution from number of trials and probability tensor */
   def apply[T <: Tuple: Labels](n: Tensor0[Int], probs: Tensor[T, Prob]): Binomial[T] =
-    require(n.item > 0, "Number of trials must be positive")
     new Binomial(n, probs)
 
 /** Cauchy distribution */
@@ -150,7 +147,7 @@ class StudentT[T <: Tuple: Labels](val df: Tensor0[Float], val loc: Tensor[T, Fl
 
   override def sample(k: Random.Key): Tensor[T, Float] =
     liftPyTensor(
-      Jax.jrandom.t(k.jaxKey, df = df.jaxValue.item().as[Float], shape = loc.shape.dimensions.toPythonProxy)
+      Jax.jrandom.t(k.jaxKey, df = df.jaxValue, shape = loc.shape.dimensions.toPythonProxy)
     ) * scale + loc
 
 object StudentT:
