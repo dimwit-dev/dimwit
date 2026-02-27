@@ -492,7 +492,6 @@ import dimwit.*
 import dimwit.autodiff.Autodiff
 
 trait A derives Label
-import dimwit.autodiff.Autodiff
 
 // Scalar function: f(x) = x²
 def f(x: Tensor0[Float]): Tensor0[Float] = x * x
@@ -573,7 +572,7 @@ Use **case classes** to group parameters. DimWit automatically derives `TensorTr
 
 ```scala mdoc:reset:silent
 import dimwit.*
-import dimwit.autodiff.{TensorTree, FloatTensorTree, Autodiff}
+import dimwit.autodiff.{TensorTree, ToFloatTensorTree, Autodiff}
 
 trait Feature derives Label
 trait Hidden derives Label
@@ -581,7 +580,7 @@ trait Hidden derives Label
 case class LinearParams(
   weight: Tensor2[Feature, Hidden, Float],
   bias: Tensor1[Hidden, Float]
-)
+) derives ToFloatTensorTree
 
 // Define a model
 def linear(params: LinearParams)(input: Tensor1[Feature, Float]): Tensor1[Hidden, Float] =
@@ -651,7 +650,7 @@ trait Feature derives Label
 trait Batch derives Label
 
 // Define model parameters
-case class SimpleModelParams(w: Tensor1[Feature, Float], b: Tensor0[Float])
+case class SimpleModelParams(w: Tensor1[Feature, Float], b: Tensor0[Float]) derives ToFloatTensorTree
 
 // Define loss function
 def mse(data: Tensor2[Batch, Feature, Float], labels: Tensor1[Batch, Float])
@@ -720,7 +719,7 @@ val yData = Tensor1(Axis[Sample]).fromArray(
 )
 
 // Model parameters
-case class RegressionParams(slope: Tensor1[InputDim, Float], intercept: Tensor0[Float])
+case class RegressionParams(slope: Tensor1[InputDim, Float], intercept: Tensor0[Float]) derives ToFloatTensorTree
 
 // Loss function (MSE)
 def regressionLoss(x: Tensor2[Sample, InputDim, Float], y: Tensor1[Sample, Float])
