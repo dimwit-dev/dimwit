@@ -40,7 +40,7 @@ case class MultiHeadAttentionParams(
     wk: HeadsParams[HeadKey],
     wv: HeadsParams[HeadValue],
     proj: LinearLayerParams[Head |*| HeadValue, Embedding]
-) derives ToPyTree
+) derives ToTensorTree
 
 case class EmbeddingMixerParams(
     c_fc: LinearLayerParams[Embedding, EmbeddingMixed],

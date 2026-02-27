@@ -85,7 +85,7 @@ package object dimwit:
   export dimwit.hardware.Device
 
   // Export automatic differentiation
-  export dimwit.autodiff.{Autodiff, TensorTree, FloatTensorTree, ToPyTree, Grad}
+  export dimwit.autodiff.{Autodiff, TensorTree, ToFloatTensorTree, ToTensorTree, Grad}
 
   // Export Just-in-Time compilation
   export dimwit.jax.Jit.{jit, jitDonating, jitDonatingUnsafe}

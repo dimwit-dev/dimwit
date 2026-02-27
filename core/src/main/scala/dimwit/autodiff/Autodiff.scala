@@ -22,62 +22,62 @@ object Autodiff:
     case Tensor[inS, v2] => Tensor[PrimeConcatType[OutShape, inS], V]
 
   // TODO replace with TupledFunction when available (no longer experimental)
-  def grad[T1, T2, V](f: (T1, T2) => Tensor0[V])(using t1Tree: ToPyTree[T1], t2Tree: ToPyTree[T2], outTree: ToPyTree[Tensor0[V]]): (T1, T2) => Grad[(T1, T2)] = (t1, t2) => grad(f.tupled)((t1, t2))
-  def grad[T1, T2, T3, V](f: (T1, T2, T3) => Tensor0[V])(using t1Tree: ToPyTree[T1], t2Tree: ToPyTree[T2], t3Tree: ToPyTree[T3], outTree: ToPyTree[Tensor0[V]]): (T1, T2, T3) => Grad[(T1, T2, T3)] = (t1, t2, t3) => grad(f.tupled)((t1, t2, t3))
+  def grad[T1, T2, V](f: (T1, T2) => Tensor0[V])(using t1Tree: ToFloatTensorTree[T1], t2Tree: ToFloatTensorTree[T2], outTree: ToTensorTree[Tensor0[V]]): (T1, T2) => Grad[(T1, T2)] = (t1, t2) => grad(f.tupled)((t1, t2))
+  def grad[T1, T2, T3, V](f: (T1, T2, T3) => Tensor0[V])(using t1Tree: ToFloatTensorTree[T1], t2Tree: ToFloatTensorTree[T2], t3Tree: ToFloatTensorTree[T3], outTree: ToTensorTree[Tensor0[V]]): (T1, T2, T3) => Grad[(T1, T2, T3)] = (t1, t2, t3) => grad(f.tupled)((t1, t2, t3))
 
   def grad[Input, V](f: Input => Tensor0[V])(using
-      inTree: ToPyTree[Input],
-      outTree: ToPyTree[Tensor0[V]]
+      inTree: ToFloatTensorTree[Input],
+      outTree: ToTensorTree[Tensor0[V]]
   ): Input => Grad[Input] =
 
     val fpy = (jxpr: py.Dynamic) =>
       OnError.traceStack:
-        val x = inTree.fromPyTree(jxpr)
-        outTree.toPyTree(f(x))
+        val x = inTree.fromTensorTree(TensorTree[Input](jxpr))
+        outTree.toTensorTree(f(x)).pyTree
 
     val gpy = Jax.jax_helper.grad(fpy)
 
     (params: Input) =>
-      val xpy = inTree.toPyTree(params)
+      val xpy = inTree.toTensorTree(params).pyTree
       val pygrad = gpy(xpy)
-      Grad(inTree.fromPyTree(pygrad).asInstanceOf[Input])
+      Grad(inTree.fromTensorTree(TensorTree[Input](pygrad)).asInstanceOf[Input])
 
   def jacobian[In, Out](f: In => Out)(using
-      inTree: ToPyTree[In],
-      outTree: ToPyTree[Out],
-      gradTree: ToPyTree[Gradient[In, Out]] // Compiler infers this!
+      inTree: ToFloatTensorTree[In],
+      outTree: ToTensorTree[Out],
+      gradTree: ToTensorTree[Gradient[In, Out]] // Compiler infers this!
   ): In => Gradient[In, Out] =
 
     val fpy = (jxpr: py.Dynamic) =>
       OnError.traceStack:
-        val x = inTree.fromPyTree(jxpr)
-        outTree.toPyTree(f(x))
+        val x = inTree.fromTensorTree(TensorTree[In](jxpr))
+        outTree.toTensorTree(f(x)).pyTree
 
     val jpy = Jax.jax_helper.jacobian(fpy)
 
     (params: In) =>
-      val xpy = inTree.toPyTree(params)
+      val xpy = inTree.toTensorTree(params).pyTree
       val res = jpy(xpy)
-      gradTree.fromPyTree(res)
+      gradTree.fromTensorTree(TensorTree[Gradient[In, Out]](res))
 
   def jacRev[In, Out](f: In => Out)(using
-      inTree: ToPyTree[In],
-      outTree: ToPyTree[Out],
-      gradTree: ToPyTree[Gradient[In, Out]]
+      inTree: ToFloatTensorTree[In],
+      outTree: ToTensorTree[Out],
+      gradTree: ToTensorTree[Gradient[In, Out]]
   ): In => Gradient[In, Out] =
     val fpy = (jxpr: py.Dynamic) =>
       OnError.traceStack:
-        outTree.toPyTree(f(inTree.fromPyTree(jxpr)))
+        outTree.toTensorTree(f(inTree.fromTensorTree(TensorTree[In](jxpr)))).pyTree
     val jpy = Jax.jax_helper.jacrev(fpy)
-    (params: In) => gradTree.fromPyTree(jpy(inTree.toPyTree(params)))
+    (params: In) => gradTree.fromTensorTree(TensorTree[Gradient[In, Out]](jpy(inTree.toTensorTree(params).pyTree)))
 
   def jacFwd[In, Out](f: In => Out)(using
-      inTree: ToPyTree[In],
-      outTree: ToPyTree[Out],
-      gradTree: ToPyTree[Gradient[In, Out]]
+      inTree: ToFloatTensorTree[In],
+      outTree: ToTensorTree[Out],
+      gradTree: ToTensorTree[Gradient[In, Out]]
   ): In => Gradient[In, Out] =
     val fpy = (jxpr: py.Dynamic) =>
       OnError.traceStack:
-        outTree.toPyTree(f(inTree.fromPyTree(jxpr)))
+        outTree.toTensorTree(f(inTree.fromTensorTree(TensorTree[In](jxpr)))).pyTree
     val jpy = Jax.jax_helper.jacfwd(fpy)
-    (params: In) => gradTree.fromPyTree(jpy(inTree.toPyTree(params)))
+    (params: In) => gradTree.fromTensorTree(TensorTree[Gradient[In, Out]](jpy(inTree.toTensorTree(params).pyTree)))

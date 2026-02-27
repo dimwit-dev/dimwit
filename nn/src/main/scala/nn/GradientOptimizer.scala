@@ -2,8 +2,7 @@ package nn
 
 import dimwit.*
 import dimwit.Conversions.given
-import dimwit.autodiff.Grad
-import dimwit.autodiff.FloatTensorTree.*
+import dimwit.autodiff.{Grad, TensorTree}
 import dimwit.jax.Jax
 import dimwit.jax.Jit
 
@@ -30,16 +29,16 @@ trait GradientOptimizer:
   type State[_]
 
   // Core API
-  def init[Params: ToPyTree: FloatTensorTree](params: Params): State[Params]
-  def update[Params: ToPyTree: FloatTensorTree](gradients: Grad[Params], params: Params, state: State[Params]): (Params, State[Params])
+  def init[Params: ToFloatTensorTree](params: Params): State[Params]
+  def update[Params: ToFloatTensorTree](gradients: Grad[Params], params: Params, state: State[Params]): (Params, State[Params])
 
   // Convenience: iterator with fixed gradient function
-  def iterateWithState[Params: ToPyTree: FloatTensorTree](init: Params)(df: Params => Grad[Params]): Iterator[(Params, State[Params])] =
+  def iterateWithState[Params: ToFloatTensorTree](init: Params)(df: Params => Grad[Params]): Iterator[(Params, State[Params])] =
     Iterator.iterate((init, this.init(init))): (params, state) =>
       val grads = df(params)
       update(grads, params, state)
 
-  def iterate[Params: ToPyTree: FloatTensorTree](init: Params)(df: Params => Grad[Params]): Iterator[Params] =
+  def iterate[Params: ToFloatTensorTree](init: Params)(df: Params => Grad[Params]): Iterator[Params] =
     iterateWithState(init)(df).map(_._1)
 
 case class GradientDescent(learningRate: Tensor0[Float]) extends GradientOptimizer:
@@ -47,40 +46,38 @@ case class GradientDescent(learningRate: Tensor0[Float]) extends GradientOptimiz
 
   type State[P] = Unit // Stateless optimizer
 
-  def init[Params: ToPyTree: FloatTensorTree](params: Params): Unit = ()
+  def init[Params: ToFloatTensorTree](params: Params): Unit = ()
 
-  def update[Params: ToPyTree: FloatTensorTree](gradients: Grad[Params], params: Params, state: Unit): (Params, Unit) =
-    val newParams = params -- gradients.value.scale(learningRate)
+  def update[Params: ToFloatTensorTree](gradients: Grad[Params], params: Params, state: Unit): (Params, Unit) =
+    val p = TensorTree.from(params)
+    val g = TensorTree.from(gradients.value)
+    val newParams = (p -- g.scale(learningRate)).toScala
     (newParams, ())
 
 case class Lion(learningRate: Tensor0[Float], weightDecay: Tensor0[Float] = Tensor0(0.0f), beta1: Tensor0[Float] = Tensor0(0.9f), beta2: Tensor0[Float] = Tensor0(0.99f)) extends GradientOptimizer:
 
   type State[P] = P // momentum state has same structure as params
 
-  def init[Params: ToPyTree: FloatTensorTree](params: Params): Params =
-    val paramTree = summon[FloatTensorTree[Params]]
-    paramTree.map(
-      params,
-      [T <: Tuple] =>
-        (n: Labels[T]) ?=>
-          (t: Tensor[T, Float]) =>
-            Tensor(t.shape).fill(0f)
-    )
+  def init[Params: ToFloatTensorTree](params: Params): Params =
+    TensorTree.from(params).fillZeros.toScala
 
-  def update[Params: ToPyTree: FloatTensorTree](gradients: Grad[Params], params: Params, momentums: Params): (Params, Params) =
-    val paramTree = summon[FloatTensorTree[Params]]
+  def update[Params: ToFloatTensorTree](gradients: Grad[Params], params: Params, momentums: Params): (Params, Params) =
+    val p = TensorTree.from(params)
+    val g = TensorTree.from(gradients.value)
+    val m = TensorTree.from(momentums)
+
     // the direction (1 or -1)
     // is determined by the sign of the momentum + gradient
-    val updateDirection = (momentums **! beta1 ++ gradients.value **! (1f - beta1)).sign
+    val updateDirection = (m **! beta1 ++ g **! (1f - beta1)).sign
 
-    val updatedParams = params -- updateDirection.scale(learningRate) -- params.scale(weightDecay)
-    val newMomentums = momentums **! beta2 ++ gradients.value **! (1f - beta2)
+    val updatedParams = (p -- updateDirection.scale(learningRate) -- p.scale(weightDecay)).toScala
+    val newMomentums = (m **! beta2 ++ g **! (1f - beta2)).toScala
 
     (updatedParams, newMomentums)
 
 case class AdamState[P](
-    momentums: P, // momentums
-    velocities: P, // velocities
+    momentums: TensorTree[P], // momentums
+    velocities: TensorTree[P], // velocities
     b1: Tensor0[Float], // decay rate for momentums mᵗ
     b2: Tensor0[Float] // decay rate for velocities vᵗ
 )
@@ -101,11 +98,11 @@ case class Adam(
 
   type State[P] = AdamState[P]
 
-  def init[Params: ToPyTree: FloatTensorTree](params: Params): State[Params] =
-    def zeros = params.fillCopy(0f)
+  def init[Params: ToFloatTensorTree](params: Params): State[Params] =
+    val zeros = TensorTree.from(params).fillZeros
     AdamState(zeros, zeros, b1 = Tensor0(1f), b2 = Tensor0(1f))
 
-  def update[Params: ToPyTree: FloatTensorTree](
+  def update[Params: ToFloatTensorTree](
       gradients: Grad[Params],
       params: Params,
       state: State[Params]
@@ -119,19 +116,19 @@ case class Adam(
     // rename parameters for internal clarity
     val α = learningRate
     val ε = epsilon
-    val `θₜ₋₁` = params
+    val `θₜ₋₁` = TensorTree.from(params)
 
     // update moments for bias correction
     val β1ₜ = `β1ₜ₋₁` * β1
     val β2ₜ = `β2ₜ₋₁` * β2
 
     // Adam implementation
-    val gₜ = gradients.value
-    val mᵗ = `β1` **! `mₜ₋₁` ++ (1f - `β1`) **! gₜ
-    val vᵗ = `β2` **! `vₜ₋₁` ++ (1f - `β2`) **! gₜ.pow(2)
+    val gₜ = TensorTree.from(gradients.value)
+    val mᵗ = `mₜ₋₁` **! `β1` ++ gₜ **! (1f - `β1`)
+    val vᵗ = `vₜ₋₁` **! `β2` ++ (gₜ ** gₜ) **! (1f - `β2`)
     val m̂ = mᵗ `//!` (1f - `β1ₜ`)
     val v̂ = vᵗ `//!` (1f - `β2ₜ`)
-    val θₜ = `θₜ₋₁` -- (α **! m̂) `//` (v̂.sqrt ++! ε)
+    val θₜ = (`θₜ₋₁` -- (m̂ **! α) `//` (v̂.sqrt ++! ε)).toScala
 
     (θₜ, AdamState(mᵗ, vᵗ, β1ₜ, β2ₜ))
 
@@ -152,17 +149,17 @@ case class AdamW(
 
   type State[P] = adam.State[P]
 
-  def init[Params: ToPyTree: FloatTensorTree](params: Params): State[Params] = adam.init(params)
+  def init[Params: ToFloatTensorTree](params: Params): State[Params] = adam.init(params)
 
-  def update[Params: ToPyTree: FloatTensorTree](
+  def update[Params: ToFloatTensorTree](
       gradients: Grad[Params],
       params: Params,
       state: State[Params]
   ): (Params, State[Params]) =
     val α = adam.learningRate
-    val `θₜ₋₁` = params
+    val `θₜ₋₁` = TensorTree.from(params)
     val `λ'` = weightDecayFactor
     val λ = `λ'` * α // Tie weight decay to learning rate
-    val decayedParams = `θₜ₋₁` -- λ **! `θₜ₋₁`
+    val decayedParams = (`θₜ₋₁` -- `θₜ₋₁` **! λ).toScala
     val (θₜ, adamState) = adam.update(gradients, decayedParams, state)
     (θₜ, adamState)

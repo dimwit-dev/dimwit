@@ -1,7 +1,7 @@
 package dimwit
 
 import me.shadaj.scalapy.py
-import dimwit.autodiff.ToPyTree
+import dimwit.autodiff.{ToTensorTree, TensorTree}
 
 private[dimwit] object MemoryHelper:
 
@@ -9,11 +9,11 @@ private[dimwit] object MemoryHelper:
     py.local:
       f
 
-  def withLocalCleanup[A: ToPyTree](f: => A): A =
+  def withLocalCleanup[A: ToTensorTree](f: => A): A =
     val lifeRaft = me.shadaj.scalapy.py.Dynamic.global.list()
     py.local:
       val res = f
-      val pyRes = ToPyTree[A].toPyTree(res)
+      val pyRes = ToTensorTree[A].toTensorTree(res).pyTree
       lifeRaft.append(pyRes)
     val res = lifeRaft.pop()
-    ToPyTree[A].fromPyTree(res)
+    ToTensorTree[A].fromTensorTree(TensorTree[A](res))

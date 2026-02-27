@@ -1,6 +1,7 @@
 package examples.basic.ae
 
 import dimwit.*
+import dimwit.autodiff.FloatTensorTreeOps.*
 import dimwit.Conversions.given
 
 import examples.timed
@@ -152,10 +153,7 @@ object AutoencoderExample:
     // TODO linear layer et al. should support custom initializers
     // or xavier initialization
     val initialParams = Autoencoder.Params(encoderParams, decoderParams)
-    val scaledInitialParams = FloatTensorTree[Autoencoder.Params].map(
-      initialParams,
-      [T <: Tuple] => (n: Labels[T]) ?=> (t: Tensor[T, Float]) => t *! Tensor0(0.1f)
-    )
+    val scaledInitialParams = initialParams **! Tensor0(0.1f)
 
     /*
      * Training loop

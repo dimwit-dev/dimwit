@@ -11,8 +11,7 @@ object Conv2DLayer:
   )
 
   object Params:
-    given [S1: Label, S2: Label, InChannel: Label, OutChannel: Label]: FloatTensorTree[Params[S1, S2, InChannel, OutChannel]] = FloatTensorTree.derived
-    given [S1: Label, S2: Label, InChannel: Label, OutChannel: Label]: ToPyTree[Params[S1, S2, InChannel, OutChannel]] = ToPyTree.derived
+    given [S1: Label, S2: Label, InChannel: Label, OutChannel: Label]: ToFloatTensorTree[Params[S1, S2, InChannel, OutChannel]] = ToFloatTensorTree.derived
 
     def apply[S1: Label, S2: Label, InChannel: Label, OutChannel: Label](paramKey: Key)(kernelShape: Shape[S1 *: S2 *: InChannel *: OutChannel *: EmptyTuple])(using executionType: ExecutionType[Float]): Params[S1, S2, InChannel, OutChannel] =
       Params(kernel = Normal.standardNormal(kernelShape).sample(paramKey))

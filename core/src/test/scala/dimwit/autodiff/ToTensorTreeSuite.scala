@@ -1,16 +1,16 @@
 package dimwit.autodiff
 
 import dimwit.*
-import dimwit.autodiff.ToPyTree
+import dimwit.autodiff.ToTensorTree
 import dimwit.jax.Jax
 import dimwit.Conversions.given
 import me.shadaj.scalapy.py
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 
-class ToPyTreeSuite extends AnyFunSpec with Matchers:
+class ToTensorTreeSuite extends AnyFunSpec with Matchers:
 
-  describe("ToPyTree Identity (fromPyTree(toPyTree(x)) == x)"):
+  describe("ToTensorTree Identity (fromTensorTree(toTensorTree(x)) == x)"):
 
     it("1-level case class"):
       case class Params(
@@ -22,8 +22,8 @@ class ToPyTreeSuite extends AnyFunSpec with Matchers:
         Tensor0(0.5f)
       )
 
-      val tc = summon[ToPyTree[Params]]
-      val reconstructed = tc.fromPyTree(tc.toPyTree(params))
+      val tc = summon[ToTensorTree[Params]]
+      val reconstructed = tc.fromTensorTree(tc.toTensorTree(params))
 
       reconstructed.w should approxEqual(params.w)
       reconstructed.b should approxEqual(params.b)
@@ -49,8 +49,8 @@ class ToPyTreeSuite extends AnyFunSpec with Matchers:
         )
       )
 
-      val tc = summon[ToPyTree[ModelParams]]
-      val reconstructed = tc.fromPyTree(tc.toPyTree(params))
+      val tc = summon[ToTensorTree[ModelParams]]
+      val reconstructed = tc.fromTensorTree(tc.toTensorTree(params))
 
       reconstructed.layer1.w should approxEqual(params.layer1.w)
       reconstructed.layer1.b should approxEqual(params.layer1.b)
@@ -63,8 +63,8 @@ class ToPyTreeSuite extends AnyFunSpec with Matchers:
         Tensor0(0.5f)
       )
 
-      val tc = summon[ToPyTree[(Tensor1[A, Float], Tensor0[Float])]]
-      val reconstructed = tc.fromPyTree(tc.toPyTree(myTuple))
+      val tc = summon[ToTensorTree[(Tensor1[A, Float], Tensor0[Float])]]
+      val reconstructed = tc.fromTensorTree(tc.toTensorTree(myTuple))
 
       reconstructed._1 should approxEqual(myTuple._1)
       reconstructed._2 should approxEqual(myTuple._2)
@@ -80,8 +80,8 @@ class ToPyTreeSuite extends AnyFunSpec with Matchers:
         )
       )
 
-      val tc = summon[ToPyTree[Params]]
-      val reconstructed = tc.fromPyTree(tc.toPyTree(params))
+      val tc = summon[ToTensorTree[Params]]
+      val reconstructed = tc.fromTensorTree(tc.toTensorTree(params))
 
       reconstructed.layerWeights.size shouldBe params.layerWeights.size
       reconstructed.layerWeights(0) should approxEqual(params.layerWeights(0))
@@ -98,8 +98,8 @@ class ToPyTreeSuite extends AnyFunSpec with Matchers:
         )
       )
 
-      val tc = summon[ToPyTree[Params]]
-      val reconstructed = tc.fromPyTree(tc.toPyTree(params))
+      val tc = summon[ToTensorTree[Params]]
+      val reconstructed = tc.fromTensorTree(tc.toTensorTree(params))
 
       reconstructed.layerWeights.size shouldBe params.layerWeights.size
       reconstructed.layerWeights("layer1") should approxEqual(params.layerWeights("layer1"))

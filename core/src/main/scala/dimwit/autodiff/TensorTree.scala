@@ -1,55 +1,139 @@
 package dimwit.autodiff
 
 import dimwit.tensor.*
-import scala.deriving.*
-import scala.compiletime.*
+import dimwit.tensor.TensorOps.*
+import dimwit.jax.Jax
+import me.shadaj.scalapy.py
 
-// TODO hot fix with retag and context parameter... maybe this can be improved?
+/** Concrete, reified tensor tree backed by a JAX pytree.
+  *
+  * `TensorTree[P]` wraps a `Jax.PyAny` (a JAX pytree) with a phantom type `P`
+  * that tracks the Scala structure it was created from. All arithmetic operations
+  * are implemented via `jax.tree_util.tree_map`, avoiding Scala-side structural
+  * traversal.
+  *
+  * Create via `TensorTree.from(params)` and reconstruct via `.toScala`.
+  *
+  * Arithmetic methods require a `ToFloatTensorTree[P]` evidence to ensure all
+  * leaves are Float tensors (compile-time safety).
+  */
+class TensorTree[P] private[dimwit] (private[dimwit] val pyTree: Jax.PyAny):
 
-trait TensorTree[P]:
-  def map(p: P, f: [T <: Tuple, V] => (Labels[T]) ?=> (Tensor[T, V] => Tensor[T, V])): P
-  def zipMap(p1: P, p2: P, f: [T <: Tuple, V] => (Labels[T]) ?=> ((Tensor[T, V], Tensor[T, V]) => Tensor[T, V])): P
+  /** Reconstruct the typed Scala value from this pytree. */
+  def toScala(using tt: ToTensorTree[P]): P = tt.fromTensorTree(this)
 
-object TensorTree extends TensorTreeLowPriority:
-  def apply[P](using pt: TensorTree[P]): TensorTree[P] = pt
+  // --- Binary tree-vs-tree operations (require all-float proof) ---
 
-  given [Q <: Tuple, V](using n: Labels[Q]): TensorTree[Tensor[Q, V]] with
-    def map(t: Tensor[Q, V], f: [T <: Tuple, V2] => (Labels[T]) ?=> (Tensor[T, V2] => Tensor[T, V2])): Tensor[Q, V] =
-      import TensorOps.retag
-      f[Q, V](using n)(t.retag[Q](using n))
+  def ++(other: TensorTree[P])(using ToFloatTensorTree[P]): TensorTree[P] =
+    TensorTree(Jax.jax.tree_util.tree_map(
+      (a: py.Dynamic, b: py.Dynamic) => Jax.jnp.add(a, b),
+      pyTree,
+      other.pyTree
+    ))
 
-    def zipMap(p1: Tensor[Q, V], p2: Tensor[Q, V], f: [T <: Tuple, V2] => (Labels[T]) ?=> ((Tensor[T, V2], Tensor[T, V2]) => Tensor[T, V2])): Tensor[Q, V] =
-      import TensorOps.retag
-      f[Q, V](using n)(p1.retag[Q](using n), p2.retag[Q](using n))
+  def --(other: TensorTree[P])(using ToFloatTensorTree[P]): TensorTree[P] =
+    TensorTree(Jax.jax.tree_util.tree_map(
+      (a: py.Dynamic, b: py.Dynamic) => Jax.jnp.subtract(a, b),
+      pyTree,
+      other.pyTree
+    ))
 
-  inline given derived[P <: Product](using m: Mirror.ProductOf[P]): TensorTree[P] =
-    val elemInstances = summonAll[Tuple.Map[m.MirroredElemTypes, TensorTree]]
-    val instances = elemInstances.toList.asInstanceOf[List[TensorTree[Any]]]
-    derivedImpl(instances, m)
+  def **(other: TensorTree[P])(using ToFloatTensorTree[P]): TensorTree[P] =
+    TensorTree(Jax.jax.tree_util.tree_map(
+      (a: py.Dynamic, b: py.Dynamic) => Jax.jnp.multiply(a, b),
+      pyTree,
+      other.pyTree
+    ))
 
-  private def derivedImpl[P <: Product](
-      instances: List[TensorTree[Any]],
-      m: Mirror.ProductOf[P]
-  ): TensorTree[P] = new TensorTree[P]:
-    def map(p: P, f: [T <: Tuple, V] => (Labels[T]) ?=> (Tensor[T, V] => Tensor[T, V])): P =
-      val inputs = p.productIterator.toList
-      val mappedElems = inputs
-        .zip(instances)
-        .map:
-          case (elem, inst) => inst.map(elem, f)
-      m.fromProduct(Tuple.fromArray(mappedElems.map(_.asInstanceOf[Object]).toArray))
+  def `//`(other: TensorTree[P])(using ToFloatTensorTree[P]): TensorTree[P] =
+    TensorTree(Jax.jax.tree_util.tree_map(
+      (a: py.Dynamic, b: py.Dynamic) => Jax.jnp.divide(a, b),
+      pyTree,
+      other.pyTree
+    ))
 
-    def zipMap(p1: P, p2: P, f: [T <: Tuple, V] => (Labels[T]) ?=> ((Tensor[T, V], Tensor[T, V]) => Tensor[T, V])): P =
-      val inputs1 = p1.productIterator.toList
-      val inputs2 = p2.productIterator.toList
-      val mappedElems = inputs1
-        .zip(inputs2)
-        .zip(instances)
-        .map:
-          case ((e1, e2), inst) => inst.zipMap(e1, e2, f)
-      m.fromProduct(Tuple.fromArray(mappedElems.map(_.asInstanceOf[Object]).toArray))
+  // --- Broadcast operations (tree vs scalar) ---
 
-trait TensorTreeLowPriority:
-  given identity[A]: TensorTree[A] = new TensorTree[A]:
-    def map(p: A, f: [T <: Tuple, V] => (Labels[T]) ?=> (Tensor[T, V] => Tensor[T, V])): A = p
-    def zipMap(p1: A, p2: A, f: [T <: Tuple, V] => (Labels[T]) ?=> ((Tensor[T, V], Tensor[T, V]) => Tensor[T, V])): A = p1
+  def ++!(scalar: Tensor0[Float])(using ToFloatTensorTree[P]): TensorTree[P] =
+    val s = scalar.jaxValue
+    TensorTree(Jax.jax.tree_util.tree_map(
+      (a: py.Dynamic) => Jax.jnp.add(a, s),
+      pyTree
+    ))
+
+  def --!(scalar: Tensor0[Float])(using ToFloatTensorTree[P]): TensorTree[P] =
+    val s = scalar.jaxValue
+    TensorTree(Jax.jax.tree_util.tree_map(
+      (a: py.Dynamic) => Jax.jnp.subtract(a, s),
+      pyTree
+    ))
+
+  def **!(scalar: Tensor0[Float])(using ToFloatTensorTree[P]): TensorTree[P] =
+    val s = scalar.jaxValue
+    TensorTree(Jax.jax.tree_util.tree_map(
+      (a: py.Dynamic) => Jax.jnp.multiply(a, s),
+      pyTree
+    ))
+
+  def `//!`(scalar: Tensor0[Float])(using ToFloatTensorTree[P]): TensorTree[P] =
+    val s = scalar.jaxValue
+    TensorTree(Jax.jax.tree_util.tree_map(
+      (a: py.Dynamic) => Jax.jnp.divide(a, s),
+      pyTree
+    ))
+
+  // --- Unary / math operations ---
+
+  def sqrt(using ToFloatTensorTree[P]): TensorTree[P] =
+    TensorTree(Jax.jax.tree_util.tree_map(
+      (a: py.Dynamic) => Jax.jnp.sqrt(a),
+      pyTree
+    ))
+
+  def pow(exponent: Tensor0[Float])(using ToFloatTensorTree[P]): TensorTree[P] =
+    val e = exponent.jaxValue
+    TensorTree(Jax.jax.tree_util.tree_map(
+      (a: py.Dynamic) => Jax.jnp.power(a, e),
+      pyTree
+    ))
+
+  def scale(scalar: Tensor0[Float])(using ToFloatTensorTree[P]): TensorTree[P] =
+    this **! scalar
+
+  def sign(using ToFloatTensorTree[P]): TensorTree[P] =
+    TensorTree(Jax.jax.tree_util.tree_map(
+      (a: py.Dynamic) => Jax.jnp.sign(a),
+      pyTree
+    ))
+
+  def fillZeros(using ToFloatTensorTree[P]): TensorTree[P] =
+    TensorTree(Jax.jax.tree_util.tree_map(
+      (a: py.Dynamic) => Jax.jnp.zeros_like(a),
+      pyTree
+    ))
+
+  def fillCopy(value: Float)(using ToFloatTensorTree[P]): TensorTree[P] =
+    val v = Jax.jnp.float32(value)
+    TensorTree(Jax.jax.tree_util.tree_map(
+      (a: py.Dynamic) => Jax.jnp.full_like(a, v),
+      pyTree
+    ))
+
+  override def toString: String = s"TensorTree($pyTree)"
+
+object TensorTree:
+  /** Create a TensorTree from a typed Scala value. */
+  def from[P](p: P)(using tt: ToTensorTree[P]): TensorTree[P] =
+    tt.toTensorTree(p)
+
+  /** Wrap a raw pytree with the phantom type P. For internal use. */
+  private[dimwit] def apply[P](raw: Jax.PyAny): TensorTree[P] =
+    new TensorTree[P](raw)
+
+  /** Wrap a raw Python pytree as a TensorTree. Unsafe: the caller must ensure type compatibility. */
+  def unsafeWrap[P](raw: py.Any): TensorTree[P] =
+    new TensorTree[P](raw.as[Jax.PyAny])
+
+  /** Extract the underlying raw Python pytree. */
+  def unsafeRaw[P](tree: TensorTree[P]): py.Any =
+    tree.pyTree.as[py.Any]

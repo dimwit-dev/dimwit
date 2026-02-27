@@ -3,6 +3,7 @@ package examples.complex.vae
 import examples.timed
 
 import dimwit.*
+import dimwit.autodiff.FloatTensorTreeOps.*
 import dimwit.Conversions.given
 import dimwit.stats.Normal
 import dimwit.random.Random
@@ -197,10 +198,7 @@ object VariationalAutoencoderExample:
 
     val keysForEpochs = dataKey.split(numEpochs)
 
-    val initialParams = FloatTensorTree[Params].map(
-      Params(encoderParams, decoderParams),
-      [T <: Tuple] => (n: Labels[T]) ?=> (t: Tensor[T, Float]) => t *! 0.1f
-    )
+    val initialParams = Params(encoderParams, decoderParams) **! 0.1f
 
     val trainedParams = (0 until numEpochs).foldLeft(initialParams):
       case (params, epoch) =>

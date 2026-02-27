@@ -12,8 +12,7 @@ object LinearLayer:
   case class Params[In, Out](weight: Tensor2[In, Out, Float], bias: Tensor1[Out, Float])
 
   object Params:
-    given [I: Label, O: Label]: TensorTree[Params[I, O]] = TensorTree.derived
-    given [I: Label, O: Label]: ToPyTree[Params[I, O]] = ToPyTree.derived
+    given [I: Label, O: Label]: ToFloatTensorTree[Params[I, O]] = ToFloatTensorTree.derived
 
     def apply[In: Label, Out: Label](paramKey: Key)(
         inputDim: AxisExtent[In],
@@ -36,8 +35,7 @@ object LinearMap:
   case class Params[In](weight: Tensor1[In, Float], bias: Tensor0[Float])
 
   object Params:
-    given [In: Label]: TensorTree[Params[In]] = TensorTree.derived
-    given [In: Label]: ToPyTree[Params[In]] = ToPyTree.derived
+    given [In: Label]: ToFloatTensorTree[Params[In]] = ToFloatTensorTree.derived
 
     def apply[In: Label](paramKey: Key)(inputDim: AxisExtent[In])(using
         executionType: ExecutionType[Float]

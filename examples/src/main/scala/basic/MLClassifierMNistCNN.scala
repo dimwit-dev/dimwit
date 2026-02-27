@@ -1,7 +1,7 @@
 package examples.basic.mnistcnn
 
 import dimwit.*
-import dimwit.autodiff.FloatTensorTree.*
+import dimwit.autodiff.FloatTensorTreeOps.*
 import dimwit.Conversions.given
 import nn.*
 import nn.ActivationFunctions.relu
