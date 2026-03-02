@@ -77,7 +77,7 @@ object TensorFunctor:
   private inline def summonElemInstances[Types <: Tuple]: List[TensorFunctor[Any]] =
     inline compiletime.erasedValue[Types] match
       case _: EmptyTuple => Nil
-      case _: (h *: t) =>
+      case _: (h *: t)   =>
         compiletime.summonInline[TensorFunctor[h]].asInstanceOf[TensorFunctor[Any]] :: summonElemInstances[t]
 
   inline given derived[P <: Product](using m: Mirror.ProductOf[P]): TensorFunctor[P] =
