@@ -36,6 +36,13 @@ class TensorOpsFunctionalSuite extends AnyFunSpec with Matchers:
 
     def l2[L: Label](v1: Tensor1[L, Float], v2: Tensor1[L, Float]): Tensor0[Float] = (v1 - v2).pow(2.0f).sum.sqrt
 
+    it("zipvmap f should get correct runtime shape."):
+      val t1 = Tensor(Shape(Axis[A] -> 2, Axis[B] -> 3)).fill(0f)
+      val t2 = Tensor(Shape(Axis[A] -> 2, Axis[B] -> 3)).fill(0f)
+      val shapesCorrect = zipvmap(Axis[A])(t1, t2): (v1, v2) =>
+        v1.shape == Shape(Axis[B] -> 3) && v2.shape == Shape(Axis[B] -> 3)
+      shapesCorrect.all.item shouldBe true
+
     it("zipvmap2 adds two tensors"):
       val distances = zipvmap(Axis[A])(t2, t2_2)(l2)
       distances should approxEqual(Tensor1(Axis[A]).fromArray(Array(20.12461f, 45f)))

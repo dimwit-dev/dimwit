@@ -145,18 +145,22 @@ object ShapeTypeHelpers:
   @implicitNotFound("Axis[${Axis}] not found in ${Shapes}}")
   trait SharedAxisRemover[Shapes <: Tuple, Axis, Sliced <: Tuple]:
     def indices: List[Int]
+    def shapesLabels: List[List[String]]
 
   object SharedAxisRemover:
 
     given empty[Axis]: SharedAxisRemover[EmptyTuple, Axis, EmptyTuple] with
       def indices = Nil
+      def shapesLabels = Nil
       type Sliced = EmptyTuple
 
     given cons[H <: Tuple, T <: Tuple, Axis, R <: Tuple, TailOut <: Tuple](using
         evH: AxisRemover[H, Axis, R],
-        evT: SharedAxisRemover[T, Axis, TailOut]
+        evT: SharedAxisRemover[T, Axis, TailOut],
+        rLabels: Labels[R]
     ): SharedAxisRemover[H *: T, Axis, R *: TailOut] with
       def indices = evH.index :: evT.indices
+      def shapesLabels = List(rLabels.names) ++ evT.shapesLabels
 
   trait DimExtractor[T]:
     def extract(t: T): Map[String, Int]
