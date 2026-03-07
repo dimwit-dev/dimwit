@@ -313,3 +313,28 @@ class DistributionSuite extends AnyFunSpec with Matchers:
       )
       val frequencies = counts *! (1.0f / numSamples.toFloat)
       frequencies should approxEqual(probs.asFloat, 0.02f)
+
+  describe("Beta"):
+    it("logProbs matches JAX"):
+      val alpha = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 2.0f, 5.0f))
+      val beta = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 2.0f, 1.0f))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.3f, 0.5f, 0.8f))
+
+      val dist = Beta(alpha, beta)
+      val scalaLogProbs = dist.elementWiseLogProb(x)
+      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float])(
+        jstats.beta.logpdf(x.jaxValue, a = alpha.jaxValue, b = beta.jaxValue)
+      )
+      scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
+
+    it("sample means approximates expected means"):
+      val betaDist = Beta(
+        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(2.0f, 5.0f)),
+        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(5.0f, 2.0f))
+      )
+      val key = Random.Key(42)
+      val samples = key.splitvmap(Axis[Samples] -> 10000)(k => betaDist.sample(k))
+      val sampleMeans = samples.mean(Axis[Samples])
+      // Mean of Beta distribution is alpha / (alpha + beta)
+      val expectedMeans = betaDist.alpha / (betaDist.alpha + betaDist.beta)
+      sampleMeans should approxEqual(expectedMeans, 0.02f)

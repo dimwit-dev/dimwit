@@ -156,3 +156,21 @@ object StudentT:
   def apply[T <: Tuple: Labels](df: Tensor0[Float], loc: Tensor[T, Float], scale: Tensor[T, Float]): StudentT[T] =
     require(loc.shape.dimensions == scale.shape.dimensions, "loc, and scale must have the same dimensions")
     new StudentT(df, loc, scale)
+
+/** Beta distribution */
+class Beta[T <: Tuple: Labels](val alpha: Tensor[T, Float], val beta: Tensor[T, Float]) extends IndependentDistribution[T, Float]:
+
+  override def elementWiseLogProb(x: Tensor[T, Float]): Tensor[T, LogProb] =
+    liftPyTensor(jstats.beta.logpdf(x.jaxValue, a = alpha.jaxValue, b = beta.jaxValue))
+
+  override def sample(k: Random.Key): Tensor[T, Float] =
+    liftPyTensor(
+      Jax.jrandom.beta(k.jaxKey, a = alpha.jaxValue, b = beta.jaxValue, shape = alpha.shape.dimensions.toPythonProxy)
+    )
+
+object Beta:
+
+  /** Create a Beta distribution from alpha and beta tensors */
+  def apply[T <: Tuple: Labels](alpha: Tensor[T, Float], beta: Tensor[T, Float]): Beta[T] =
+    require(alpha.shape.dimensions == beta.shape.dimensions, "alpha and beta must have the same dimensions")
+    new Beta(alpha, beta)
