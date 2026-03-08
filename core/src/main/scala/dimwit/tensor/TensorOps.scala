@@ -1215,14 +1215,10 @@ object TensorOps:
       )(
           f: TensorsOf[R, ValuesOf[Inputs]] => Tensor[OutShape, OutV]
       ): Tensor[L *: OutShape, OutV] =
-        // allows us to ignore labels for the intermediate sliced tensors
-        val dummyLabels = new Labels[Nothing]:
-          val names = Nil
-
         val fpy = (args: py.Dynamic) =>
           OnError.traceStack:
-            val tensorList = args.as[Seq[py.Dynamic]].zipWithIndex.map: (jaxArr, i) =>
-              Tensor(jaxArr)(using dummyLabels)
+            val tensorList = args.as[Seq[py.Dynamic]].zip(ev.shapesLabels).map: (jaxArr, labels) =>
+              Tensor(jaxArr)(using LabelsImpl(labels))
 
             val inputTuple = Tuple.fromArray(tensorList.toArray)
             val result = f(inputTuple.asInstanceOf[TensorsOf[R, ValuesOf[Inputs]]])
