@@ -8,6 +8,63 @@ import org.scalatest.matchers.should.Matchers
 
 class TensorTreeSuite extends AnyFunSpec with Matchers:
 
+  describe("foreach"):
+    it("2-level case class"):
+      case class Child(
+          val numbers: Tensor1[A, Float],
+          val counts: Tensor1[A, Int]
+      )
+      case class Parent(
+          val child: Child,
+          val flags: Tensor1[A, Boolean]
+      )
+      val params = Parent(
+        Child(
+          Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)),
+          Tensor1(Axis[A]).fromArray(Array(1, 2, 3))
+        ),
+        Tensor1(Axis[A]).fromArray(Array(true, false, true))
+      )
+      TensorTree.foreach(
+        params,
+        [T <: Tuple, V] =>
+          (labels: Labels[T]) ?=>
+            (name: String, tensor: Tensor[T, V]) =>
+              name match
+                case "child-numbers" => tensor should equal(params.child.numbers)
+                case "child-counts"  => tensor should equal(params.child.counts)
+                case "flags"         => tensor should equal(params.flags)
+                case _               => fail(s"Unexpected name: $name"),
+        pathSeparator = "-"
+      )
+
+  describe("fill"):
+    it("2-level case class"):
+      case class Child(
+          val numbers: Tensor1[A, Float],
+          val counts: Tensor1[A, Int]
+      )
+      case class Parent(
+          val child: Child,
+          val flags: Tensor1[A, Boolean]
+      )
+      val expected = Parent(
+        Child(
+          Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)),
+          Tensor1(Axis[A]).fromArray(Array(1, 2, 3))
+        ),
+        Tensor1(Axis[A]).fromArray(Array(true, false, true))
+      )
+      val provider: TensorTree.TensorProvider = [T <: Tuple, V] =>
+        (labels: Labels[T]) ?=>
+          (name: String) =>
+            name match
+              case "child-numbers" => expected.child.numbers.asInstanceOf[Tensor[T, V]]
+              case "child-counts"  => expected.child.counts.asInstanceOf[Tensor[T, V]]
+              case "flags"         => expected.flags.asInstanceOf[Tensor[T, V]]
+              case _               => fail(s"Unexpected name: $name")
+      TensorTree.fill[Parent](provider, pathSeparator = "-") should equal(expected)
+
   describe("map"):
     it("1-level case class"):
       case class Data(
