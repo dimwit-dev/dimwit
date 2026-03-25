@@ -1183,6 +1183,10 @@ object TensorOps:
         )
         Tensor(Jax.jnp.squeeze(tensor.jaxValue, axis = ev.index))
 
+    extension [L: Label, V](tensor: Tensor1[L, V])
+      def roll(shift: Int): Tensor1[L, V] =
+        Tensor(Jax.jnp.roll(tensor.jaxValue, shift = shift, axis = 0))
+
   end Structural
 
   // -----------------------------------------------------------
