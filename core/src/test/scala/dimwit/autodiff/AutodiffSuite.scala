@@ -62,8 +62,8 @@ class AutodiffSuite extends AnyFunSpec with Matchers:
 
     // setup engines to test both modes in the same way
     val engines = List(
-      ("jacRev", [In: ToPyTree, Out: ToPyTree] => (f: In => Out) => (gradTree: ToPyTree[Gradient[In, Out]]) ?=> Autodiff.jacRev[In, Out](f)),
-      ("jacFwd", [In: ToPyTree, Out: ToPyTree] => (f: In => Out) => (gradTree: ToPyTree[Gradient[In, Out]]) ?=> Autodiff.jacFwd[In, Out](f))
+      ("jacRev", [In: TensorTree, Out: TensorTree] => (f: In => Out) => (gradTree: TensorTree[Gradient[In, Out]]) ?=> Autodiff.jacRev[In, Out](f)),
+      ("jacFwd", [In: TensorTree, Out: TensorTree] => (f: In => Out) => (gradTree: TensorTree[Gradient[In, Out]]) ?=> Autodiff.jacFwd[In, Out](f))
     )
 
     engines.foreach:

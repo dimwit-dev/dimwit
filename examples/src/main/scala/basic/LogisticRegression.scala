@@ -32,7 +32,7 @@ object LogisticRegression:
     case class Params(
         weights: Tensor1[Feature, Float],
         bias: Tensor0[Float]
-    ) derives ToPyTree, FloatTensorTree
+    ) derives TensorTree
 
     // The loss is a simple binary cross-entropy loss
     def loss(data: Tensor2[Sample, Feature, Float], labels: Tensor1[Sample, Boolean])(params: BinaryLogisticRegression.Params)

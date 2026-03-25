@@ -152,10 +152,7 @@ object AutoencoderExample:
     // TODO linear layer et al. should support custom initializers
     // or xavier initialization
     val initialParams = Autoencoder.Params(encoderParams, decoderParams)
-    val scaledInitialParams = FloatTensorTree[Autoencoder.Params].map(
-      initialParams,
-      [T <: Tuple] => (n: Labels[T]) ?=> (t: Tensor[T, Float]) => t *! Tensor0(0.1f)
-    )
+    val scaledInitialParams = initialParams.map([T <: Tuple] => (n: Labels[T]) ?=> (t: Tensor[T, Float]) => t *! Tensor0(0.1f))
 
     /*
      * Training loop

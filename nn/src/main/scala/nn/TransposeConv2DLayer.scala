@@ -11,8 +11,7 @@ object TransposeConvLayer:
   )
 
   object Params:
-    given [S1: Label, S2: Label, IC: Label, OC: Label]: FloatTensorTree[Params[S1, S2, IC, OC]] = FloatTensorTree.derived
-    given [S1: Label, S2: Label, IC: Label, OC: Label]: ToPyTree[Params[S1, S2, IC, OC]] = ToPyTree.derived
+    given [S1: Label, S2: Label, IC: Label, OC: Label]: TensorTree[Params[S1, S2, IC, OC]] = TensorTree.derived
 
     /** Initialize transpose convolutional layer parameters
       *

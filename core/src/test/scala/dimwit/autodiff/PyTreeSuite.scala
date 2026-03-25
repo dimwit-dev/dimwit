@@ -1,7 +1,6 @@
 package dimwit.autodiff
 
 import dimwit.*
-import dimwit.autodiff.ToPyTree
 import dimwit.jax.Jax
 import dimwit.Conversions.given
 import me.shadaj.scalapy.py
@@ -10,7 +9,7 @@ import org.scalatest.matchers.should.Matchers
 
 class ToPyTreeSuite extends AnyFunSpec with Matchers:
 
-  describe("ToPyTree Identity (fromPyTree(toPyTree(x)) == x)"):
+  describe("TensorTree Identity (fromPyTree(toPyTree(x)) == x)"):
 
     it("1-level case class"):
       case class Params(
@@ -22,7 +21,7 @@ class ToPyTreeSuite extends AnyFunSpec with Matchers:
         Tensor0(0.5f)
       )
 
-      val tc = summon[ToPyTree[Params]]
+      val tc = summon[TensorTree[Params]]
       val reconstructed = tc.fromPyTree(tc.toPyTree(params))
 
       reconstructed.w should approxEqual(params.w)
@@ -49,7 +48,7 @@ class ToPyTreeSuite extends AnyFunSpec with Matchers:
         )
       )
 
-      val tc = summon[ToPyTree[ModelParams]]
+      val tc = summon[TensorTree[ModelParams]]
       val reconstructed = tc.fromPyTree(tc.toPyTree(params))
 
       reconstructed.layer1.w should approxEqual(params.layer1.w)
@@ -63,7 +62,7 @@ class ToPyTreeSuite extends AnyFunSpec with Matchers:
         Tensor0(0.5f)
       )
 
-      val tc = summon[ToPyTree[(Tensor1[A, Float], Tensor0[Float])]]
+      val tc = summon[TensorTree[(Tensor1[A, Float], Tensor0[Float])]]
       val reconstructed = tc.fromPyTree(tc.toPyTree(myTuple))
 
       reconstructed._1 should approxEqual(myTuple._1)
@@ -80,27 +79,9 @@ class ToPyTreeSuite extends AnyFunSpec with Matchers:
         )
       )
 
-      val tc = summon[ToPyTree[Params]]
+      val tc = summon[TensorTree[Params]]
       val reconstructed = tc.fromPyTree(tc.toPyTree(params))
 
       reconstructed.layerWeights.size shouldBe params.layerWeights.size
       reconstructed.layerWeights(0) should approxEqual(params.layerWeights(0))
       reconstructed.layerWeights(1) should approxEqual(params.layerWeights(1))
-
-    it("case class with map"):
-      case class Params(
-          val layerWeights: Map[String, Tensor2[A, B, Float]]
-      )
-      val params = Params(
-        Map(
-          "layer1" -> Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(0.1f, 0.2f), Array(0.3f, 0.4f))),
-          "layer2" -> Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.1f, 1.2f), Array(1.3f, 1.4f)))
-        )
-      )
-
-      val tc = summon[ToPyTree[Params]]
-      val reconstructed = tc.fromPyTree(tc.toPyTree(params))
-
-      reconstructed.layerWeights.size shouldBe params.layerWeights.size
-      reconstructed.layerWeights("layer1") should approxEqual(params.layerWeights("layer1"))
-      reconstructed.layerWeights("layer2") should approxEqual(params.layerWeights("layer2"))

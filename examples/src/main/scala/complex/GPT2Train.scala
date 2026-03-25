@@ -97,26 +97,26 @@ case class MultiHeadAttentionParams(
     wk: HeadsParams[HeadKey],
     wv: HeadsParams[HeadValue],
     proj: LinearLayerParams[Head |*| HeadValue, Embedding]
-) derives ToPyTree
+) derives TensorTree
 
 case class EmbeddingMixerParams(
     c_fc: LinearLayerParams[Embedding, EmbeddingMixed],
     c_proj: LinearLayerParams[EmbeddingMixed, Embedding]
-) derives ToPyTree
+) derives TensorTree
 
 case class TransformerLayerParams(
     ln1: LayerNormalizationParams,
     attn: MultiHeadAttentionParams,
     ln2: LayerNormalizationParams,
     embeddingMixer: EmbeddingMixerParams
-) derives ToPyTree
+) derives TensorTree
 
 case class GPT2Params(
     vocabularyEmbeddings: Tensor2[Vocab, Embedding, Float],
     positionalEmbeddings: Tensor2[Context, Embedding, Float],
     layers: List[TransformerLayerParams],
     outputNormalization: LayerNormalizationParams
-) derives ToPyTree
+) derives TensorTree
 
 object GPT2Params:
 

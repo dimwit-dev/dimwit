@@ -1,8 +1,8 @@
 package dimwit.autodiff
 
 import dimwit.*
-import dimwit.autodiff.FloatTensorTree.*
 import dimwit.Conversions.given
+import dimwit.autodiff.FloatTree.ops.*
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -22,9 +22,7 @@ class FloatTensorTreeSuite extends AnyFunSpec with Matchers:
         Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(0.1f, 0.2f), Array(0.3f, 0.4f), Array(0.5f, 0.6f))),
         Tensor0(0.25f)
       )
-      val ftTree = summon[FloatTensorTree[Params]]
-      def add5[T <: Tuple: Labels](t: Tensor[T, Float]): Tensor[T, Float] = t +! 0.5f
-      val res = ftTree.map(params, [T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float]) => add5[T](x))
+      val res = params.map([T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float]) => x +! 0.5f)
       res.w1 should approxEqual(params.w1 +! 0.5f)
       res.b1 should approxEqual(params.b1 + 0.5f)
       res.w2 should approxEqual(params.w2 +! 0.5f)
@@ -48,9 +46,7 @@ class FloatTensorTreeSuite extends AnyFunSpec with Matchers:
         Tensor0(0.75f)
       )
       val params = ModelParams(layer1Params, layer2Params)
-      val ftTree = summon[FloatTensorTree[ModelParams]]
-      def add5[T <: Tuple: Labels](t: Tensor[T, Float]): Tensor[T, Float] = t +! 0.5f
-      val res = ftTree.map(params, [T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float]) => add5[T](x))
+      val res = params.map([T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float]) => x +! 0.5f)
 
       res.layer1.w should approxEqual(params.layer1.w +! 0.5f)
       res.layer1.b should approxEqual(params.layer1.b + 0.5f)
@@ -65,9 +61,7 @@ class FloatTensorTreeSuite extends AnyFunSpec with Matchers:
         Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(0.1f, 0.2f), Array(0.3f, 0.4f), Array(0.5f, 0.6f))),
         Tensor0(0.25f)
       )
-      val ftTree = summon[FloatTensorTree[LayerParams]]
-      def add5[T <: Tuple: Labels](t: Tensor[T, Float]): Tensor[T, Float] = t +! 0.5f
-      val res = ftTree.map(layerParams, [T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float]) => add5[T](x))
+      val res = layerParams.map([T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float]) => x +! 0.5f)
 
       res.weightBias._1 should approxEqual(layerParams.weightBias._1 +! 0.5f)
       res.weightBias._2 should approxEqual(layerParams.weightBias._2 + 0.5f)
@@ -82,29 +76,10 @@ class FloatTensorTreeSuite extends AnyFunSpec with Matchers:
           Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.1f, 1.2f), Array(1.3f, 1.4f), Array(1.5f, 1.6f)))
         )
       )
-      val ftTree = summon[FloatTensorTree[Params]]
-      def add5[T <: Tuple: Labels](t: Tensor[T, Float]): Tensor[T, Float] = t +! 0.5f
-      val res = ftTree.map(layerParams, [T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float]) => add5[T](x))
+      val res = layerParams.map([T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float]) => x +! 0.5f)
 
       res.layerWeights(0) should approxEqual(layerParams.layerWeights(0) +! 0.5f)
       res.layerWeights(1) should approxEqual(layerParams.layerWeights(1) +! 0.5f)
-
-    it("case class with map"):
-      case class Params(
-          val layerWeights: Map[String, Tensor2[A, B, Float]]
-      )
-      val layerParams = Params(
-        Map(
-          ("layer1", Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(0.1f, 0.2f), Array(0.3f, 0.4f), Array(0.5f, 0.6f)))),
-          ("layer2", Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.1f, 1.2f), Array(1.3f, 1.4f), Array(1.5f, 1.6f))))
-        )
-      )
-      val ftTree = summon[FloatTensorTree[Params]]
-      def add5[T <: Tuple: Labels](t: Tensor[T, Float]): Tensor[T, Float] = t +! 0.5f
-      val res = ftTree.map(layerParams, [T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float]) => add5[T](x))
-
-      res.layerWeights("layer1") should approxEqual(layerParams.layerWeights("layer1") +! 0.5f)
-      res.layerWeights("layer2") should approxEqual(layerParams.layerWeights("layer2") +! 0.5f)
 
   describe("zipmap"):
     it("1-level case class"):
@@ -120,9 +95,8 @@ class FloatTensorTreeSuite extends AnyFunSpec with Matchers:
         Tensor1(Axis[A]).fromArray(Array(0.4f, 0.5f, 0.6f)),
         Tensor0(1.5f)
       )
-      val ftTree = summon[FloatTensorTree[Params]]
       def addTensors[T <: Tuple: Labels](t1: Tensor[T, Float], t2: Tensor[T, Float]): Tensor[T, Float] = t1 + t2
-      val res = ftTree.zipMap(params1, params2, [T <: Tuple] => (labels: Labels[T]) ?=> (x1: Tensor[T, Float], x2: Tensor[T, Float]) => addTensors[T](x1, x2))
+      val res = params1.zipMap(params2, [T <: Tuple] => (labels: Labels[T]) ?=> (x1: Tensor[T, Float], x2: Tensor[T, Float]) => addTensors[T](x1, x2))
       res.w1 should approxEqual(params1.w1 + params2.w1)
       res.b1 should approxEqual(params1.b1 + params2.b1)
 

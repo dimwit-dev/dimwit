@@ -22,12 +22,12 @@ object Autodiff:
     case Tensor[inS, v2] => Tensor[PrimeConcatType[OutShape, inS], V]
 
   // TODO replace with TupledFunction when available (no longer experimental)
-  def grad[T1, T2, V](f: (T1, T2) => Tensor0[V])(using t1Tree: ToPyTree[T1], t2Tree: ToPyTree[T2], outTree: ToPyTree[Tensor0[V]]): (T1, T2) => Grad[(T1, T2)] = (t1, t2) => grad(f.tupled)((t1, t2))
-  def grad[T1, T2, T3, V](f: (T1, T2, T3) => Tensor0[V])(using t1Tree: ToPyTree[T1], t2Tree: ToPyTree[T2], t3Tree: ToPyTree[T3], outTree: ToPyTree[Tensor0[V]]): (T1, T2, T3) => Grad[(T1, T2, T3)] = (t1, t2, t3) => grad(f.tupled)((t1, t2, t3))
+  def grad[T1, T2, V](f: (T1, T2) => Tensor0[V])(using t1Tree: TensorTree[T1], t2Tree: TensorTree[T2], outTree: TensorTree[Tensor0[V]]): (T1, T2) => Grad[(T1, T2)] = (t1, t2) => grad(f.tupled)((t1, t2))
+  def grad[T1, T2, T3, V](f: (T1, T2, T3) => Tensor0[V])(using t1Tree: TensorTree[T1], t2Tree: TensorTree[T2], t3Tree: TensorTree[T3], outTree: TensorTree[Tensor0[V]]): (T1, T2, T3) => Grad[(T1, T2, T3)] = (t1, t2, t3) => grad(f.tupled)((t1, t2, t3))
 
   def grad[Input, V](f: Input => Tensor0[V])(using
-      inTree: ToPyTree[Input],
-      outTree: ToPyTree[Tensor0[V]]
+      inTree: TensorTree[Input],
+      outTree: TensorTree[Tensor0[V]]
   ): Input => Grad[Input] =
 
     val fpy = (jxpr: py.Dynamic) =>
@@ -43,9 +43,9 @@ object Autodiff:
       Grad(inTree.fromPyTree(pygrad).asInstanceOf[Input])
 
   def jacobian[In, Out](f: In => Out)(using
-      inTree: ToPyTree[In],
-      outTree: ToPyTree[Out],
-      gradTree: ToPyTree[Gradient[In, Out]] // Compiler infers this!
+      inTree: TensorTree[In],
+      outTree: TensorTree[Out],
+      gradTree: TensorTree[Gradient[In, Out]]
   ): In => Gradient[In, Out] =
 
     val fpy = (jxpr: py.Dynamic) =>
@@ -61,9 +61,9 @@ object Autodiff:
       gradTree.fromPyTree(res)
 
   def jacRev[In, Out](f: In => Out)(using
-      inTree: ToPyTree[In],
-      outTree: ToPyTree[Out],
-      gradTree: ToPyTree[Gradient[In, Out]]
+      inTree: TensorTree[In],
+      outTree: TensorTree[Out],
+      gradTree: TensorTree[Gradient[In, Out]]
   ): In => Gradient[In, Out] =
     val fpy = (jxpr: py.Dynamic) =>
       OnError.traceStack:
@@ -72,9 +72,9 @@ object Autodiff:
     (params: In) => gradTree.fromPyTree(jpy(inTree.toPyTree(params)))
 
   def jacFwd[In, Out](f: In => Out)(using
-      inTree: ToPyTree[In],
-      outTree: ToPyTree[Out],
-      gradTree: ToPyTree[Gradient[In, Out]]
+      inTree: TensorTree[In],
+      outTree: TensorTree[Out],
+      gradTree: TensorTree[Gradient[In, Out]]
   ): In => Gradient[In, Out] =
     val fpy = (jxpr: py.Dynamic) =>
       OnError.traceStack:
