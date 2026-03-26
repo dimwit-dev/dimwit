@@ -5,7 +5,7 @@ import me.shadaj.scalapy.py
 
 def safePyTree[T: TensorTree](value: T, path: String): Unit =
   val pickle = py.module("pickle")
-  val pyTree = summon[TensorTree[T]].toPyTree(value)
+  val pyTree = TensorTree[T].toPyTree(value)
   val file = py.Dynamic.global.open(path, "wb")
   try
     pickle.dump(pyTree, file, protocol = 5)
@@ -19,6 +19,6 @@ def loadPyTree[T: TensorTree](path: String): T =
 
   try
     val pyTree = pickle.load(file)
-    summon[TensorTree[T]].fromPyTree(pyTree)
+    TensorTree[T].fromPyTree(pyTree)
   finally
     file.close()

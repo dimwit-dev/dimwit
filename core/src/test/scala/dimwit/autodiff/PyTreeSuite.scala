@@ -21,7 +21,7 @@ class ToPyTreeSuite extends AnyFunSpec with Matchers:
         Tensor0(0.5f)
       )
 
-      val tc = summon[TensorTree[Params]]
+      val tc = TensorTree[Params]
       val reconstructed = tc.fromPyTree(tc.toPyTree(params))
 
       reconstructed.w should approxEqual(params.w)
@@ -48,7 +48,7 @@ class ToPyTreeSuite extends AnyFunSpec with Matchers:
         )
       )
 
-      val tc = summon[TensorTree[ModelParams]]
+      val tc = TensorTree[ModelParams]
       val reconstructed = tc.fromPyTree(tc.toPyTree(params))
 
       reconstructed.layer1.w should approxEqual(params.layer1.w)
@@ -62,7 +62,7 @@ class ToPyTreeSuite extends AnyFunSpec with Matchers:
         Tensor0(0.5f)
       )
 
-      val tc = summon[TensorTree[(Tensor1[A, Float], Tensor0[Float])]]
+      val tc = TensorTree[(Tensor1[A, Float], Tensor0[Float])]
       val reconstructed = tc.fromPyTree(tc.toPyTree(myTuple))
 
       reconstructed._1 should approxEqual(myTuple._1)
@@ -79,7 +79,7 @@ class ToPyTreeSuite extends AnyFunSpec with Matchers:
         )
       )
 
-      val tc = summon[TensorTree[Params]]
+      val tc = TensorTree[Params]
       val reconstructed = tc.fromPyTree(tc.toPyTree(params))
 
       reconstructed.layerWeights.size shouldBe params.layerWeights.size
