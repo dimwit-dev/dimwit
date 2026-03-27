@@ -206,6 +206,11 @@ object TensorOps:
       def argmin[L: Label, R <: Tuple](axis: Axis[L])(using ev: AxisRemover[T, L, R], l: Labels[R]): Tensor[R, Int] = Tensor(Jax.jnp.argmin(t.jaxValue, axis = ev.index))
       def argmin[Inputs <: Tuple, R <: Tuple](axes: Inputs)(using ev: AxesRemover[T, UnwrapAxes[Inputs], R], l: Labels[R]): Tensor[R, Int] = Tensor(Jax.jnp.argmin(t.jaxValue, axis = ev.indices.toPythonProxy))
 
+      // --- Argsort ---
+      def argsort: Tensor[T, Int] = Tensor(Jax.jnp.argsort(t.jaxValue))
+      def argsort[L: Label](axis: Axis[L])(using ev: AxisIndex[T, L]): Tensor[T, Int] = Tensor(Jax.jnp.argsort(t.jaxValue, axis = ev.index))
+      def argsort[Inputs <: Tuple](axes: Inputs)(using ev: AxisIndices[T, UnwrapAxes[Inputs]]): Tensor[T, Int] = Tensor(Jax.jnp.argsort(t.jaxValue, axis = ev.indices.toPythonProxy))
+
     // ---------------------------------------------------------
     // IsFloat operations (IsFloat or IsInt)
     // ---------------------------------------------------------
