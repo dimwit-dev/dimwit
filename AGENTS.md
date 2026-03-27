@@ -736,7 +736,7 @@ Use **case classes** to group parameters. DimWit automatically derives `TensorTr
 
 ```scala
 import dimwit.*
-import dimwit.autodiff.{TensorTree, FloatTensorTree, Autodiff}
+import dimwit.autodiff.{TensorTree, FloatTree, Autodiff}
 
 trait Feature derives Label
 trait Hidden derives Label
@@ -781,7 +781,8 @@ val wrong = Autodiff.grad(intFunc)
 // def intFunc(x: Tensor1[A, Int]): Tensor0[Int] = x.sum
 //                        ^
 // error:
-// No given instance of type dimwit.autodiff.ToPyTree[dimwit.tensor.Tensor1[<error Not found: type A>, Int]] was found for parameter inTree of method grad in object Autodiff
+// No given instance of type dimwit.autodiff.TensorTree[dimwit.tensor.Tensor1[<error Not found: type A>, Int]
+//   ] was found for parameter inTree of method grad in object Autodiff
 // val wrong = Autodiff.grad(intFunc)
 //                                  ^
 ```
