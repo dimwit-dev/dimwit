@@ -38,9 +38,31 @@ object Autodiff:
     val gpy = Jax.jax_helper.grad(fpy)
 
     (params: Input) =>
-      val xpy = inTree.toPyTree(params)
-      val pygrad = gpy(xpy)
-      Grad(inTree.fromPyTree(pygrad).asInstanceOf[Input])
+      val pyParams = inTree.toPyTree(params)
+      val pyGrad = gpy(pyParams)
+      Grad(inTree.fromPyTree(pyGrad).asInstanceOf[Input])
+
+  def valueAndGrad[T1, T2, V](f: (T1, T2) => Tensor0[V])(using t1Tree: ToPyTree[T1], t2Tree: ToPyTree[T2], outTree: ToPyTree[Tensor0[V]]): (T1, T2) => (Tensor0[V], Grad[(T1, T2)]) = (t1, t2) => valueAndGrad(f.tupled)((t1, t2))
+  def valueAndGrad[T1, T2, T3, V](f: (T1, T2, T3) => Tensor0[V])(using t1Tree: ToPyTree[T1], t2Tree: ToPyTree[T2], t3Tree: ToPyTree[T3], outTree: ToPyTree[Tensor0[V]]): (T1, T2, T3) => (Tensor0[V], Grad[(T1, T2, T3)]) = (t1, t2, t3) => valueAndGrad(f.tupled)((t1, t2, t3))
+
+  def valueAndGrad[Input, V](f: Input => Tensor0[V])(using
+      inTree: ToPyTree[Input],
+      outTree: ToPyTree[Tensor0[V]]
+  ): Input => (Tensor0[V], Grad[Input]) =
+
+    val fpy = (jxpr: py.Dynamic) =>
+      OnError.traceStack:
+        val x = inTree.fromPyTree(jxpr)
+        outTree.toPyTree(f(x))
+
+    val gpy = Jax.jax_helper.value_and_grad(fpy)
+
+    (params: Input) =>
+      val pyParams = inTree.toPyTree(params)
+      val r = gpy(pyParams)
+      val pyValue = r.bracketAccess(0)
+      val pyGrad = r.bracketAccess(1)
+      (Tensor(pyValue), Grad(inTree.fromPyTree(pyGrad).asInstanceOf[Input]))
 
   def jacobian[In, Out](f: In => Out)(using
       inTree: ToPyTree[In],
