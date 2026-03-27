@@ -22,7 +22,8 @@ object FloatTree:
 
   inline given derived[P <: Product](using m: Mirror.ProductOf[P]): FloatTree[P] =
     summonAll[Tuple.Map[m.MirroredElemTypes, FloatTree]]
-    new FloatTree[P] {}
+    FloatTreeImpl[P]()
+  class FloatTreeImpl[P] extends FloatTree[P]
 
   extension [P](p: P)(using tt: TensorTree[P], af: FloatTree[P])
     /** Maps a function over the TensorTree, as for a regula rtensor tree,
