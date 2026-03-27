@@ -49,6 +49,22 @@ class AutodiffSuite extends AnyFunSpec with Matchers:
         xGrad shouldEqual Tensor1(Axis[A]).fromArray(Array(6.0f))
         yGrad shouldEqual Tensor1(Axis[A]).fromArray(Array(12.0f))
 
+  describe("valueAndGrad"):
+
+    describe("two parameter function"):
+      it("d¹/dx and d¹/dy of (x + 2y)²"):
+        def f(x: Tensor1[A, Float], y: Tensor1[A, Float]) = ((x + (y *! 2.0f)).pow(Tensor0(2.0f))).sum
+        val df = Autodiff.grad(f)
+
+        val x = Tensor1(Axis[A]).fromArray(Array(1.0f))
+        val y = Tensor1(Axis[A]).fromArray(Array(1.0f))
+
+        val g = Autodiff.valueAndGrad(f)
+        val (value, grad) = g(x, y)
+
+        value shouldEqual f(x, y)
+        grad shouldEqual df(x, y).value
+
   describe("jacobian"):
     describe("single parameter function"):
       it("Jacobian of f: R² -> R², f(x) = 2x"):
