@@ -3,6 +3,7 @@ package dimwit.random
 import dimwit.tensor.*
 import dimwit.tensor.TensorOps.*
 import dimwit.jax.{Jax, JaxDType}
+import dimwit.autodiff.TensorTree
 import me.shadaj.scalapy.py.SeqConverters
 import dimwit.python.PyBridge.liftPyTensor
 import scala.compiletime.{requireConst, constValue, ops}
@@ -86,6 +87,21 @@ object Random:
     liftPyTensor(Jax.jrandom.permutation(key.jaxKey, dim.size))
 
   object Key:
+    /** TensorTree instance — treats a Key as a leaf
+      * (no tensor children to map over)
+      * Having keys as part of the parameter structure is
+      * common in random sampling functions,
+      * so this instance allows them to be used
+      * seamlessly with autodiff and JIT compilation.
+      */
+    given TensorTree[Key] with
+      // map is really a noop as it is not a tensor
+      def map(p: Key, f: [T <: Tuple, V] => (Labels[T]) ?=> (Tensor[T, V] => Tensor[T, V])): Key = p
+      // zipmap is also a noop, just return the first key
+      def zipMap(p1: Key, p2: Key, f: [T <: Tuple, V] => (Labels[T]) ?=> ((Tensor[T, V], Tensor[T, V]) => Tensor[T, V])): Key = p1
+      def toPyTree(p: Key): Jax.PyAny = p.jaxKey
+      def fromPyTree(pyVal: Jax.PyAny): Key = Key(pyVal.as[Jax.PyDynamic])
+
     /** Create a random key from an integer seed */
     def apply(seed: Int): Key = Key(Jax.jrandom.key(seed))
 

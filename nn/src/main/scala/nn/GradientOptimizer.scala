@@ -2,8 +2,8 @@ package nn
 
 import dimwit.*
 import dimwit.Conversions.given
+import dimwit.autodiff.FloatTree.ops.*
 import dimwit.autodiff.Grad
-import dimwit.autodiff.FloatTensorTree.*
 import dimwit.jax.Jax
 import dimwit.jax.Jit
 
@@ -30,16 +30,16 @@ trait GradientOptimizer:
   type State[_]
 
   // Core API
-  def init[Params: ToPyTree: FloatTensorTree](params: Params): State[Params]
-  def update[Params: ToPyTree: FloatTensorTree](gradients: Grad[Params], params: Params, state: State[Params]): (Params, State[Params])
+  def init[Params: TensorTree: FloatTree](params: Params): State[Params]
+  def update[Params: TensorTree: FloatTree](gradients: Grad[Params], params: Params, state: State[Params]): (Params, State[Params])
 
   // Convenience: iterator with fixed gradient function
-  def iterateWithState[Params: ToPyTree: FloatTensorTree](init: Params)(df: Params => Grad[Params]): Iterator[(Params, State[Params])] =
+  def iterateWithState[Params: TensorTree: FloatTree](init: Params)(df: Params => Grad[Params]): Iterator[(Params, State[Params])] =
     Iterator.iterate((init, this.init(init))): (params, state) =>
       val grads = df(params)
       update(grads, params, state)
 
-  def iterate[Params: ToPyTree: FloatTensorTree](init: Params)(df: Params => Grad[Params]): Iterator[Params] =
+  def iterate[Params: TensorTree: FloatTree](init: Params)(df: Params => Grad[Params]): Iterator[Params] =
     iterateWithState(init)(df).map(_._1)
 
 case class GradientDescent(learningRate: Tensor0[Float]) extends GradientOptimizer:
@@ -47,9 +47,9 @@ case class GradientDescent(learningRate: Tensor0[Float]) extends GradientOptimiz
 
   type State[P] = Unit // Stateless optimizer
 
-  def init[Params: ToPyTree: FloatTensorTree](params: Params): Unit = ()
+  def init[Params: TensorTree: FloatTree](params: Params): Unit = ()
 
-  def update[Params: ToPyTree: FloatTensorTree](gradients: Grad[Params], params: Params, state: Unit): (Params, Unit) =
+  def update[Params: TensorTree: FloatTree](gradients: Grad[Params], params: Params, state: Unit): (Params, Unit) =
     val newParams = params -- gradients.value.scale(learningRate)
     (newParams, ())
 
@@ -57,18 +57,14 @@ case class Lion(learningRate: Tensor0[Float], weightDecay: Tensor0[Float] = Tens
 
   type State[P] = P // momentum state has same structure as params
 
-  def init[Params: ToPyTree: FloatTensorTree](params: Params): Params =
-    val paramTree = summon[FloatTensorTree[Params]]
-    paramTree.map(
-      params,
-      [T <: Tuple] =>
-        (n: Labels[T]) ?=>
-          (t: Tensor[T, Float]) =>
-            Tensor(t.shape).fill(0f)
+  def init[Params: TensorTree: FloatTree](params: Params): Params =
+    params.map([T <: Tuple] =>
+      (n: Labels[T]) ?=>
+        (t: Tensor[T, Float]) =>
+          Tensor(t.shape).fill(0f)
     )
 
-  def update[Params: ToPyTree: FloatTensorTree](gradients: Grad[Params], params: Params, momentums: Params): (Params, Params) =
-    val paramTree = summon[FloatTensorTree[Params]]
+  def update[Params: TensorTree: FloatTree](gradients: Grad[Params], params: Params, momentums: Params): (Params, Params) =
     // the direction (1 or -1)
     // is determined by the sign of the momentum + gradient
     val updateDirection = (momentums **! beta1 ++ gradients.value **! (1f - beta1)).sign
@@ -101,11 +97,11 @@ case class Adam(
 
   type State[P] = AdamState[P]
 
-  def init[Params: ToPyTree: FloatTensorTree](params: Params): State[Params] =
+  def init[Params: TensorTree: FloatTree](params: Params): State[Params] =
     def zeros = params.fillCopy(0f)
     AdamState(zeros, zeros, b1 = Tensor0(1f), b2 = Tensor0(1f))
 
-  def update[Params: ToPyTree: FloatTensorTree](
+  def update[Params: TensorTree: FloatTree](
       gradients: Grad[Params],
       params: Params,
       state: State[Params]
@@ -152,9 +148,9 @@ case class AdamW(
 
   type State[P] = adam.State[P]
 
-  def init[Params: ToPyTree: FloatTensorTree](params: Params): State[Params] = adam.init(params)
+  def init[Params: TensorTree: FloatTree](params: Params): State[Params] = adam.init(params)
 
-  def update[Params: ToPyTree: FloatTensorTree](
+  def update[Params: TensorTree: FloatTree](
       gradients: Grad[Params],
       params: Params,
       state: State[Params]

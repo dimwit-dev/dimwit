@@ -13,7 +13,6 @@ object LinearLayer:
 
   object Params:
     given [I: Label, O: Label]: TensorTree[Params[I, O]] = TensorTree.derived
-    given [I: Label, O: Label]: ToPyTree[Params[I, O]] = ToPyTree.derived
 
     def apply[In: Label, Out: Label](paramKey: Key)(
         inputDim: AxisExtent[In],
@@ -37,7 +36,6 @@ object LinearMap:
 
   object Params:
     given [In: Label]: TensorTree[Params[In]] = TensorTree.derived
-    given [In: Label]: ToPyTree[Params[In]] = ToPyTree.derived
 
     def apply[In: Label](paramKey: Key)(inputDim: AxisExtent[In])(using
         executionType: ExecutionType[Float]

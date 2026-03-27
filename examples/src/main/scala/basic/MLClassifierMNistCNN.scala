@@ -1,8 +1,8 @@
 package examples.basic.mnistcnn
 
 import dimwit.*
-import dimwit.autodiff.FloatTensorTree.*
 import dimwit.Conversions.given
+import dimwit.autodiff.FloatTree.ops.*
 import nn.*
 import nn.ActivationFunctions.relu
 import dimwit.random.Random
