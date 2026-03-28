@@ -136,6 +136,41 @@ class TensorOpsReductionSuite extends AnyFunSpec with Matchers:
       val res = t2.argmin(axis = Axis[B])
       res shouldEqual Tensor.like(res).fromArray(Array(0, 0))
 
+    it("argsort"):
+      t2.argsort shouldEqual Tensor2(
+        Axis[A],
+        Axis[B]
+      ).fromArray(
+        Array(
+          Array(0, 1, 2),
+          Array(0, 1, 2)
+        )
+      )
+
+    it("argsort axis A"):
+      val res = t2.argsort(axis = Axis[A])
+      res shouldEqual Tensor2(
+        Axis[A],
+        Axis[B]
+      ).fromArray(
+        Array(
+          Array(0, 0, 0),
+          Array(1, 1, 1)
+        )
+      )
+
+    it("argsort axis B"):
+      val res = t2.argsort(axis = Axis[B])
+      res shouldEqual Tensor2(
+        Axis[A],
+        Axis[B]
+      ).fromArray(
+        Array(
+          Array(0, 1, 2),
+          Array(0, 1, 2)
+        )
+      )
+
   describe("Boolean Reductions"):
     it("all"):
       b2.all shouldEqual Tensor0(false)
