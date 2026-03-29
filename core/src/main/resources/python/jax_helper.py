@@ -8,18 +8,25 @@ import builtins
 builtins.jax = jax
 builtins.jnp = jnp
 
+def wrap(jax_transform, f, kwargs=None):
+    """
+    Generic wrapper that shields a ScalaPy function from JAX introspection,
+    then applies the given JAX transform.
+
+    Usage:
+        wrap(jax.grad, f)
+        wrap(jax.vmap, f, kwargs={"in_axes": 0})
+        wrap(jax.jit, f, kwargs={"donate_argnums": (0,)})
+        wrap(jax.jacfwd, f)
+    """
+    def python_wrapper(*a, **kw):
+        return f(*a, **kw)
+    if kwargs:
+        return jax_transform(python_wrapper, **kwargs)
+    return jax_transform(python_wrapper)
+
 def vmap(f, dims):
-    """
-    Applies a function `f` to a tensor using JAX's vmap functionality.
-    
-    It is wrapped in a Python function to ensure that the function, as otherwise
-    jax will crash upon inspection.
-    """
-                
-    def python_wrapper(x):
-        return f(x)
-            
-    return jax.vmap(python_wrapper, in_axes=dims)
+    return wrap(jax.vmap, f, kwargs={"in_axes": dims})
            
 def zipvmap(f, dims):
     def python_wrapper(*args):
@@ -46,118 +53,28 @@ def apply_over_axes(f, axis):
     return jnp.apply_over_axes(python_wrapper, axis)
 
 def vmap2(f, dims):
-    """
-    Applies a function `f` to two tensors using JAX's vmap functionality.
-    
-    Args:
-        f: Function that takes two arguments (x, y)
-        dims: Either an integer (same axis for both inputs) or tuple (axis1, axis2)
-    
-    It is wrapped in a Python function to ensure that the function, as otherwise
-    jax will crash upon inspection.
-    """
-                
-    # Wrap the ScalaPy function in a pure Python wrapper
-    def python_wrapper(x, y):
-        return f(x, y)
-    
-    # Handle dims parameter - can be int or tuple
-    if isinstance(dims, int):
-        # Same axis for both inputs
-        in_axes = (dims, dims)
-    else:
-        # Different axes for each input
-        in_axes = dims
-            
-    # Create vmap with the wrapper
-    return jax.vmap(python_wrapper, in_axes=in_axes)
+    in_axes = (dims, dims) if isinstance(dims, int) else dims
+    return wrap(jax.vmap, f, kwargs={"in_axes": in_axes})
 
 
 
 def grad(f):
-    """
-    Computes the gradient of a function `f` with respect to its arguments.
-    
-    This is a simple wrapper around JAX's grad function.
-    Only works for scalar-output functions.
-    """
-    from jax import grad as jax_grad
-    def python_wrapper(*args):
-        # Remove debug print that might cause issues
-        return f(*args)
-    
-    return jax_grad(python_wrapper)
+    return wrap(jax.grad, f)
 
 def value_and_grad(f):
-    """
-    Computes both the value and gradient of a function `f` with respect to its arguments.
-    
-    This is more efficient than computing value and gradient separately.
-    Only works for scalar-output functions.
-    """
-    from jax import value_and_grad as jax_value_and_grad
-    def python_wrapper(*args):
-        return f(*args)
-    
-    return jax_value_and_grad(python_wrapper)
+    return wrap(jax.value_and_grad, f)
 
 def jacfwd(f):
-    """
-    Computes the Jacobian of a function `f` using forward-mode differentiation.
-    
-    Works for vector-output functions. Efficient when output dimension > input dimension.
-    """
-    from jax import jacfwd as jax_jacfwd
-    def python_wrapper(x):
-        return f(x)
-    
-    return jax_jacfwd(python_wrapper)
+    return wrap(jax.jacfwd, f)
 
 def jacrev(f):
-    """
-    Computes the Jacobian of a function `f` using reverse-mode differentiation.
-    
-    Works for vector-output functions. Efficient when input dimension > output dimension.
-    """
-    from jax import jacrev as jax_jacrev
-    def python_wrapper(x):
-        return f(x)
-    
-    return jax_jacrev(python_wrapper)
+    return wrap(jax.jacrev, f)
 
 def jacobian(f):
-    from jax import jacobian as jax_jacobian
-    def python_wrapper(x):
-        return f(x)
-    return jax_jacobian(python_wrapper)
+    return wrap(jax.jacobian, f)
 
 def jit(f):
-    """
-    Just-in-time compiles a function for faster execution.
-    
-    The first call will be slower due to compilation, but subsequent calls
-    with the same shapes will be much faster.
-    """
-    from jax import jit as jax_jit
-    def python_wrapper(*args):
-        return f(*args)
-    
-    return jax_jit(python_wrapper)
+    return wrap(jax.jit, f)
 
 def jit_fn(f, jit_kwargs=None):
-    """
-    Universal JIT wrapper that works with any function.
-    Accepts an optional dictionary of arguments to pass to jax.jit 
-    (e.g., static_argnums, donate_argnums, etc.).
-    """
-    from jax import jit as jax_jit
-    
-    # Handle default None case
-    if jit_kwargs is None:
-        jit_kwargs = {}
-
-    def python_wrapper(*args, **kwargs):
-        return f(*args, **kwargs)
-    
-    # Unpack the dictionary into jax.jit
-    return jax_jit(python_wrapper, **jit_kwargs)
+    return wrap(jax.jit, f, kwargs=jit_kwargs)
