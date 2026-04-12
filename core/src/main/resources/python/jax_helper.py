@@ -8,6 +8,12 @@ import builtins
 builtins.jax = jax
 builtins.jnp = jnp
 
+def wrap_fn(f):
+    """Wrap a ScalaPy callback as a plain Python callable."""
+    def python_wrapper(*a, **kw):
+        return f(*a, **kw)
+    return python_wrapper
+
 def wrap(jax_transform, f, kwargs=None):
     """
     Generic wrapper that shields a ScalaPy function from JAX introspection,
@@ -19,11 +25,9 @@ def wrap(jax_transform, f, kwargs=None):
         wrap(jax.jit, f, kwargs={"donate_argnums": (0,)})
         wrap(jax.jacfwd, f)
     """
-    def python_wrapper(*a, **kw):
-        return f(*a, **kw)
     if kwargs:
-        return jax_transform(python_wrapper, **kwargs)
-    return jax_transform(python_wrapper)
+        return jax_transform(wrap_fn(f), **kwargs)
+    return jax_transform(wrap_fn(f))
 
 def vmap(f, dims):
     return wrap(jax.vmap, f, kwargs={"in_axes": dims})
