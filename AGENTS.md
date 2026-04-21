@@ -89,7 +89,7 @@ val badShape = Shape(Axis[UndefinedLabel] -> 10)
 // Ensure that all axis types repl.MdocSession.MdocApp.UndefinedLabel are defined with 'derives Label' (e.g. 'trait T derives Label')
 // 
 // val badShape = Shape(Axis[UndefinedLabel] -> 10)
-//                                                ^
+//                                          ^
 ```
 
 ```scala
@@ -196,7 +196,7 @@ val noLabel = Tensor(Shape1(Axis[NoLabel] -> 2)).fill(1.0f)
 // Ensure that all axis types repl.MdocSession.MdocApp.NoLabel are defined with 'derives Label' (e.g. 'trait T derives Label')
 // 
 // val noLabel = Tensor(Shape1(Axis[NoLabel] -> 2)).fill(1.0f)
-//                                                ^
+//                                          ^
 ```
 
 ```scala
@@ -563,11 +563,16 @@ val wrong = t.vmap(Axis[A])(wrongFunc)
 // error: 
 // Not found: type A
 // error: 
+// 
+// An axis label <error Not found: type A> was given or inferred, which does not have a Label instance.
+// Ensure that all axis types <error Not found: type A> are defined with 'derives Label' (e.g. 'trait T derives Label')
+// 
+// error: 
 // Not found: type B
 // error: 
 // 
-// An axis label Any was given or inferred, which does not have a Label instance.
-// Ensure that all axis types Any are defined with 'derives Label' (e.g. 'trait T derives Label')
+// An axis label <error Not found: type B> was given or inferred, which does not have a Label instance.
+// Ensure that all axis types <error Not found: type B> are defined with 'derives Label' (e.g. 'trait T derives Label')
 // 
 // error:
 // Not found: type A
