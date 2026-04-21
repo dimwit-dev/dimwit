@@ -67,13 +67,30 @@ lazy val examples = (project in file("examples"))
     }
   )
 
-lazy val docs = (project in file(".dimwit-docs")) // Hidden folder for sbt metadata
+// Processes files in /mdocs that need to be copied to the root (e.g. README.md)
+lazy val docsRoot = (project in file(".dimwit-docs-root"))
+  .enablePlugins(MdocPlugin)
+  .dependsOn(core, nn)
+  .settings(
+    name := "dimwit-docs-root",
+    mdocIn := (ThisBuild / baseDirectory).value / "mdocs",
+    mdocOut := (ThisBuild / baseDirectory).value,
+    mdocExtraArguments := Seq("--no-link-hygiene"),
+    mdocVariables := Map(
+      "VERSION" -> version.value
+    ),
+    fork := true,
+    envVars := (ThisBuild / envVars).value
+  )
+
+// Processes all other docs in /mdocs/docs/ → output to docs/
+lazy val docs = (project in file(".dimwit-docs"))
   .enablePlugins(MdocPlugin)
   .dependsOn(core, nn)
   .settings(
     name := "dimwit-docs",
-    mdocIn := (ThisBuild / baseDirectory).value / "docs",
-    mdocOut := (ThisBuild / baseDirectory).value,
+    mdocIn := (ThisBuild / baseDirectory).value / "mdocs/docs",
+    mdocOut := (ThisBuild / baseDirectory).value / "docs",
     mdocExtraArguments := Seq("--no-link-hygiene"),
     mdocVariables := Map(
       "VERSION" -> version.value
