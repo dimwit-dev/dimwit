@@ -564,11 +564,11 @@ object TensorOps:
 
       type SliceIndex = Int | List[Int] | Range | Tensor0[Int]
       type ExtractLabel[X] = X match
-        case AxisAtIndex[l]            => l
-        case AxisAtRange[l]            => l
-        case AxisAtIndices[l]          => l
-        case AxisAtTupleIndices[l, ?]  => l
-        case AxisAtTensorIndex[l]      => l
+        case AxisAtIndex[l]           => l
+        case AxisAtRange[l]           => l
+        case AxisAtIndices[l]         => l
+        case AxisAtTupleIndices[l, ?] => l
+        case AxisAtTensorIndex[l]     => l
       type ExtractLabels[Inputs <: Tuple] = Tuple.Map[Inputs, ExtractLabel]
 
       trait SliceLabelExtractor[Inputs <: Tuple, Out <: Tuple]
@@ -619,8 +619,6 @@ object TensorOps:
             tailExt: SliceLabelExtractor[Tail, TailOut]
         ): SliceLabelExtractor[(Axis[L], SeqT) *: Tail, TailOut] =
           new SliceLabelExtractor[(Axis[L], SeqT) *: Tail, TailOut] {}
-
-  
 
       type Swap[T <: Tuple, A, B] <: Tuple = T match
         case EmptyTuple => EmptyTuple
