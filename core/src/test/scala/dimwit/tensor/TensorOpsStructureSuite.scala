@@ -362,6 +362,37 @@ class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
       partC.axes shouldBe List("A", "C")
       concatenate(partB, partC) shouldEqual t
 
+  describe("split function"):
+
+    it("split into 2 parts"):
+      val t = Tensor2(Axis[A], Axis[B]).fromArray(
+        Array(Array(1.0f, 2.0f, 3.0f, 4.0f, 5.0f))
+      )
+      val (part1, part2) = t.split(Axis[B].at(2))
+      part1.axes shouldBe List("A", "B")
+      part2.axes shouldBe List("A", "B")
+      part1.shape(Axis[B]) shouldBe 2
+      part2.shape(Axis[B]) shouldBe 3
+
+    it("split into 3 parts"):
+      val t = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f))
+      val (part1, part2, part3) = t.split(Axis[A].at((2, 3)))
+      part1.shape(Axis[A]) shouldBe 2
+      part2.shape(Axis[A]) shouldBe 1
+      part3.shape(Axis[A]) shouldBe 3
+
+    it("split is inverse of concatenate"):
+      val part1 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f)))
+      val part2 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(3.0f, 4.0f)))
+      val part3 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(5.0f, 6.0f)))
+      val joined = concatenate(Seq(part1, part2, part3), Axis[B])
+      val n1 = part1.shape(Axis[B])
+      val n2 = part2.shape(Axis[B])
+      val (s1, s2, s3) = joined.split(Axis[B].at((n1, n1 + n2)))
+      s1 should approxEqual(part1)
+      s2 should approxEqual(part2)
+      s3 should approxEqual(part3)
+
   describe("set function"):
 
     describe("AxisAtIndex"):
