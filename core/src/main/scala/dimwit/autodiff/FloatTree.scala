@@ -23,24 +23,8 @@ object FloatTree:
   inline given derived[P <: Product](using m: Mirror.ProductOf[P]): FloatTree[P] =
     summonAll[Tuple.Map[m.MirroredElemTypes, FloatTree]]
     FloatTreeImpl[P]()
+
   class FloatTreeImpl[P] extends FloatTree[P]
-
-  extension [P](p: P)(using tt: TensorTree[P], af: FloatTree[P])
-    /** Maps a function over the TensorTree, as for a regula rtensor tree,
-      * but provides knowledge that tensors are of type float
-      */
-    def map(f: [T <: Tuple] => Labels[T] ?=> (Tensor[T, Float] => Tensor[T, Float])): P =
-      tt.map(p, [T <: Tuple, V] => (n: Labels[T]) ?=> (t: Tensor[T, V]) => f[T](using n)(t.asInstanceOf[Tensor[T, Float]]).asInstanceOf[Tensor[T, V]])
-
-    /** Zipmaps a function over the TensorTree, as for tensor tree,
-      * but provides knowledge that tensors are of type float
-      */
-    def zipMap(p2: P, f: [T <: Tuple] => Labels[T] ?=> ((Tensor[T, Float], Tensor[T, Float]) => Tensor[T, Float])): P =
-      tt.zipMap(
-        p,
-        p2,
-        [T <: Tuple, V] => (n: Labels[T]) ?=> (t1: Tensor[T, V], t2: Tensor[T, V]) => f[T](using n)(t1.asInstanceOf[Tensor[T, Float]], t2.asInstanceOf[Tensor[T, Float]]).asInstanceOf[Tensor[T, V]]
-      )
 
   /** Arithmetic and math operations for tensor trees of floats.
     */
@@ -50,6 +34,23 @@ object FloatTree:
     trait IsFloatTensor[P]
     object IsFloatTensor:
       given [T <: Tuple]: IsFloatTensor[Tensor[T, Float]] with {}
+
+    extension [P](p: P)(using tt: TensorTree[P], af: FloatTree[P])
+      /** Maps a function over the TensorTree, as for a regula rtensor tree,
+        * but provides knowledge that tensors are of type float
+        */
+      def map(f: [T <: Tuple] => Labels[T] ?=> (Tensor[T, Float] => Tensor[T, Float])): P =
+        tt.map(p, [T <: Tuple, V] => (n: Labels[T]) ?=> (t: Tensor[T, V]) => f[T](using n)(t.asInstanceOf[Tensor[T, Float]]).asInstanceOf[Tensor[T, V]])
+
+      /** Zipmaps a function over the TensorTree, as for tensor tree,
+        * but provides knowledge that tensors are of type float
+        */
+      def zipMap(p2: P, f: [T <: Tuple] => Labels[T] ?=> ((Tensor[T, Float], Tensor[T, Float]) => Tensor[T, Float])): P =
+        tt.zipMap(
+          p,
+          p2,
+          [T <: Tuple, V] => (n: Labels[T]) ?=> (t1: Tensor[T, V], t2: Tensor[T, V]) => f[T](using n)(t1.asInstanceOf[Tensor[T, Float]], t2.asInstanceOf[Tensor[T, Float]]).asInstanceOf[Tensor[T, V]]
+        )
 
     // Scalar broadcast extensions (Tensor0 op Tree)
     extension (p2: Tensor0[Float])

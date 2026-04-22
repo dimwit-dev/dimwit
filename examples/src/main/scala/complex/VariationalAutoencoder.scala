@@ -13,6 +13,7 @@ import nn.GradientDescent
 import dimwit.jax.Jax
 import nn.ActivationFunctions.sigmoid
 import dimwit.random.Random.Key
+import dimwit.autodiff.FloatTree.ops.*
 
 import MNISTLoader.{Sample, TrainSample, TestSample, Height, Width}
 import dimwit.python.PyBridge.toPyTensor
