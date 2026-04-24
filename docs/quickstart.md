@@ -321,7 +321,13 @@ val tensor = Tensor(Shape(Axis[A] -> 3, Axis[B] -> 2, Axis[C] -> 4)).fill(1.0f)
 The simplest method is `vapply`. `vapply` applies a function from a `Tensor1` to a `Tensor1` to each slice of the tensor along the specified axis. For example, we can apply the function that multiplies each element by 2 to each slice along axis A as follows:    
 
 ```scala
-tensor.vapply(Axis[A])((slice : Tensor1[A, Float]) => slice *! Tensor0(2.0f))
+val doubled : Tensor3[A, B, C, Float] = tensor.vapply(Axis[A])((slice : Tensor1[A, Float]) => slice *! Tensor0(2.0f))
+```
+
+Similar to `vapply`is `vreduce`. `vreduce` applies a function that reduces a `Tensor1` to a `Tensor0` to each slice of the tensor along the specified axis. It effectively reduces the specified axis to a scalar. 
+
+```scala
+val summedA : Tensor2[B, C, Float] = tensor.vreduce(Axis[A])((slice : Tensor1[A, Float]) => slice.sum)
 ```
 
 A more general method is `vmap`, which applies a function to the slice of the tensor along the specified axis.  The function can return a tensor of any shape, not just a `Tensor1`. The resulting tensor will have the same shape as the original tensor, except that the specified axis will be replaced by the shape of the output of the function. The following example takes a Tensor2 as input and computes the 
