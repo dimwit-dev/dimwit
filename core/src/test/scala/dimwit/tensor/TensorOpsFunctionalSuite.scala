@@ -51,6 +51,16 @@ class TensorOpsFunctionalSuite extends AnyFunSpec with Matchers:
       val res = zipvmap(Axis[A])(t2, t2_2, t2_2, t2)((a, b, c, d) => l2(a, b) - l2(c, d))
       res should approxEqual(Tensor1(Axis[A]).fromArray(Array(0.0f, 0.0f)))
 
+    it("extension zipvmap with two different-shaped tensors"):
+      val ta = Tensor(Shape(Axis[A] -> 2, Axis[B] -> 3)).fill(1f)
+      val tc = Tensor(Shape(Axis[A] -> 2, Axis[C] -> 4)).fill(2f)
+      val res = ta.zipvmap(Axis[A])(tc) {
+        case (rowB, rowC) =>
+          rowB.sum + rowC.sum
+      }
+      // Each row of ta sums to 3.0, each row of tc sums to 8.0 => 11.0 per row
+      res.shouldEqual(Tensor1(Axis[A]).fromArray(Array(11.0f, 11.0f)))
+
   describe("vapply (Axis-wise application)"):
 
     def l2[L: Label](v1: Tensor1[L, Float], v2: Tensor1[L, Float]): Tensor0[Float] = (v1 - v2).pow(2.0f).sum.sqrt
