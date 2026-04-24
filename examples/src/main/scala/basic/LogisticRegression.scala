@@ -1,6 +1,7 @@
 package examples.basic
 
 import dimwit.*
+import dimwit.autodiff.*
 import dimwit.Conversions.given
 import nn.*
 import nn.ActivationFunctions.{sigmoid, relu}
@@ -125,7 +126,7 @@ object LogisticRegression:
 
     // Training loop
     val numiterations = 1000
-    val trainTrajectory = gd.iterate(initParams)(Autodiff.grad(trainLoss))
+    val trainTrajectory = gd.iterate(initParams)(grad(trainLoss))
     val finalParams = trainTrajectory.zipWithIndex
       .tapEach:
         case (params, index) =>
