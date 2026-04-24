@@ -228,7 +228,7 @@ val tensor = Tensor(Shape(Axis[A] -> 3, Axis[B] -> 2, Axis[C] -> 4)).fill(1.0f)
 ``` 
 
 #### Flattening and unflattening axes
-The first operation we will discuss if `flatten` which flattens part of the tensor into a single axis. Invoked without arguments, `flatten` will flatten all axes into a single axis, resulting in a Tensor1. 
+The first operation we will discuss is `flatten` which flattens part of the tensor into a single axis. Invoked without arguments, `flatten` will flatten all axes into a single axis, resulting in a Tensor1. 
 ```scala
 val flattened : Tensor1[A |*| B |*| C, Float] = tensor.flatten
 ```
