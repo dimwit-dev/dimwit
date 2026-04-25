@@ -4,7 +4,62 @@ Welcome to DimWit! This quickstart guide will give you an overview of the main f
 It is not meant to be an exhaustive tutorial, but rather a quick introduction to the main concepts and operations in DimWit. 
 For more detailed information, please refer to the API documentation, the examples and the tests.
 
-### Getting started
+### An introductory example
+
+Before we start exploring the features of DimWit, let's look at a simple example that illustrates the main concepts and operations in DimWit. The example shows a linear regression model, implemented in machine learning style, using a model, loss function and a gradient-based training method.
+
+```scala mdoc:silent
+// main imports for basic tensor operations and automatic differentiation
+import dimwit.*
+import dimwit.Autodiff.grad // TODO replace with cleaner import after PR is merged
+import nn.GradientDescent // TODO replace with cleaner import after refactoring 
+
+// labels for tensor axes
+trait Batch derives Label
+trait Feature derives Label
+
+// parameters are explicitly defined and usually bundled in a case class
+case class Params(w: Tensor1[Feature, Float], b: Tensor0[Float]) derives TensorTree
+
+// the model as a function of data and parametesrs
+def model(x: Tensor2[Batch, Feature, Float], y: Tensor1[Batch, Float])(params: Params): Tensor1[Batch, Float] =
+  x.dot(Axis[Feature])(params.w) +! params.b
+
+// the loss function as a function of data and parameters
+def loss(x: Tensor2[Batch, Feature, Float], y: Tensor1[Batch, Float])(params: Params): Tensor0[Float] =
+  val pred = model(x, y)(params)
+  (pred - y).pow(Tensor0(2.0f)).mean
+
+// the training loop, which produces an iterator of parameters
+def fit(x: Tensor2[Batch, Feature, Float], y: Tensor1[Batch, Float]): Iterator[Params] =
+
+  // initialize parameters
+  val p0 = Params(
+    w = Tensor(Shape(Axis[Feature] -> 2)).fill(0f),
+    b = Tensor0(0f)
+  )
+
+  // gradient function via automatic differentiation
+  val gradFn = grad(loss(x, y))
+
+  // gradient based optimization
+  val gd = GradientDescent(learningRate = Tensor0(0.1f)) // this is wrong, should be 0.1f not Tensor0
+  gd.iterate(p0)(gradFn)
+```
+
+
+
+We will learn the details as we go through the different sections of this quickstart guide, but let's briefly look at the main features that this example illustrates.
+
+First, we see that we have labels for the axes of our tensors, which are `Batch` and `Feature`. These labels appear again in function signatures and make explicit what type of data a function 
+expects and what type of data it returns. This is a key feature of DimWit, as it allows us to catch many errors at compile time, which would otherwise only be caught at runtime.
+
+Second, we see that all the parameters of the model are explicitly defined and bundled in a case class `Params`. This will be the case even in much more complex models where we have many parameters. This explicit definition of parameters is a key feature of DimWit. Together with the named types of 
+the tensors, this makes the code much more readable and maintainable, as it is always clear what the parameters are and how they are used in the model and the loss function.
+
+Finally, we see that we can compute the gradients of the loss function with respect to the parameters using automatic differentiation, which is a key feature of DimWit. This allows us to easily implement gradient-based optimization algorithms, such as gradient descent, which is illustrated in the example.
+
+### Getting started 
 
 We assume that you have already added DimWit as a dependency to your project and that you have configured the Python environment as described in the README. 
 
@@ -23,6 +78,10 @@ The core concept in DimWit is that of a named axis, represented by a Scala type.
 Each axis has an associated label, which we define when we create the shape of a tensor and use to refer to that axis in operations.
 
 A label is simply a Scala type that derives from the `Label` trait. For example:
+
+```scala mdoc:invisible:reset
+import dimwit.*
+```
 
 ```scala mdoc:silent
 trait Batch derives Label
@@ -340,12 +399,47 @@ Note that the result of `grad` is a function that takes as input a tensor and re
 val gradValue : Tensor1[A, Float] = gradient(x).value
 ```
 
+#### Tensor trees and gradients of multiple parameters
+
+In practice, we often have functions that take as input multiple tensors. DimWit borrows 
+the concept of tensor trees from Jax to handle this case. A tensor tree is simply a nested structure of tensors, such as a case class that contains tensors, or a tuple of tensors, etc. 
+For larger models the most convenient representation of the parameters is usually a (nested) case class that contains all the parameters as fields. To mark a case class as a tensor tree, we need to make it derive the `TensorTree` type class:
+
+```scala mdoc:invisible:reset
+import dimwit.* 
+import dimwit.Autodiff.grad
+
+trait Feature derives Label
+trait Batch derives Label  
+```
+
+```scala mdoc:silent
+case class Params(w: Tensor1[Feature, Float], b: Tensor0[Float]) derives TensorTree
+```
+
+To compute the gradient of a function that takes as input a tensor tree, we can use the same `grad` method, as long as the input type of the function is a tensor tree. The resulting gradient will then be a tensor tree of the same shape as the input tensor tree, as illustrated in the following example:
+
+```scala mdoc:silent
+def f(params: Params): Tensor0[Float] = params.w.dot(Axis[Feature])(params.w) + params.b.pow(Tensor0(2.0f))
+
+val params = Params(
+  w = Tensor1(Axis[Feature]).fromArray(Array(1.0f, 2.0f)),
+  b = Tensor0(3.0f)
+)
+val gradient : Params => Grad[Params] = grad(f)
+val gradValue : Params = gradient(params).value
+```
 
 ### Working with random numbers
 
 DimWit is based on Jax.  Jax uses a functional approach to random number generation, which means that instead of having a global random state, we have to explicitly pass a random key to the functions that generate random numbers. DimWit follows the same approach, which means that we have to create a random key, whenever a method has a stochastic component. 
 
 Let's say we want to create a random number drawn from a normal distribution. We first generate the corresponding distribution object:
+
+```scala mdoc:invisible:reset
+import dimwit.*
+trait A derives Label
+```
 
 ```scala mdoc:silent
 import dimwit.stats.*
