@@ -1,4 +1,5 @@
 import ai.kien.python.Python
+import scala.sys.process._
 
 ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / scalaVersion := "3.8.1"
@@ -15,6 +16,14 @@ lazy val root = (project in file("."))
     name := "dimwit-root"
   )
 
+lazy val uvPython: String =
+  sys.env.getOrElse(
+    "DIMWIT_PYTHON_PATH",
+    Seq("uv", "run", "--no-sync", "python", "-c", "import sys; print(sys.executable)").!!.trim
+  )
+lazy val python = Python(uvPython)
+lazy val scalapyJavaOptions = python.scalapyProperties.get.map { case (k, v) => s"-D$k=$v" }.toSeq
+
 lazy val core = (project in file("core"))
   .settings(
     name := "dimwit-core",
@@ -25,6 +34,8 @@ lazy val core = (project in file("core"))
       "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test
     ),
     fork := true,
+    javaOptions ++= scalapyJavaOptions,
+    Test / envVars += "DIMWIT_SKIP_SYNC" -> "true",
     coverageMinimumStmtTotal := 80,
     coverageFailOnMinimum := false,
     coverageHighlighting := true,

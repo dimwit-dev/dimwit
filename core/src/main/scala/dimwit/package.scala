@@ -2,7 +2,6 @@ import scala.annotation.targetName
 
 import dimwit.jax.Jax
 import dimwit.tensor.{Axis, AxisExtent, AxisSelector, AxisAtIndex, AxisAtRange, AxisAtIndices, AxisAtTensorIndex}
-
 package object dimwit:
 
   import scala.compiletime.ops.string.+
@@ -102,3 +101,14 @@ package object dimwit:
   export dimwit.stats.{Prob, LogProb}
   export dimwit.stats.{Distribution, IndependentDistribution, MultivariateDistribution, UnivariateDistribution}
   export dimwit.MemoryHelper.withLocalCleanup
+
+  /** Explicitly configures the Python environment before any ScalaPy call.
+    * Call this function at the start of your program (before any `py.*` call)
+    * to ensure the Python environment is correctly set up.
+    *
+    * Env-var overrides:
+    *   - DIMWIT_SKIP_SYNC=true  — skip `uv sync` (useful in CI / Docker)
+    *   - DIMWIT_PYTHON_PATH     — path to a specific Python interpreter
+    *   - DIMWIT_PYTHON_LIBRARY  — path to a specific libpython shared library
+    */
+  def setup(): Unit = dimwit.jax.PythonSetup.configureScalaPy
