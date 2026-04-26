@@ -103,7 +103,7 @@ object Random:
       def fromPyTree(pyVal: Jax.PyAny): Key = Key(pyVal.as[Jax.PyDynamic])
 
     /** Create a random key from an integer seed */
-    def apply(seed: Int): Key = Key(Jax.jrandom.key(seed))
+    def apply(seed: Long): Key = Key(Jax.jrandom.key(seed))
 
     /** Create a random key from current time */
     def fromTime(): Key = Key(System.currentTimeMillis().toInt)
