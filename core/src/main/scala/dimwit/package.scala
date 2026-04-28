@@ -83,20 +83,17 @@ package object dimwit:
 
   // Export devices
   export dimwit.hardware.Device
-
   // Export automatic differentiation
   export dimwit.autodiff.{Autodiff, TensorTree, FloatTree, Grad}
-  export dimwit.autodiff.FloatTree.*
-
   // Export Just-in-Time compilation
   export dimwit.jax.Jit.{jit, jitDonating, jitDonatingUnsafe}
   export dimwit.jax.EagerCleanup.eagerCleanup
 
   object Conversions:
     export dimwit.tensor.Tensor0.{float2FloatTensor, int2IntTensor, int2FloatTensor, boolean2BooleanTensor}
-
   // Export random object
   export dimwit.random.Random
+  export dimwit.random.Random.Key
 
   // export some stats types
   export dimwit.stats.{Prob, LogProb}
