@@ -45,3 +45,6 @@ case class AxisAtIndices[L](axis: Axis[L], indices: Seq[Int]) extends AxisSelect
 
 /* Represent an axis selection by a tensor containing indices. This allows for dynamic indexing based on the contents of the tensor. */
 case class AxisAtTensorIndex[L](axis: Axis[L], index: Tensor0[Int]) extends AxisSelector[L]
+
+/* Represent an axis selection by a tuple containing indices. */
+case class AxisAtTupleIndices[L, I <: NonEmptyTuple](axis: Axis[L], indices: I) extends AxisSelector[L]

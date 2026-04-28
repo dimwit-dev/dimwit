@@ -1,6 +1,7 @@
 package examples.basic
 
 import dimwit.*
+import dimwit.autodiff.*
 import dimwit.Conversions.given
 import nn.*
 import nn.ActivationFunctions.{relu, sigmoid}
@@ -109,7 +110,7 @@ object MLPClassifierMNist:
         state: OptState
     ): (MLP.Params, OptState) =
       val lossBatch = batchLoss(imageBatch, labelBatch)
-      val grads = Autodiff.grad(lossBatch)(params)
+      val grads = grad(lossBatch)(params)
       optimizer.update(grads, params, state)
     val (jitDonate, jitStep, jitReclaim) = jitDonating(gradientStep)
 
