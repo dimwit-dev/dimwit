@@ -15,6 +15,7 @@ final class Axis[L: Label]:
   def at(range: Range): AxisAtRange[L] = AxisAtRange(this, range)
   def at(indices: Seq[Int]): AxisAtIndices[L] = AxisAtIndices(this, indices)
   def at(index: Tensor0[Int]): AxisAtTensorIndex[L] = AxisAtTensorIndex(this, index)
+  def at[I <: NonEmptyTuple](indices: I): AxisAtTupleIndices[L, I] = AxisAtTupleIndices(this, indices)
   def as[U](newAxis: Axis[U]): (Axis[L], Axis[U]) = (this, newAxis)
 
 /** Represents the extent of an axis, which is a combination of an Axis and its size. */

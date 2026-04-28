@@ -4,7 +4,6 @@ import scala.collection.View.Empty
 import scala.annotation.publicInBinary
 import ShapeTypeHelpers.AxisIndex
 import dimwit.tensor.{Labels, Label}
-import scala.Tuple.Union
 
 /** Represents the Shape of a tensor. Conceptually, a shape is an order list of AxisExtents,
   * where each AxisExtent is a label associated with a size.
@@ -53,7 +52,7 @@ final case class Shape[T <: Tuple: Labels] @publicInBinary private (
 
 object Shape:
 
-  private[tensor] type ExtractLabels[Args <: Tuple] <: Tuple = Args match
+  private[tensor] type ExtractLabels[Extents <: Tuple] <: Tuple = Extents match
     case EmptyTuple            => EmptyTuple
     case AxisExtent[l] *: tail => l *: ExtractLabels[tail]
 
@@ -70,20 +69,20 @@ object Shape:
   def apply[L: Label](dim: AxisExtent[L]): Shape[L *: EmptyTuple] =
     Shape.fromTuple(Tuple1(dim))
 
-  /** Create a shape from a tuple of AxisExtents. The labels of the shape are extracted from the AxisExtents in the tuple.
+  /** Create a shape from a tuple of AxisExtents.
     *
-    * @param args A tuple of AxisExtents from which to create the shape.
-    * @return A shape with dimensions corresponding to the sizes of the AxisExtents in the
-    */
-  def apply[A <: Tuple](args: A)(using ev: Union[A] <:< AxisExtent[?], n: Labels[ExtractLabels[A]]): Shape[ExtractLabels[A]] =
-    Shape.fromTuple(args)
-
-  /** Create a shape from a tuple of AxisExtents. The labels of the shape are extracted from the AxisExtents in the tuple.
-    * @param args A tuple of AxisExtents from which to create the shape.
+    * @param axisExtends A tuple of AxisExtents from which to create the shape.
     * @return A shape with dimensions corresponding to the sizes of the AxisExtents in the tuple.
     */
-  def fromTuple[A <: Tuple](args: A)(using ev: Union[A] <:< AxisExtent[?], n: Labels[ExtractLabels[A]]): Shape[ExtractLabels[A]] =
-    val sizes = args.toList.collect:
+  def apply[Extents <: Tuple](axisExtends: Extents)(using n: Labels[ExtractLabels[Extents]]): Shape[ExtractLabels[Extents]] =
+    fromTuple(axisExtends)
+
+  /** Create a shape from a tuple of AxisExtents.
+    * @param axisExtents A tuple of AxisExtents from which to create the shape.
+    * @return A shape with dimensions corresponding to the sizes of the AxisExtents in the tuple.
+    */
+  def fromTuple[Extents <: Tuple](axisExtents: Extents)(using n: Labels[ExtractLabels[Extents]]): Shape[ExtractLabels[Extents]] =
+    val sizes = axisExtents.toList.collect:
       case ae: AxisExtent[?] => ae.size
     new Shape(sizes)
 
@@ -126,7 +125,7 @@ object Shape2:
   def apply[L1: Label, L2: Label](
       dim1: AxisExtent[L1],
       dim2: AxisExtent[L2]
-  ): Shape[(L1, L2)] = Shape.fromTuple(dim1, dim2)
+  ): Shape[(L1, L2)] = Shape.fromTuple((dim1, dim2))
 
 object Shape3:
 
@@ -141,4 +140,4 @@ object Shape3:
       dim1: AxisExtent[L1],
       dim2: AxisExtent[L2],
       dim3: AxisExtent[L3]
-  ): Shape[(L1, L2, L3)] = Shape.fromTuple(dim1, dim2, dim3)
+  ): Shape[(L1, L2, L3)] = Shape.fromTuple((dim1, dim2, dim3))

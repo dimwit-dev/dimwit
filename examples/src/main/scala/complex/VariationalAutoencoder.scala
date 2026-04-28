@@ -4,6 +4,7 @@ import examples.timed
 
 import dimwit.*
 import dimwit.autodiff.*
+import dimwit.autodiff.FloatTree.*
 import dimwit.Conversions.given
 import dimwit.stats.Normal
 import dimwit.random.Random

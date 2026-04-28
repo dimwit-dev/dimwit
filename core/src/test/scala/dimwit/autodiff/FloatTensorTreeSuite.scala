@@ -2,6 +2,7 @@ package dimwit.autodiff
 
 import dimwit.*
 import dimwit.Conversions.given
+import dimwit.autodiff.FloatTree.*
 import dimwit.autodiff.FloatTree.ops.*
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
