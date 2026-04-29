@@ -5,10 +5,7 @@ import dimwit.Conversions.given
 import dimwit.python.PyBridge
 import dimwit.jax.Jax
 import me.shadaj.scalapy.py
-import org.scalatest.funspec.AnyFunSpec
-import org.scalatest.matchers.should.Matchers
-
-class PyWrapSuite extends AnyFunSpec with Matchers:
+class PyWrapSuite extends DimwitTest:
 
   private val identity1d = py.eval("lambda x: x")
   private val double1d = py.eval("lambda x: __import__('jax').tree.map(lambda v: v * 2, x)")

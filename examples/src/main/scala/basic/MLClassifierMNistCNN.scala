@@ -72,6 +72,8 @@ object MNistCNN:
 
   def main(args: Array[String]): Unit =
 
+    dimwit.initialize()
+
     val learningRate = 0.01f
     val numSamples = 59904
     val batchSize = 128

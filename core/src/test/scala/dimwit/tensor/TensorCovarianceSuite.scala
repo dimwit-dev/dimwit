@@ -2,11 +2,9 @@ package dimwit.tensor
 
 import dimwit.*
 import dimwit.Conversions.given
-import org.scalatest.funspec.AnyFunSpec
-import org.scalatest.matchers.should.Matchers
 import scala.collection.View.Empty
 
-class TensorCovarianceSuite extends AnyFunSpec with Matchers:
+class TensorCovarianceSuite extends DimwitTest:
 
   it("Shape type hierarchy example: Generic function with upper-bounded type parameter"):
     trait Parent derives Label

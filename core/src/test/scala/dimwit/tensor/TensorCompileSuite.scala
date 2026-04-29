@@ -1,12 +1,9 @@
 package dimwit.tensor
 
 import dimwit.*
-import org.scalatest.propspec.AnyPropSpec
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.funspec.AnyFunSpec
 import scala.compiletime.testing.typeCheckErrors
 
-class TensorCompileSuite extends AnyFunSpec with Matchers:
+class TensorCompileSuite extends DimwitTest:
 
   it("Nice error message when axis not found in tensor for sum"):
     val t = Tensor(Shape(Axis[A] -> 1, Axis[B] -> 2)).fill(0f)

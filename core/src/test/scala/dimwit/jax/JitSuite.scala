@@ -2,11 +2,9 @@ package dimwit.jax
 
 import dimwit.*
 import dimwit.Conversions.given
-import org.scalatest.funspec.AnyFunSpec
-import org.scalatest.matchers.should.Matchers
 import me.shadaj.scalapy.py
 
-class JitSuite extends AnyFunSpec with Matchers:
+class JitSuite extends DimwitTest:
 
   it("jit compilation works correctly"):
     def f(t: Tensor1[A, Float]): Tensor1[A, Float] =

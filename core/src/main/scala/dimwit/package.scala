@@ -106,9 +106,11 @@ package object dimwit:
     * Call this function at the start of your program (before any `py.*` call)
     * to ensure the Python environment is correctly set up.
     *
+    * @param performUVSync Whether to run `uv sync` to automatically set up the Python environment based on the project's `pyproject.toml`. Set this to false if you want to manage the Python environment yourself (e.g. with a custom venv or conda env).
+    *
     * Env-var overrides:
-    *   - DIMWIT_SKIP_SYNC=true  — skip `uv sync` (useful in CI / Docker)
     *   - DIMWIT_PYTHON_PATH     — path to a specific Python interpreter
     *   - DIMWIT_PYTHON_LIBRARY  — path to a specific libpython shared library
     */
-  def setup(): Unit = dimwit.jax.PythonSetup.configureScalaPy
+  def initialize(performUVSync: Boolean = true): Unit =
+    dimwit.python.PythonSetup.configureScalaPy(performUVSync)

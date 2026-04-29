@@ -10,7 +10,7 @@ import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
 import org.scalacheck.Prop.forAll
 
-import org.scalatest.propspec.AnyPropSpec
+import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 
 import org.scalatest.matchers.{Matcher, MatchResult}
@@ -42,4 +42,9 @@ object MustBeFloat:
   given MustBeFloat[Float] with {}
 
   transparent inline given [V]: MustBeFloat[V] =
-    error("approxEqual can only be used with Float tensors. For Int tensors, use 'equal(...)'.")
+    error("approxEqual can only be used with Float tensors. For Int tensors, use 'equal(...)'.") 
+
+private lazy val _dimwitTestInit: Unit = dimwit.initialize()
+
+trait DimwitTest extends AnyFunSpec with Matchers:
+  _dimwitTestInit

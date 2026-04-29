@@ -101,6 +101,8 @@ object AutoencoderExample:
 
   def main(args: Array[String]): Unit =
 
+    dimwit.initialize()
+
     val learningRate = 5e-4f
 
     val numTestSamples = 9728

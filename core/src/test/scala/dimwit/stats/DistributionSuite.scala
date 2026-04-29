@@ -9,12 +9,9 @@ import dimwit.jax.Jax.scipy_stats as jstats
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
 
-import org.scalatest.funspec.AnyFunSpec
-import org.scalatest.matchers.should.Matchers
-
 import dimwit.python.PyBridge.{liftPyTensor0, liftPyTensor1}
 
-class DistributionSuite extends AnyFunSpec with Matchers:
+class DistributionSuite extends DimwitTest:
 
   trait A derives Label
   trait Samples derives Label

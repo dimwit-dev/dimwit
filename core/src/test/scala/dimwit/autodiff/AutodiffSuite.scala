@@ -3,12 +3,9 @@ package dimwit.autodiff
 import dimwit.*
 import dimwit.*
 import dimwit.Conversions.given
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.funspec.AnyFunSpec
-
 import dimwit.autodiff.Autodiff.Gradient
 
-class AutodiffSuite extends AnyFunSpec with Matchers:
+class AutodiffSuite extends DimwitTest:
 
   describe("grad"):
     describe("single parameter function"):

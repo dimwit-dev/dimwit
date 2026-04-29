@@ -1,4 +1,4 @@
-package dimwit.jax
+package dimwit.python
 
 import me.shadaj.scalapy.py
 import scala.sys.process.Process
@@ -9,19 +9,18 @@ import scala.sys.process.Process
   */
 object PythonSetup:
 
-  private lazy val sys = py.module("sys")
-
   /** Configures the JVM system properties that ScalaPy/JNA need to locate the Python shared library.
     *
     * This must run before any `py.*` call (i.e. before ScalaPy's own class initialiser).
     *
     * Respects three env-var overrides:
-    *   - DIMWIT_SKIP_SYNC=true  — skip `uv sync`
+    *   - DIMWIT_SKIP_SYNC      — skip uv sync and manage Python environment manually (overrides performUvSync argument)
     *   - DIMWIT_PYTHON_PATH     — use a specific Python interpreter
     *   - DIMWIT_PYTHON_LIBRARY  — use a specific shared-library path
     */
-  private[dimwit] lazy val configureScalaPy: Unit =
-    if !scala.sys.env.get("DIMWIT_SKIP_SYNC").contains("true") then
+  def configureScalaPy(performUvSync: Boolean): Unit =
+    val skipSync = sys.env.get("DIMWIT_SKIP_SYNC").exists(v => v == "true" || v == "1")
+    if performUvSync && !skipSync then
       if Process(Seq("uv", "sync")).! != 0 then
         throw new RuntimeException(
           """[dimwit] uv sync failed. Ensure uv is installed (https://docs.astral.sh/uv/) and
@@ -87,7 +86,9 @@ object PythonSetup:
     * Called lazily on first access to any JAX module — safe to call multiple times.
     */
   lazy val initialize: Unit =
-    configureScalaPy
+
+    lazy val sys = py.module("sys")
+
     // Extract jax_helper.py from JAR resources to a temporary directory
     val resourcePath = "/python/jax_helper.py"
     val resourceStream = getClass.getResourceAsStream(resourcePath)
