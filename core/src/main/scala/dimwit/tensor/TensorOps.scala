@@ -29,6 +29,8 @@ import dimwit.OnError
 import Tuple.:*
 import Tuple.++
 import dimwit.tensor.ShapeTypeHelpers.MergeLabels
+import dimwit.tensor.TensorOps.Functional.ZipVmap.ShapesOf
+import dimwit.tensor.TensorOps.Functional.ZipVmap.TensorsOf
 
 object TensorOps:
 
@@ -1361,6 +1363,15 @@ object TensorOps:
             t.jaxValue
           )
         )
+
+      def zipvmap[L: Label, T2 <: Tuple, R <: Tuple, OutShape <: Tuple: Labels, OutV](axis: Axis[L])(
+          other: Tensor[T2, V]
+      )(using
+          ev: SharedAxisRemover[(T, T2), L, R]
+      )(
+          f: TensorsOf[R, (V, V)] => Tensor[OutShape, OutV]
+      ): Tensor[L *: OutShape, OutV] =
+        ZipVmap.zipvmap(axis)(t, other)(f)
 
       def vreduce[L: Label, R <: Tuple](
           axis: Axis[L]
