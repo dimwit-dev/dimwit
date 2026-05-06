@@ -48,7 +48,7 @@ class Tensor[T <: Tuple: Labels, V] private[dimwit] (
         s"TracerTensor(${shape.toString})"
       case _ => jaxValue.toString()
 
-  def extent[L](axis: Axis[L])(using ev: AxisIndex[T, L]): AxisExtent[L] =
+  def extent[L: Label](axis: Axis[L])(using ev: AxisIndex[T, L]): AxisExtent[L] =
     shape.extent(axis)
 
   private val jaxTypeName: String = py.Dynamic.global.`type`(jaxValue).`__name__`.as[String]

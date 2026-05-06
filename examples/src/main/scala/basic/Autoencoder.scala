@@ -13,6 +13,7 @@ import dimwit.jax.Jax
 import nn.ActivationFunctions.sigmoid
 import dimwit.random.Random.Key
 import dimwit.autodiff.*
+import dimwit.autodiff.FloatTree.*
 import examples.dataset.MNISTLoader
 
 import MNISTLoader.{Sample, TrainSample, TestSample, Height, Width}
