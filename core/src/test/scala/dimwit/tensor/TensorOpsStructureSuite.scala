@@ -81,7 +81,7 @@ class TensorOpsStructureSuite extends DimwitTest:
         val acbDimCode = "t.rearrange((Axis[A |*| C], Axis[B |*| D]), Axis[A] -> 2, Axis[C] -> 2, Axis[B] -> 2)"
         val acbDimErrors = typeCheckErrors(acbDimCode)
         acbDimErrors should have size 1
-        acbDimErrors.head.message should not include ("Missing Axis: 'dimwit.D'")
+        acbDimErrors.head.message should include("Missing Axis: 'dimwit.D'")
 
         "t.rearrange((Axis[A |*| C], Axis[B |*| D]), Axis[A] -> 2, Axis[C] -> 2, Axis[B] -> 2, Axis[D] -> 2)" should compile
 

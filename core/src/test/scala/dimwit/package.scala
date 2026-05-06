@@ -42,7 +42,7 @@ object MustBeFloat:
   given MustBeFloat[Float] with {}
 
   transparent inline given [V]: MustBeFloat[V] =
-    error("approxEqual can only be used with Float tensors. For Int tensors, use 'equal(...)'.") 
+    error("approxEqual can only be used with Float tensors. For Int tensors, use 'equal(...)'.")
 
 private lazy val _dimwitTestInit: Unit = dimwit.initialize()
 
