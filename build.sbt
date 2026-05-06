@@ -91,6 +91,7 @@ lazy val docsRoot = (project in file(".dimwit-docs-root"))
       "VERSION" -> version.value
     ),
     fork := true,
+    javaOptions ++= scalapyJavaOptions,
     envVars := (ThisBuild / envVars).value
   )
 
@@ -107,5 +108,6 @@ lazy val docs = (project in file(".dimwit-docs"))
       "VERSION" -> version.value
     ),
     fork := true,
+    javaOptions ++= scalapyJavaOptions,
     envVars := (ThisBuild / envVars).value
   )
