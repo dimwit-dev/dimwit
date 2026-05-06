@@ -1,12 +1,9 @@
 package dimwit.tensor
 
 import dimwit.*
-import org.scalatest.propspec.AnyPropSpec
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.funspec.AnyFunSpec
 import scala.compiletime.testing.typeCheckErrors
 
-class TensorCreationSuite extends AnyFunSpec with Matchers:
+class TensorCreationSuite extends DimwitTest:
 
   def withJaxX64Support[R](block: => R): R =
     import me.shadaj.scalapy.py

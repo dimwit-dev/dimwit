@@ -4,6 +4,8 @@ project/target/
 project/project/target/
 examples/target/
 
+.venv/
+
 # IDE files
 .bsp/
 .metals/

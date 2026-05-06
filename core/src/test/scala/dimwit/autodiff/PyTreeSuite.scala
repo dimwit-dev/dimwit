@@ -4,10 +4,7 @@ import dimwit.*
 import dimwit.jax.Jax
 import dimwit.Conversions.given
 import me.shadaj.scalapy.py
-import org.scalatest.funspec.AnyFunSpec
-import org.scalatest.matchers.should.Matchers
-
-class ToPyTreeSuite extends AnyFunSpec with Matchers:
+class ToPyTreeSuite extends DimwitTest:
 
   describe("TensorTree Identity (fromPyTree(toPyTree(x)) == x)"):
 

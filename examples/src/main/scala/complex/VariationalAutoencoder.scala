@@ -99,6 +99,7 @@ object VariationalAutoencoder:
 object VariationalAutoencoderExample:
 
   def main(args: Array[String]): Unit =
+    dimwit.initialize()
 
     /*
      * Configuration and Setup

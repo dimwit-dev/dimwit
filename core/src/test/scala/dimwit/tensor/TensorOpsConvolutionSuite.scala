@@ -3,11 +3,9 @@ package dimwit.tensor
 import dimwit.*
 import dimwit.Conversions.given
 import dimwit.tensor.TensorOps.Convolution.Padding
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.funspec.AnyFunSpec
 import dimwit.stats.Normal
 
-class TensorOpsConvolutionSuite extends AnyFunSpec with Matchers:
+class TensorOpsConvolutionSuite extends DimwitTest:
 
   describe("Convolution 1D"):
 

@@ -62,6 +62,8 @@ object MLPClassifierMNist:
 
   def main(args: Array[String]): Unit =
 
+    dimwit.initialize()
+
     val numSamples = 59904
     val numTestSamples = 9728
     val batchSize = 512

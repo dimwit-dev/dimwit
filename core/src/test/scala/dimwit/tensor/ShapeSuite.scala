@@ -1,12 +1,9 @@
 package dimwit.tensor
 
 import dimwit.*
-import org.scalatest.propspec.AnyPropSpec
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.funspec.AnyFunSpec
 import scala.compiletime.testing.typeCheckErrors
 
-class ShapeSuite extends AnyFunSpec with Matchers:
+class ShapeSuite extends DimwitTest:
 
   it("Basic shape functions"):
     val shape = Shape(Axis[A] -> 2, Axis[B] -> 3)

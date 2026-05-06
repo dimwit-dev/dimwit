@@ -10,7 +10,7 @@ import nn.AdamW
 import nn.Adam
 import nn.Loss
 import examples.timed
-import dimwit.jax.PythonSetup
+import dimwit.python.PythonSetup
 import src.main.scala.complex.safePyTree
 
 import java.io.RandomAccessFile
@@ -293,6 +293,8 @@ case class GPT2(params: GPT2Params) extends (Tensor1[Context, Int] => Tensor1[Co
     return res
 
 @main def train(): Unit =
+
+  dimwit.initialize()
 
   trait Data derives Label
 

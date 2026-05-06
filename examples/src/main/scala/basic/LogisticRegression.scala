@@ -51,6 +51,8 @@ object LogisticRegression:
 
   def main(args: Array[String]): Unit =
 
+    dimwit.initialize()
+
     // we need two keys. One for initializing parameters,
     // the other for shuffling data
     val (initKey, shuffleKey) = Random.Key(42).split2()
