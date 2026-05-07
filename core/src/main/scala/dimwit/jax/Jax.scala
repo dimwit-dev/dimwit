@@ -4,6 +4,7 @@ import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
 import me.shadaj.scalapy.py.PyQuote
 import dimwit.hardware.{Device, DeviceBackend}
+import dimwit.python.PythonSetup
 
 object Jax:
 

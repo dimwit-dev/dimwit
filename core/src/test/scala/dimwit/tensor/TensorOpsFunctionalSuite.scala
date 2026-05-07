@@ -2,10 +2,7 @@ package dimwit.tensor
 
 import dimwit.*
 import dimwit.Conversions.given
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.funspec.AnyFunSpec
-
-class TensorOpsFunctionalSuite extends AnyFunSpec with Matchers:
+class TensorOpsFunctionalSuite extends DimwitTest:
 
   val t2 = Tensor2(Axis[A], Axis[B]).fromArray(
     Array(Array(1.0f, 2.0f), Array(3.0f, 4.0f))
@@ -50,6 +47,16 @@ class TensorOpsFunctionalSuite extends AnyFunSpec with Matchers:
     it("zipvmap4 adds four tensors"):
       val res = zipvmap(Axis[A])(t2, t2_2, t2_2, t2)((a, b, c, d) => l2(a, b) - l2(c, d))
       res should approxEqual(Tensor1(Axis[A]).fromArray(Array(0.0f, 0.0f)))
+
+    it("extension zipvmap with two different-shaped tensors"):
+      val ta = Tensor(Shape(Axis[A] -> 2, Axis[B] -> 3)).fill(1f)
+      val tc = Tensor(Shape(Axis[A] -> 2, Axis[C] -> 4)).fill(2f)
+      val res = ta.zipvmap(Axis[A])(tc) {
+        case (rowB, rowC) =>
+          rowB.sum + rowC.sum
+      }
+      // Each row of ta sums to 3.0, each row of tc sums to 8.0 => 11.0 per row
+      res.shouldEqual(Tensor1(Axis[A]).fromArray(Array(11.0f, 11.0f)))
 
   describe("vapply (Axis-wise application)"):
 

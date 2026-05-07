@@ -3,10 +3,8 @@ package dimwit.autodiff
 import dimwit.*
 import dimwit.Conversions.given
 import dimwit.*
-import org.scalatest.funspec.AnyFunSpec
-import org.scalatest.matchers.should.Matchers
 
-class TensorTreeSuite extends AnyFunSpec with Matchers:
+class TensorTreeSuite extends DimwitTest:
 
   describe("map"):
     it("1-level case class"):

@@ -2,9 +2,6 @@ package dimwit.memory
 
 import dimwit.*
 import dimwit.Conversions.given
-import org.scalatest.propspec.AnyPropSpec
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.DoNotDiscover
 import scala.compiletime.testing.typeCheckErrors
 import scala.compiletime.ops.double
@@ -12,7 +9,7 @@ import me.shadaj.scalapy.py.PythonException
 
 // To run, remove "@DoNotDiscover" and sbt "testOnly *DimWitMemorySuite"
 @DoNotDiscover
-class DimWitMemorySuite extends AnyFunSpec with Matchers:
+class DimWitMemorySuite extends DimwitTest:
 
   val exampleT = Tensor(Shape(Axis[A] -> 1000, Axis[B] -> 1000)).fill(0f)
 

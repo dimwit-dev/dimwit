@@ -7,26 +7,32 @@ FROM sbtscala/scala-sbt:eclipse-temurin-jammy-17.0.9_9_1.9.7_3.3.1
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /workspace
 
-# Install Python
+# Install Python and curl
 RUN apt-get update && apt-get install -y \
     python3.11 \
+    python3.11-dev \
+    libpython3.11 \
     python3-pip \
+    curl \
     && rm -rf /var/lib/apt/lists/* && \
     ln -sf /usr/bin/python3.11 /usr/bin/python
 
-# Install Python packages with JAX CPU
-RUN pip install --no-cache-dir --upgrade \
-    "jax[cpu]" \
-    matplotlib \
-    pandas \
-    scikit-learn \
-    jupyter \
-    einops \
-    numpy
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:${PATH}"
 
 # Copy only build files first for dependency caching
 COPY build.sbt /workspace/
 COPY project/ /workspace/project/
+
+# Set up Python venv with CPU JAX (pyproject.toml specifies cuda12; override here)
+RUN uv venv .venv --python python3.11 && \
+    uv pip install --python .venv/bin/python "jax[cpu]>=0.4" "einops>=0.8"
+
+# Skip uv sync at runtime and point directly at the venv Python
+# This also prevents uv from being called at sbt load time
+ENV DIMWIT_SKIP_SYNC=true
+ENV DIMWIT_PYTHON_PATH=/workspace/.venv/bin/python
 
 # Pre-download SBT dependencies
 RUN sbt update || true

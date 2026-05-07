@@ -1,6 +1,7 @@
 package dimwit.stats
 
 import dimwit.*
+import dimwit.random.*
 import dimwit.jax.Jax
 import dimwit.python.PyBridge.liftPyTensor
 
@@ -19,7 +20,7 @@ class Categorical[L: Label](val probs: Tensor1[L, Prob]) extends UnivariateDistr
   override def logProb(x: Tensor0[Int]): Tensor0[LogProb] =
     liftPyTensor(logProbs.jaxValue.__getitem__(x.jaxValue))
 
-  override def sample(key: Random.Key): Tensor0[Int] =
+  override def sample(key: Key): Tensor0[Int] =
     liftPyTensor(Jax.jrandom.categorical(key.jaxKey, logProbs.jaxValue))
 
 object Categorical:

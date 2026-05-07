@@ -1,12 +1,9 @@
 package dimwit.tensor
 
 import dimwit.*
-import org.scalatest.propspec.AnyPropSpec
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.funspec.AnyFunSpec
 import scala.compiletime.testing.typeCheckErrors
 
-class TensorWithValueClassSuite extends AnyFunSpec with Matchers:
+class TensorWithValueClassSuite extends DimwitTest:
 
   it("Value class support for more specific types in tensors"):
     object ValueClassScope:

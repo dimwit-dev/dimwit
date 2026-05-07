@@ -292,6 +292,9 @@ object GPT2Inference:
       finally file.close()
 
   def main(args: Array[String]): Unit =
+
+    dimwit.initialize()
+
     val filePath = "data/gpt.safetensors"
 
     val (tensorMap, dataStartPos) = SafeTensorsReader.readHeader(filePath)

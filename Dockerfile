@@ -28,16 +28,19 @@ RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | tee /etc/ap
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
-# Install Python packages (JAX GPU already included in base image)
-RUN pip install --upgrade \
-    matplotlib \
-    pandas \
-    scikit-learn \
-    jupyter \
-    einops
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:${PATH}"
 
 # Copy project files
 COPY . /workspace/
+
+# Create venv inheriting JAX from the base image, add extra packages
+RUN uv venv .venv --system-site-packages && \
+    uv pip install --python .venv/bin/python einops matplotlib pandas
+
+# Skip uv sync — JAX is already available via system-site-packages
+ENV DIMWIT_SKIP_SYNC=true
 
 # Set Python path
 ENV PYTHONPATH=/workspace/src/python

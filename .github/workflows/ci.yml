@@ -53,8 +53,10 @@ jobs:
       - name: Compile examples module
         run: sbt "project examples" compile
 
-      - name: Check if docs are up to date
+      - name: Check if docsRoot are up to date
         run: sbt "docsRoot/mdoc --check"
+
+      - name: Check if docs are up to date
         run: sbt "docs/mdoc --check"
         
       - name: Run tests

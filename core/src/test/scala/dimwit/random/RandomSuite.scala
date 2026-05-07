@@ -5,11 +5,9 @@ import dimwit.Conversions.given
 import dimwit.jax.Jax
 import me.shadaj.scalapy.py
 
-import org.scalatest.funspec.AnyFunSpec
-import org.scalatest.matchers.should.Matchers
 import dimwit.stats.Normal
 
-class RandomSuite extends AnyFunSpec with Matchers:
+class RandomSuite extends DimwitTest:
   trait A derives Label
   trait Samples derives Label
 

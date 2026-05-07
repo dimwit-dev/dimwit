@@ -3,7 +3,8 @@ package nn
 import dimwit.*
 import dimwit.Conversions.given
 import dimwit.autodiff.FloatTree.ops.*
-import dimwit.autodiff.Grad
+import dimwit.autodiff.FloatTree.*
+import dimwit.autodiff.*
 import dimwit.jax.Jax
 import dimwit.jax.Jit
 

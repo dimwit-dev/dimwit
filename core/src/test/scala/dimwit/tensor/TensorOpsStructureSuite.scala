@@ -2,12 +2,10 @@ package dimwit.tensor
 
 import dimwit.*
 import dimwit.Conversions.given
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.funspec.AnyFunSpec
 import dimwit.tensor.Labels.concat
 import scala.compiletime.testing.typeCheckErrors
 
-class TensorOpsStructureSuite extends AnyFunSpec with Matchers:
+class TensorOpsStructureSuite extends DimwitTest:
 
   // Shape: A=2, B=2, C=1
   val t3 = Tensor3(Axis[A], Axis[B], Axis[C]).fromArray(

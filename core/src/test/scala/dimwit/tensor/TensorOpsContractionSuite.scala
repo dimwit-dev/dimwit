@@ -2,10 +2,7 @@ package dimwit.tensor
 
 import dimwit.*
 import dimwit.Conversions.given
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.funspec.AnyFunSpec
-
-class TensorOpsContractionSuite extends AnyFunSpec with Matchers:
+class TensorOpsContractionSuite extends DimwitTest:
 
   val v1 = Tensor1(Axis[A]).fromArray(
     Array(1.0f, 2.0f)

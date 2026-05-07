@@ -3,6 +3,8 @@ package examples.complex.vae
 import examples.timed
 
 import dimwit.*
+import dimwit.autodiff.*
+import dimwit.autodiff.FloatTree.*
 import dimwit.Conversions.given
 import dimwit.stats.Normal
 import dimwit.random.Random
@@ -98,6 +100,7 @@ object VariationalAutoencoder:
 object VariationalAutoencoderExample:
 
   def main(args: Array[String]): Unit =
+    dimwit.initialize()
 
     /*
      * Configuration and Setup
@@ -181,7 +184,7 @@ object VariationalAutoencoderExample:
     val batches = trainImages.chunk(Axis[TrainSample], numSamples / batchSize)
     val optimizer = GradientDescent(learningRate = Tensor0(learningRate))
     def trainBatch(trainKey: Random.Key, batch: Tensor3[TrainSample, Height, Width, Float], params: Params): Params =
-      val grads = Autodiff.grad(batchLoss(trainKey, batch))(params)
+      val grads = grad(batchLoss(trainKey, batch))(params)
       val (newParams, _) = optimizer.update(grads, params, ())
       newParams
 
