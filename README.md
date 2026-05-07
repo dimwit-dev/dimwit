@@ -83,24 +83,37 @@ resolvers += Resolver.mavenLocal
 
 ### Python Environment Setup
 
+
 DimWit requires **Python 3.9+** and **JAX** since it uses JAX as the backend for tensor operations via ScalaPy. It also relies on **Einops** for tensor reshaping and manipulation.
 
-1. **Install Python, JAX, and Einops**:
-   ```bash
-   pip install jax jaxlib einops  # CPU version
-   # or for GPU support:
-   # pip install jax[cuda12] einops
-   ```
+The easiest way to set up the Python environment is to install the [uv package manager](https://github.com/astral-sh/uv) and add a file `pyproject.toml` with the following content to your project:
 
-2. **Set ScalaPy environment variables**:
-   ```bash
-   export SCALAPY_PYTHON_PROGRAMNAME=$(which python)
-   export SCALAPY_PYTHON_LIBRARY=python3.9  # or your Python version
-   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(python -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
-   ```
+```toml
+[project]
+name = "dimwit-python-env"
+version = "0.1.0"
+requires-python = "==3.13.*"
+dependencies = [
+    "einops>=0.8.1",
+    "jax[cuda12]>=0.8.2",
+]
+```
+DimWit provides the command `dimwit.initialize()` which you can call at the start of your application to automatically set up the Python environment. This will check for the required dependencies and set the necessary environment variables for ScalaPy.
 
-   You can add these to your shell profile or source them before running your application.
+```scala 
+import dimwit.*
 
+@main def runApp(): Unit = {
+    // Initialize the Python environment for DimWit
+    dimwit.initialize()
+
+    println(Tensor0(42.0f)) 
+}   
+```
+
+Alternatively, you can set up the Python environment manually by setting 
+the environment variables `DIMWIT_PYTHON_PATH` and `DIMWIT_PYTHON_LIBRARY` to the path 
+of your Python installation and tell DimWit to bypass uv by setting `DIMWIT_SKIP_SYNC` to `true`.
 
 ## Status 
 

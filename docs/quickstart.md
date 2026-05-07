@@ -71,6 +71,12 @@ import dimwit.*
 
 This import will give you everything that you need for working with Tensors. For more specialized operations, such as statistical functions or automatic differentiation, separate imports are required, which we will discuss later in this guide.
 
+The first statement in every DimWit program should always be 
+```
+dimwit.initialize()
+```. 
+This initializes the Python environment and the JAX backend. 
+
 
 ### Labels, Axis, Extents and Shapes
 
@@ -79,6 +85,10 @@ Each axis has an associated label, which we define when we create the shape of a
 
 A label is simply a Scala type that derives from the `Label` trait. For example:
 
+```scala mdoc:invisible:reset
+import dimwit.*
+dimwit.initialize()
+```
 
 ```scala
 trait Batch derives Label

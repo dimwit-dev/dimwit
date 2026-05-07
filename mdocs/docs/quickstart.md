@@ -65,11 +65,17 @@ We assume that you have already added DimWit as a dependency to your project and
 
 To use DimWit in your Scala code, you need to import the main package as follows:
 
-```scala mdoc:silent
+```scala mdoc:reset:silent
 import dimwit.*
 ```
 
 This import will give you everything that you need for working with Tensors. For more specialized operations, such as statistical functions or automatic differentiation, separate imports are required, which we will discuss later in this guide.
+
+The first statement in every DimWit program should always be 
+```
+dimwit.initialize()
+```. 
+This initializes the Python environment and the JAX backend. 
 
 
 ### Labels, Axis, Extents and Shapes
@@ -81,6 +87,7 @@ A label is simply a Scala type that derives from the `Label` trait. For example:
 
 ```scala mdoc:invisible:reset
 import dimwit.*
+dimwit.initialize()
 ```
 
 ```scala mdoc:silent
@@ -181,6 +188,7 @@ DimWit provides the usual arithmetic operations on tensors, such as addition, mu
 
 ```scala mdoc:invisible:reset
 import dimwit.*
+dimwit.initialize()
 ``` 
 
 ```scala mdoc:silent
@@ -230,6 +238,7 @@ val sumOverA : Tensor1[B, Float] = tensor1.sum(Axis[A])
 
 ```scala mdoc:invisible:reset
 import dimwit.*
+dimwit.initialize()
 ``` 
 
 DimWit provides several operations to transform the shape of tensors, without changing the underlying data. 
@@ -326,6 +335,7 @@ Let's take again the following tensor as an example:
 
 ```scala mdoc:invisible:reset
 import dimwit.*
+dimwit.initialize()
 ``` 
 
 ```scala mdoc:silent
@@ -371,6 +381,7 @@ As long as a function expressed computations using the tensor operations provide
 
 ```scala mdoc:invisible:reset
 import dimwit.*
+dimwit.initialize()
 trait A derives Label
 trait B derives Label
 trait C derives Label
@@ -408,6 +419,7 @@ For larger models the most convenient representation of the parameters is usuall
 ```scala mdoc:invisible:reset
 import dimwit.* 
 import dimwit.Autodiff.grad
+dimwit.initialize()
 
 trait Feature derives Label
 trait Batch derives Label  
@@ -438,6 +450,7 @@ Let's say we want to create a random number drawn from a normal distribution. We
 
 ```scala mdoc:invisible:reset
 import dimwit.*
+dimwit.initialize()
 trait A derives Label
 ```
 
