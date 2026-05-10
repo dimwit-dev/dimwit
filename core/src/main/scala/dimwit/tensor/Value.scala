@@ -34,12 +34,8 @@ object ExecutionType:
     def dtype: DType = summon[ExecutionType[Float]].dtype
 
 object VType:
-  def apply[V](tensor: Tensor[?, V]): VType[V] = new OfImpl[V](tensor.dtype)
-  def apply[A: ExecutionType]: VType[A] = new OfImpl[A](summon[ExecutionType[A]].dtype)
+  def apply[V](tensor: Tensor[?, V]): VType[V] = ???
+  def apply[A]: VType[A] = ???
 
 sealed trait VType[A]:
   def dtype: DType
-
-class OfImpl[A](val dtype: DType) extends VType[A]
-
-case class ExecutionTypeFor[V](dtype: DType) extends ExecutionType[V]

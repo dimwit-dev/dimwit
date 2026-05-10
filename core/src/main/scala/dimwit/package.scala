@@ -64,7 +64,6 @@ package object dimwit:
   export dimwit.tensor.{
     VType,
     ExecutionType,
-    ExecutionTypeFor,
     Label,
     Labels,
     Axis,
@@ -88,8 +87,6 @@ package object dimwit:
   export dimwit.jax.Jit.{jit, jitDonating, jitDonatingUnsafe}
   export dimwit.jax.EagerCleanup.eagerCleanup
 
-  object Conversions:
-    export dimwit.tensor.Tensor0.{float2FloatTensor, int2IntTensor, int2FloatTensor, boolean2BooleanTensor}
   // Export random object
   export dimwit.random.Random
   export dimwit.random.Random.Key

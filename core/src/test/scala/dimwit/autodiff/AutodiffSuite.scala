@@ -1,8 +1,7 @@
 package dimwit.autodiff
 
 import dimwit.*
-import dimwit.*
-import dimwit.Conversions.given
+import dimwit.DType.*
 import dimwit.autodiff.Autodiff.Gradient
 
 class AutodiffSuite extends DimwitTest:
@@ -10,10 +9,10 @@ class AutodiffSuite extends DimwitTest:
   describe("grad"):
     describe("single parameter function"):
       it("d¹, d², d³ of x²"):
-        def f(x: Tensor0[Float]) = x * x
+        def f(x: Tensor0[Float32]) = x * x
         val df = Autodiff.grad(f)
-        val ddf = Autodiff.grad((x: Tensor0[Float]) => df(x).value)
-        val dddf = Autodiff.grad((x: Tensor0[Float]) => ddf(x).value)
+        val ddf = Autodiff.grad((x: Tensor0[Float32]) => df(x).value)
+        val dddf = Autodiff.grad((x: Tensor0[Float32]) => ddf(x).value)
 
         val x = Tensor0(3.0f)
         df(x) shouldEqual Tensor0(6.0f)
@@ -21,14 +20,14 @@ class AutodiffSuite extends DimwitTest:
         dddf(x) shouldEqual Tensor0(0.0f)
 
       it("d¹ sum(x²)"):
-        def f(x: Tensor1[A, Float]) = (x * x).sum
+        def f(x: Tensor1[A, Float32]) = (x * x).sum
         val df = Autodiff.grad(f)
 
         val x = Tensor1(Axis[A]).fromArray(Array(1.0f, 5.0f))
         df(x) shouldEqual Tensor1(Axis[A]).fromArray(Array(2.0f, 10.0f))
 
       it("d¹ function using vmap"):
-        def f(x: Tensor2[A, B, Float]) = x.vmap(Axis[A])(_.sum).sum
+        def f(x: Tensor2[A, B, Float32]) = x.vmap(Axis[A])(_.sum).sum
         val df = Autodiff.grad(f)
 
         val x = Tensor(Shape(Axis[A] -> 2, Axis[B] -> 2)).fill(1f)
@@ -36,7 +35,7 @@ class AutodiffSuite extends DimwitTest:
 
     describe("two parameter function"):
       it("d¹/dx and d¹/dy of (x + 2y)²"):
-        def f(x: Tensor1[A, Float], y: Tensor1[A, Float]) = ((x + (y *! 2.0f)).pow(Tensor0(2.0f))).sum
+        def f(x: Tensor1[A, Float32], y: Tensor1[A, Float32]) = ((x + (y *! 2.0f)).pow(Tensor0(2.0f))).sum
         val df = Autodiff.grad(f)
 
         val x = Tensor1(Axis[A]).fromArray(Array(1.0f))
@@ -50,7 +49,7 @@ class AutodiffSuite extends DimwitTest:
 
     describe("two parameter function"):
       it("d¹/dx and d¹/dy of (x + 2y)²"):
-        def f(x: Tensor1[A, Float], y: Tensor1[A, Float]) = ((x + (y *! 2.0f)).pow(Tensor0(2.0f))).sum
+        def f(x: Tensor1[A, Float32], y: Tensor1[A, Float32]) = ((x + (y *! 2.0f)).pow(Tensor0(2.0f))).sum
         val df = Autodiff.grad(f)
 
         val x = Tensor1(Axis[A]).fromArray(Array(1.0f))
@@ -65,7 +64,7 @@ class AutodiffSuite extends DimwitTest:
   describe("jacobian"):
     describe("single parameter function"):
       it("Jacobian of f: R² -> R², f(x) = 2x"):
-        def f(x: Tensor1[A, Float]) = x *! 2.0f
+        def f(x: Tensor1[A, Float32]) = x *! 2.0f
         val jf = Autodiff.jacobian(f)
 
         val x = Tensor1(Axis[A]).fromArray(Array(1.0f, 1.0f))
@@ -82,7 +81,7 @@ class AutodiffSuite extends DimwitTest:
     engines.foreach:
       case (modeName, jacMode) =>
         it(s"$modeName d¹ on f: R² -> R², f(x) = swap(x)"):
-          def f(x1: Tensor1[A, Float], x2: Tensor1[A, Float]): (Tensor1[A, Float], Tensor1[A, Float]) = (x2, x1)
+          def f(x1: Tensor1[A, Float32], x2: Tensor1[A, Float32]): (Tensor1[A, Float32], Tensor1[A, Float32]) = (x2, x1)
           val df = jacMode(f.tupled)
           val x1 = Tensor1(Axis[A]).fromArray(Array(1.0f, 0.0f))
           val x2 = Tensor1(Axis[A]).fromArray(Array(0.0f, 1.0f))
@@ -95,7 +94,7 @@ class AutodiffSuite extends DimwitTest:
           x2_dx2 should approxEqual(Tensor.like(x2_dx2).fill(0f))
 
         it(s"$modeName d² on f: R² -> R, f(x1, x2) = sum(x1 * x2)"):
-          def f(x1: Tensor1[A, Float], x2: Tensor1[A, Float]): Tensor0[Float] = (x1 * x2).sum
+          def f(x1: Tensor1[A, Float32], x2: Tensor1[A, Float32]): Tensor0[Float32] = (x1 * x2).sum
           val df = jacMode(f.tupled)
           val ddf = jacMode(df)
           val x1 = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f))
@@ -110,8 +109,8 @@ class AutodiffSuite extends DimwitTest:
 
   describe("Complex application"):
     it("case class support"):
-      case class Params(w: Tensor1[A, Float], b: Tensor0[Float])
-      def loss(data: Tensor1[A, Float])(params: Params): Tensor0[Float] =
+      case class Params(w: Tensor1[A, Float32], b: Tensor0[Float32])
+      def loss(data: Tensor1[A, Float32])(params: Params): Tensor0[Float32] =
         ((data * params.w).sum + params.b).pow(Tensor0(2.0f))
       val trainData = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f))
       val dloss = Autodiff.grad(loss(trainData))

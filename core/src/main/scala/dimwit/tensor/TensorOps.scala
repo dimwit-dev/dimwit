@@ -25,6 +25,8 @@ import dimwit.tensor.ShapeTypeHelpers.AxisIndex
 import dimwit.tensor.ShapeTypeHelpers.AxisIndices
 import dimwit.tensor.ShapeTypeHelpers.AxesMerger
 import dimwit.OnError
+import dimwit.DType.*
+import dimwit.DType.given
 
 import Tuple.:*
 import Tuple.++
@@ -49,19 +51,25 @@ object TensorOps:
     given [V](using ev2: IsInteger[V]): IsNumber[V] = ev2
 
   @implicitNotFound("Operation only valid for Floating tensors.")
-  trait IsFloating[V] extends IsNumber[V]
+  trait IsFloating[V] extends IsNumber[V]:
+    def dtype: DType
+
   object IsFloating:
-    given IsFloating[Float] with {}
+    def apply[V](using ev: IsFloating[V]): IsFloating[V] = ev
+
+  object IsInteger:
+    def apply[V](using ev: IsInteger[V]): IsInteger[V] = ev
+
+  object IsBoolean:
+    def apply[V](using ev: IsBoolean[V]): IsBoolean[V] = ev
 
   @implicitNotFound("Operation only valid for Integer tensors.")
-  trait IsInteger[V] extends IsNumber[V]
-  object IsInteger:
-    given IsInteger[Int] with {}
+  trait IsInteger[V] extends IsNumber[V]:
+    def dtype: DType
 
   @implicitNotFound("Operation only valid for Boolean tensors.")
-  sealed trait IsBoolean[V]
-  object IsBoolean:
-    given IsBoolean[Boolean] with {}
+  trait IsBoolean[V]:
+    def dtype: DType
 
   // -----------------------------------------------------------
   // 1. Elementwise Operations (The Field)
@@ -89,9 +97,12 @@ object TensorOps:
         require(t.shape.dimensions == other.shape.dimensions, s"Shape mismatch: ${t.shape.dimensions} vs ${other.shape.dimensions}")
         Tensor(jaxValue = Jax.jnp.equal(t.jaxValue, other.jaxValue))
 
-      def asBoolean: Tensor[T, Boolean] = t.asType(VType[Boolean])
-      def asInt: Tensor[T, Int] = t.asType(VType[Int])
-      def asFloat: Tensor[T, Float] = t.asType(VType[Float])
+      def asBool: Tensor[T, Bool] = t.asType(VType[Bool])
+      def asBoolean[NewV: IsBoolean]: Tensor[T, NewV] = t.asType(VType[NewV])
+      def asInt32: Tensor[T, Int32] = t.asType(VType[Int32])
+      def asInt[NewV: IsInteger]: Tensor[T, NewV] = t.asType(VType[NewV])
+      def asFloat32: Tensor[T, Float32] = t.asType(VType[Float32])
+      def asFloat[NewV: IsFloating]: Tensor[T, NewV] = t.asType(VType[NewV])
 
     // ---------------------------------------------------------
     // IsNumber operations (IsFloat or IsInt)
@@ -147,8 +158,8 @@ object TensorOps:
       def cos: Tensor[T, V] = Tensor(Jax.jnp.cos(t.jaxValue))
       def tanh: Tensor[T, V] = Tensor(Jax.jnp.tanh(t.jaxValue))
 
-      def approxEquals(other: Tensor[T, V], tolerance: Float = 1e-6f): Tensor0[Boolean] = approxElementEquals(other, tolerance).all
-      def approxElementEquals(other: Tensor[T, V], tolerance: Float = 1e-6f): Tensor[T, Boolean] =
+      def approxEquals(other: Tensor[T, V], tolerance: Float = 1e-6f): Tensor0[Bool] = approxElementEquals(other, tolerance).all
+      def approxElementEquals(other: Tensor[T, V], tolerance: Float = 1e-6f): Tensor[T, Bool] =
         Tensor(
           Jax.jnp.allclose(
             t.jaxValue,
@@ -164,10 +175,10 @@ object TensorOps:
 
     extension [T <: Tuple: Labels, V: IsBoolean](t: Tensor[T, V])
 
-      def all: Tensor0[Boolean] = Tensor0(Jax.jnp.all(t.jaxValue))
-      def any: Tensor0[Boolean] = Tensor0(Jax.jnp.any(t.jaxValue))
+      def all: Tensor0[V] = Tensor0(Jax.jnp.all(t.jaxValue))
+      def any: Tensor0[V] = Tensor0(Jax.jnp.any(t.jaxValue))
 
-      def unary_! : Tensor[T, Boolean] = Tensor(Jax.jnp.logical_not(t.jaxValue))
+      def unary_! : Tensor[T, V] = Tensor(Jax.jnp.logical_not(t.jaxValue))
 
   end Elementwise
 
@@ -1411,9 +1422,9 @@ object TensorOps:
 
   object Tensor0Ops:
 
-    extension [V: Reader](scalar: Tensor0[V])
+    extension [V: IsFloating](scalar: Tensor0[V])
 
-      def item: V =
+      def item: Float =
         require(
           !scalar.isTracer,
           """
@@ -1422,12 +1433,39 @@ object TensorOps:
           |   - calling .slice(t0.item) rather than .slice(t0); breaking the computation graph unintentionally.
           |""".stripMargin
         )
-        scalar.jaxValue.item().as[V]
+        scalar.jaxValue.item().as[Float]
+
+    extension [V: IsInteger](scalar: Tensor0[V])
+
+      def item: Int =
+        require(
+          !scalar.isTracer,
+          """
+          | Cannot convert a JAX Tracer to a scalar value. Tensor0 is part of a JAX computation graph (e.g., inside vmap or a jitted function).
+          | Common mistakes leading to this error:
+          |   - calling .slice(t0.item) rather than .slice(t0); breaking the computation graph unintentionally.
+          |""".stripMargin
+        )
+        scalar.jaxValue.item().as[Int]
+
+    extension [V: IsBoolean](scalar: Tensor0[V])
+
+      def item: Boolean =
+        require(
+          !scalar.isTracer,
+          """
+          | Cannot convert a JAX Tracer to a scalar value. Tensor0 is part of a JAX computation graph (e.g., inside vmap or a jitted function).
+          | Common mistakes leading to this error:
+          |   - calling .slice(t0.item) rather than .slice(t0); breaking the computation graph unintentionally.
+          |""".stripMargin
+        )
+        scalar.jaxValue.item().as[Boolean]
 
   object ValueOps:
 
     import Elementwise.+!
 
+    /*
     extension [V: IsNumber: Writer](scalar: V)
 
       def +![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] =
@@ -1439,12 +1477,13 @@ object TensorOps:
       def *![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] =
         given ExecutionType[V] = ExecutionTypeFor[V](t.dtype)
         Tensor0(scalar).broadcastTo(t.shape) * t
-
+     
     extension [V: IsFloating: Writer](scalar: V)
 
       def /![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] =
         given ExecutionType[V] = ExecutionTypeFor[V](t.dtype)
         Tensor0(scalar).broadcastTo(t.shape) / t
+     */
 
   object Tensor1Ops:
 

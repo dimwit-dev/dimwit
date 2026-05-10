@@ -51,6 +51,7 @@ object FloatTree:
     object IsFloatTensor:
       given [T <: Tuple]: IsFloatTensor[Tensor[T, Float]] with {}
 
+    /*
     // Scalar broadcast extensions (Tensor0 op Tree)
     extension (p2: Tensor0[Float])
       def ++![P: TensorTree: FloatTree](p1: P): P = p1.map([T <: Tuple] => (n: Labels[T]) ?=> (a: Tensor[T, Float]) => a +! p2)
@@ -76,3 +77,4 @@ object FloatTree:
       def sign: P = p1.map([T <: Tuple] => (n: Labels[T]) ?=> (a: Tensor[T, Float]) => TensorOps.sign(a))
 
       def fillCopy(value: Float): P = p1.map([T <: Tuple] => (n: Labels[T]) ?=> (a: Tensor[T, Float]) => Tensor(a.shape).fill(value))
+     */

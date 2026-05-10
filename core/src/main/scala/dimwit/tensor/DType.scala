@@ -2,6 +2,49 @@ package dimwit.tensor
 import dimwit.jax.JaxDType
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import dimwit.tensor.TensorOps.{IsFloating, IsInteger, IsBoolean}
+
+object DType:
+
+  type UInt8 = UInt8.type
+  given uint8IsFloating: IsInteger[UInt8] with
+    def dtype: DType = DType.UInt8
+
+  type UInt16 = UInt16.type
+  given uint16IsInteger: IsInteger[UInt16] with
+    def dtype: DType = DType.UInt16
+
+  type UInt32 = UInt32.type
+  given uint32IsInteger: IsInteger[UInt32] with
+    def dtype: DType = DType.UInt32
+
+  type Int8 = Int8.type
+  given int8IsInteger: IsInteger[Int8] with
+    def dtype: DType = DType.Int8
+
+  type Int16 = Int16.type
+  given int16IsInteger: IsInteger[Int16] with
+    def dtype: DType = DType.Int16
+
+  type Int32 = Int32.type
+  given int32IsInteger: IsInteger[Int32] with
+    def dtype: DType = DType.Int32
+
+  type Int64 = Int64.type
+  given int64IsInteger: IsInteger[Int64] with
+    def dtype: DType = DType.Int64
+
+  type Float32 = Float32.type
+  given float32IsFloating: IsFloating[Float32] with
+    def dtype: DType = DType.Float32
+
+  type Float64 = Float64.type
+  given float64IsFloating: IsFloating[Float64] with
+    def dtype: DType = DType.Float64
+
+  type Bool = Bool.type
+  given boolIsBoolean: IsBoolean[Bool] with
+    def dtype: DType = DType.Bool
 
 enum DType(val name: String, val size: Int):
   case Float32 extends DType("float32", 4)
