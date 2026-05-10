@@ -169,18 +169,18 @@ val t2dNested = Tensor2(Axis[A], Axis[B]).fromArray(
 
 ```scala
 // Scalar (0D)
-val scalar: Tensor0[Float] = Tensor0(42.0f)
+val scalar: Tensor0[Float32] = Tensor0(42.0f)
 
 // Vector (1D)
-val vector: Tensor1[Feature, Float] = Tensor1(Axis[Feature]).fromArray(Array(1.0f, 2.0f, 3.0f))
+val vector: Tensor1[Feature, Float32] = Tensor1(Axis[Feature]).fromArray(Array(1.0f, 2.0f, 3.0f))
 
 // Matrix (2D)
-val matrix: Tensor2[Batch, Feature, Float] = Tensor2(Axis[Batch], Axis[Feature]).fromArray(
+val matrix: Tensor2[Batch, Feature, Float32] = Tensor2(Axis[Batch], Axis[Feature]).fromArray(
   Array(Array(1.0f, 2.0f), Array(3.0f, 4.0f))
 )
 
 // 3D Tensor
-val tensor3d: Tensor3[Batch, Feature, Hidden, Float] = 
+val tensor3d: Tensor3[Batch, Feature, Hidden, Float32] = 
   Tensor(Shape3(Axis[Batch] -> 2, Axis[Feature] -> 3, Axis[Hidden] -> 4)).fill(0.0f)
 ```
 
@@ -279,20 +279,20 @@ val data = Tensor2(Axis[A], Axis[B]).fromArray(
 )
 
 // Reduce to scalar
-val totalSum: Tensor0[Float] = data.sum
-val totalMean: Tensor0[Float] = data.mean
-val totalMax: Tensor0[Float] = data.max
-val totalMin: Tensor0[Float] = data.min
-val totalStd: Tensor0[Float] = data.std
+val totalSum: Tensor0[Float32] = data.sum
+val totalMean: Tensor0[Float32] = data.mean
+val totalMax: Tensor0[Float32] = data.max
+val totalMin: Tensor0[Float32] = data.min
+val totalStd: Tensor0[Float32] = data.std
 
 println(s"Sum: ${totalSum.item}")  // 21.0
 
 // Reduce along axis A (across rows)
-val sumA: Tensor1[B, Float] = data.sum(Axis[A])
+val sumA: Tensor1[B, Float32] = data.sum(Axis[A])
 println(s"Sum along A: ${sumA}")  // [5.0, 7.0, 9.0]
 
 // Reduce along axis B (across columns)
-val sumB: Tensor1[A, Float] = data.sum(Axis[B])
+val sumB: Tensor1[A, Float32] = data.sum(Axis[B])
 println(s"Sum along B: ${sumB}")  // [6.0, 15.0]
 
 // Mean along axes
@@ -300,8 +300,8 @@ val meanA = data.mean(Axis[A])  // [2.5, 3.5, 4.5]
 val meanB = data.mean(Axis[B])  // [2.0, 5.0]
 
 // Argmax / Argmin (returns indices)
-val argmaxB: Tensor1[A, Int] = data.argmax(Axis[B])
-val argminB: Tensor1[A, Int] = data.argmin(Axis[B])
+val argmaxB: Tensor1[A, Int32] = data.argmax(Axis[B])
+val argminB: Tensor1[A, Int32] = data.argmin(Axis[B])
 ```
 
 **Error: Reducing on non-existent axis**
@@ -335,8 +335,12 @@ val wrong = t.sum(Axis[C])
 //                          ^
 // error: 
 // Conflicting definitions:
-// val t: dimwit.tensor.Tensor[(MdocApp0.this.A, MdocApp0.this.B), Float] in class MdocApp0 at line 53 and
-// val t: dimwit.tensor.Tensor[(MdocApp0.this.A, MdocApp0.this.B), Float] in class MdocApp0 at line 88
+// val t:
+//   dimwit.tensor.Tensor2[MdocApp0.this.A, MdocApp0.this.B,
+//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 53 and
+// val t:
+//   dimwit.tensor.Tensor2[MdocApp0.this.A, MdocApp0.this.B,
+//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 88
 //
 ```
 
@@ -372,11 +376,16 @@ val t = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f)))
 val wrong = t + 5.0f  // Use +! instead
 // error: 
 // Found:    (5.0f : Float)
-// Required: dimwit.tensor.Tensor[(MdocApp0.this.A, MdocApp0.this.B), Float]
+// Required: dimwit.tensor.Tensor[(MdocApp0.this.A, MdocApp0.this.B),
+//   (dimwit.tensor.DType.Float32 : dimwit.tensor.DType)]
 // error: 
 // Conflicting definitions:
-// val t: dimwit.tensor.Tensor[(MdocApp0.this.A, MdocApp0.this.B), Float] in class MdocApp0 at line 53 and
-// val t: dimwit.tensor.Tensor[(MdocApp0.this.A, MdocApp0.this.B), Float] in class MdocApp0 at line 97
+// val t:
+//   dimwit.tensor.Tensor2[MdocApp0.this.A, MdocApp0.this.B,
+//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 53 and
+// val t:
+//   dimwit.tensor.Tensor2[MdocApp0.this.A, MdocApp0.this.B,
+//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 97
 //
 ```
 
@@ -395,7 +404,7 @@ trait D derives Label
 // Dot product (vector · vector)
 val v1 = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f, 3.0f))
 val v2 = Tensor1(Axis[A]).fromArray(Array(4.0f, 5.0f, 6.0f))
-val dotProduct: Tensor0[Float] = v1.dot(Axis[A])(v2)
+val dotProduct: Tensor0[Float32] = v1.dot(Axis[A])(v2)
 println(s"Dot product: ${dotProduct.item}")  // 32.0
 
 // Matrix-vector multiplication
@@ -464,13 +473,21 @@ val wrong = m1.dot(Axis[B])(m2)
 //                               ^
 // error: 
 // Conflicting definitions:
-// val m1: dimwit.tensor.Tensor[(MdocApp1.this.A, MdocApp1.this.B), Float] in class MdocApp1 at line 119 and
-// val m1: dimwit.tensor.Tensor[(MdocApp1.this.A, MdocApp1.this.B), Float] in class MdocApp1 at line 122
+// val m1:
+//   dimwit.tensor.Tensor2[MdocApp1.this.A, MdocApp1.this.B,
+//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 119 and
+// val m1:
+//   dimwit.tensor.Tensor2[MdocApp1.this.A, MdocApp1.this.B,
+//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 122
 // 
 // error: 
 // Conflicting definitions:
-// val m2: dimwit.tensor.Tensor[(MdocApp1.this.B, MdocApp1.this.C), Float] in class MdocApp1 at line 120 and
-// val m2: dimwit.tensor.Tensor[(MdocApp1.this.C, MdocApp1.this.D), Float] in class MdocApp1 at line 123
+// val m2:
+//   dimwit.tensor.Tensor2[MdocApp1.this.B, MdocApp1.this.C,
+//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 120 and
+// val m2:
+//   dimwit.tensor.Tensor2[MdocApp1.this.C, MdocApp1.this.D,
+//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 123
 //
 ```
 
@@ -484,7 +501,7 @@ val original = Tensor2(Axis[A], Axis[B]).fromArray(
 )
 
 // Transpose
-val transposed: Tensor2[B, A, Float] = original.transpose
+val transposed: Tensor2[B, A, Float32] = original.transpose
 println(s"Original shape: ${original.shape}")
 println(s"Transposed shape: ${transposed.shape}")
 
@@ -532,20 +549,20 @@ val data = Tensor2(Axis[Batch], Axis[Feature]).fromArray(
 )
 
 // Normalize each sample (row) independently
-def normalize(x: Tensor1[Feature, Float]): Tensor1[Feature, Float] =
+def normalize(x: Tensor1[Feature, Float32]): Tensor1[Feature, Float32] =
   val mean = x.mean
   val std = x.std + Tensor0(1e-6f)  // Avoid division by zero
   (x -! mean) /! std
 
-val normalized: Tensor2[Batch, Feature, Float] = data.vmap(Axis[Batch])(normalize)
+val normalized: Tensor2[Batch, Feature, Float32] = data.vmap(Axis[Batch])(normalize)
 println(s"Normalized data: ${normalized}")
 
 // Sum each row
-val rowSums: Tensor1[Batch, Float] = data.vmap(Axis[Batch])(_.sum)
+val rowSums: Tensor1[Batch, Float32] = data.vmap(Axis[Batch])(_.sum)
 println(s"Row sums: ${rowSums}")  // [6.0, 15.0, 24.0]
 
 // vmap over columns (note: axis moves to front)
-val colSums: Tensor1[Feature, Float] = data.vmap(Axis[Feature])(_.sum)
+val colSums: Tensor1[Feature, Float32] = data.vmap(Axis[Feature])(_.sum)
 println(s"Column sums: ${colSums}")  // [12.0, 15.0, 18.0]
 
 // Identity vmap doesn't change data, only axis order
@@ -558,7 +575,7 @@ val reordered = data.vmap(Axis[Feature])(x => x)  // Same as data.transpose
 ```scala
 val t = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f)))
 // ERROR: Function expects Tensor2, but vmap provides Tensor1
-def wrongFunc(x: Tensor2[A, B, Float]): Tensor0[Float] = x.sum
+def wrongFunc(x: Tensor2[A, B, Float32]): Tensor0[Float32] = x.sum
 val wrong = t.vmap(Axis[A])(wrongFunc)
 // error: 
 // Not found: type A
@@ -576,11 +593,11 @@ val wrong = t.vmap(Axis[A])(wrongFunc)
 // 
 // error:
 // Not found: type A
-// def wrongFunc(x: Tensor2[A, B, Float]): Tensor0[Float] = x.sum
+// def wrongFunc(x: Tensor2[A, B, Float32]): Tensor0[Float32] = x.sum
 //                          ^
 // error:
 // Not found: type B
-// def wrongFunc(x: Tensor2[A, B, Float]): Tensor0[Float] = x.sum
+// def wrongFunc(x: Tensor2[A, B, Float32]): Tensor0[Float32] = x.sum
 //                             ^
 ```
 
@@ -596,10 +613,10 @@ val t1 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f), Array(3.0f
 val t2 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(10.0f, 20.0f), Array(30.0f, 40.0f)))
 
 // Compute L2 distance between corresponding rows
-def l2Distance(v1: Tensor1[B, Float], v2: Tensor1[B, Float]): Tensor0[Float] =
+def l2Distance(v1: Tensor1[B, Float32], v2: Tensor1[B, Float32]): Tensor0[Float32] =
   (v1 - v2).pow(Tensor0(2.0f)).sum.sqrt
 
-val distances: Tensor1[A, Float] = zipvmap(Axis[A])(t1, t2)(l2Distance)
+val distances: Tensor1[A, Float32] = zipvmap(Axis[A])(t1, t2)(l2Distance)
 println(s"L2 distances: ${distances}")
 
 // zipvmap with 4 tensors
@@ -663,7 +680,7 @@ trait A derives Label
 import dimwit.autodiff.Autodiff
 
 // Scalar function: f(x) = x²
-def f(x: Tensor0[Float]): Tensor0[Float] = x * x
+def f(x: Tensor0[Float32]): Tensor0[Float32] = x * x
 
 val df = Autodiff.grad(f)
 val x = Tensor0(3.0f)
@@ -671,7 +688,7 @@ val gradient = df(x)
 println(s"df/dx at x=3: ${gradient.value.item}")  // 6.0
 
 // Vector function: f(x) = sum(x²)
-def g(x: Tensor1[A, Float]): Tensor0[Float] = (x * x).sum
+def g(x: Tensor1[A, Float32]): Tensor0[Float32] = (x * x).sum
 
 val dg = Autodiff.grad(g)
 val xVec = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f, 3.0f))
@@ -682,16 +699,16 @@ println(s"dg/dx: ${vecGradient}")  // [2.0, 4.0, 6.0]
 ### Higher-Order Derivatives
 
 ```scala
-def f2(x: Tensor0[Float]): Tensor0[Float] = x * x
+def f2(x: Tensor0[Float32]): Tensor0[Float32] = x * x
 
 // First derivative
 val df2 = Autodiff.grad(f2)
 
 // Second derivative
-val ddf2 = Autodiff.grad((x: Tensor0[Float]) => df2(x).value)
+val ddf2 = Autodiff.grad((x: Tensor0[Float32]) => df2(x).value)
 
 // Third derivative
-val dddf2 = Autodiff.grad((x: Tensor0[Float]) => ddf2(x).value)
+val dddf2 = Autodiff.grad((x: Tensor0[Float32]) => ddf2(x).value)
 
 val x2 = Tensor0(3.0f)
 println(s"f''(3) = ${ddf2(x2).value.item}")   // 2.0
@@ -702,7 +719,7 @@ println(s"f'''(3) = ${dddf2(x2).value.item}") // 0.0
 
 ```scala
 // f(x, y) = (x + 2y)²
-def twoParam(x: Tensor1[A, Float], y: Tensor1[A, Float]): Tensor0[Float] =
+def twoParam(x: Tensor1[A, Float32], y: Tensor1[A, Float32]): Tensor0[Float32] =
   ((x + (y *! Tensor0(2.0f))).pow(Tensor0(2.0f))).sum
 
 val dtwoParam = Autodiff.grad(twoParam)
@@ -725,7 +742,7 @@ trait Batch derives Label
 trait Feature derives Label
 
 // Gradient works seamlessly with vmap
-def batched(x: Tensor2[Batch, Feature, Float]): Tensor0[Float] =
+def batched(x: Tensor2[Batch, Feature, Float32]): Tensor0[Float32] =
   x.vmap(Axis[Batch])(_.sum).sum
 
 val dBatched = Autodiff.grad(batched)
@@ -747,17 +764,17 @@ trait Feature derives Label
 trait Hidden derives Label
 
 case class LinearParams(
-  weight: Tensor2[Feature, Hidden, Float],
-  bias: Tensor1[Hidden, Float]
+  weight: Tensor2[Feature, Hidden, Float32],
+  bias: Tensor1[Hidden, Float32]
 )
 
 // Define a model
-def linear(params: LinearParams)(input: Tensor1[Feature, Float]): Tensor1[Hidden, Float] =
+def linear(params: LinearParams)(input: Tensor1[Feature, Float32]): Tensor1[Hidden, Float32] =
   val weighted = params.weight.transpose.dot(Axis[Feature])(input)
   weighted + params.bias
 
 // Define loss function
-def loss(data: Tensor1[Feature, Float], target: Tensor1[Hidden, Float])(params: LinearParams): Tensor0[Float] =
+def loss(data: Tensor1[Feature, Float32], target: Tensor1[Hidden, Float32])(params: LinearParams): Tensor0[Float32] =
   val prediction = linear(params)(data)
   (prediction - target).pow(Tensor0(2.0f)).sum
 
@@ -779,15 +796,14 @@ println(s"Bias gradient shape: ${paramGradients.bias.shape}")
 
 ```scala
 // ERROR: Cannot differentiate with respect to Int tensors
-def intFunc(x: Tensor1[A, Int]): Tensor0[Int] = x.sum
+def intFunc(x: Tensor1[A, Int32]): Tensor0[Int32] = x.sum
 val wrong = Autodiff.grad(intFunc)
 // error:
 // Not found: type A
-// def intFunc(x: Tensor1[A, Int]): Tensor0[Int] = x.sum
+// def intFunc(x: Tensor1[A, Int32]): Tensor0[Int32] = x.sum
 //                        ^
 // error:
-// No given instance of type dimwit.autodiff.TensorTree[dimwit.tensor.Tensor1[<error Not found: type A>, Int]
-//   ] was found for parameter inTree of method grad in object Autodiff
+// Operation only valid for Floating tensors.
 // val wrong = Autodiff.grad(intFunc)
 //                                  ^
 ```
@@ -801,7 +817,7 @@ import dimwit.autodiff.*
 trait A derives Label
 
 // Jacobian of f: R² -> R², f(x) = 2x
-def linearMap(x: Tensor1[A, Float]): Tensor1[A, Float] = x *! Tensor0(2.0f)
+def linearMap(x: Tensor1[A, Float32]): Tensor1[A, Float32] = x *! Tensor0(2.0f)
 
 val jacobian = Autodiff.jacobian(linearMap)
 val xJac = Tensor1(Axis[A]).fromArray(Array(1.0f, 1.0f))
@@ -828,11 +844,11 @@ trait Feature derives Label
 trait Batch derives Label
 
 // Define model parameters
-case class SimpleModelParams(w: Tensor1[Feature, Float], b: Tensor0[Float])
+case class SimpleModelParams(w: Tensor1[Feature, Float32], b: Tensor0[Float32])
 
 // Define loss function
-def mse(data: Tensor2[Batch, Feature, Float], labels: Tensor1[Batch, Float])
-       (params: SimpleModelParams): Tensor0[Float] =
+def mse(data: Tensor2[Batch, Feature, Float32], labels: Tensor1[Batch, Float32])
+       (params: SimpleModelParams): Tensor0[Float32] =
   val predictions = data.vmap(Axis[Batch]) { sample =>
     sample.dot(Axis[Feature])(params.w) + params.b
   }
@@ -897,11 +913,11 @@ val yData = Tensor1(Axis[Sample]).fromArray(
 )
 
 // Model parameters
-case class RegressionParams(slope: Tensor1[InputDim, Float], intercept: Tensor0[Float])
+case class RegressionParams(slope: Tensor1[InputDim, Float32], intercept: Tensor0[Float32])
 
 // Loss function (MSE)
-def regressionLoss(x: Tensor2[Sample, InputDim, Float], y: Tensor1[Sample, Float])
-                  (params: RegressionParams): Tensor0[Float] =
+def regressionLoss(x: Tensor2[Sample, InputDim, Float32], y: Tensor1[Sample, Float32])
+                  (params: RegressionParams): Tensor0[Float32] =
   val predictions = x.vmap(Axis[Sample]) { xi =>
     xi.dot(Axis[InputDim])(params.slope) + params.intercept
   }
@@ -941,7 +957,7 @@ import dimwit.jax.Jit
 trait A derives Label
 
 // Define a complex function
-def complexComputation(x: Tensor1[A, Float]): Tensor1[A, Float] =
+def complexComputation(x: Tensor1[A, Float32]): Tensor1[A, Float32] =
   val y = x.exp
   val z = y.log
   val w = z.sin
@@ -968,7 +984,7 @@ import dimwit.jitDonating
 import dimwit.jitDonatingUnsafe
 
 // jitDonating allows reusing input memory
-def inPlaceOp(x: Tensor1[A, Float]): Tensor1[A, Float] = x *! Tensor0(2.0f)
+def inPlaceOp(x: Tensor1[A, Float32]): Tensor1[A, Float32] = x *! Tensor0(2.0f)
 val (jitDonate, jitF, jitReclaim) = jitDonating(inPlaceOp)
 val inputDonate = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f))
 val donated = jitDonate(inputDonate)
@@ -1036,17 +1052,26 @@ trait A derives Label
 trait B derives Label
 trait C derives Label
 trait D derives Label
+```
+
+```scala
 // ERROR: Cannot perform floating-point operations on Int tensors
 val intTensor = Tensor1(Axis[A]).fromArray(Array(1, 2, 3))
 val wrong = intTensor.exp  // exp requires IsFloating constraint
 // error: 
-// value exp is not a member of dimwit.tensor.Tensor[Tuple1[MdocApp11.this.A], Int].
+// value exp is not a member of dimwit.tensor.Tensor1[MdocApp11.this.A, dimwit.tensor.DType.Int32].
 // An extension method was tried, but could not be fully constructed:
 // 
-//     dimwit.exp[Tuple1[MdocApp11.this.A], Int](this.intTensor)(
+//     dimwit.exp[Tuple1[MdocApp11.this.A],
+//       (dimwit.tensor.DType.Int32 : dimwit.tensor.DType)](this.intTensor)(
 //       dimwit.tensor.Labels.concat[MdocApp11.this.A, EmptyTuple.type](
 //         this.A.derived$Label, dimwit.tensor.Labels.namesOfEmpty),
-//       /* missing */summon[dimwit.tensor.TensorOps.IsFloating[Int]])
+//       /* missing */
+//         summon[
+//           dimwit.tensor.TensorOps.IsFloating[
+//             (dimwit.tensor.DType.Int32 : dimwit.tensor.DType)]
+//         ]
+//     )
 // 
 //     failed with:
 // 
@@ -1057,12 +1082,26 @@ val wrong = intTensor.exp  // exp requires IsFloating constraint
 // ERROR: Cannot compute mean of Boolean tensor
 val boolTensor = Tensor1(Axis[A]).fromArray(Array(true, false, true))
 val wrong = boolTensor.mean
-// error: 
-// Not found: Tensor1
-// error: 
-// Not found: type A
-// error: 
-// Not found: Axis
+// error:
+// value mean is not a member of dimwit.tensor.Tensor1[MdocApp11.this.A, dimwit.tensor.DType.Bool].
+// An extension method was tried, but could not be fully constructed:
+// 
+//     dimwit.mean[Tuple1[MdocApp11.this.A],
+//       (dimwit.tensor.DType.Bool : dimwit.tensor.DType)](this.boolTensor)(
+//       dimwit.tensor.Labels.concat[MdocApp11.this.A, EmptyTuple.type](
+//         this.A.derived$Label, dimwit.tensor.Labels.namesOfEmpty),
+//       /* missing */
+//         summon[
+//           dimwit.tensor.TensorOps.IsFloating[
+//             (dimwit.tensor.DType.Bool : dimwit.tensor.DType)]
+//         ]
+//     )
+// 
+//     failed with:
+// 
+//         Operation only valid for Floating tensors.
+// val wrong = boolTensor.mean
+//             ^^^^^^^^^^^^^^^
 ```
 
 ### Shape Mismatches
@@ -1073,19 +1112,17 @@ val t1 = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f))
 val t2 = Tensor1(Axis[B]).fromArray(Array(3.0f, 4.0f, 5.0f))
 val wrong = t1 + t2  // Different labels AND different sizes
 // error: 
-// Not found: Tensor1
-// error: 
-// Not found: type A
-// error: 
-// Not found: Axis
-// error:
-// Not found: Tensor1
-// val wrong = t1 + t2  // Different labels AND different sizes
-//                     ^
-// error: 
-// Not found: type B
-// error: 
-// Not found: Axis
+// 
+// A tuple of axis labels Tuple1[MdocApp11.this.A | MdocApp11.this.B] was given or inferred that does not have a valid Labels instance. 
+// 
+// Ensure that all of the types in the tuple have a 'derives Label' clause.
+// .
+// I found:
+// 
+//     dimwit.tensor.Labels.concat[head, tail](
+//       /* missing */summon[dimwit.tensor.Label[head]], ???)
+// 
+// But no implicit values were found that match type dimwit.tensor.Label[head].
 ```
 
 ```scala
@@ -1094,25 +1131,24 @@ val m1 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f)))  // Shape
 val m2 = Tensor2(Axis[C], Axis[D]).fromArray(Array(Array(3.0f), Array(4.0f)))  // Shape: (2, 1)
 val wrong = m1.dot(Axis[B])(m2)  // Axis[B] not in m2
 // error: 
-// Not found: Tensor2
-// error: 
-// Not found: type A
-// error: 
-// Not found: Axis
-// error: 
-// Not found: type B
-// error: 
-// Not found: Axis
-// error: 
-// Not found: Tensor2
-// error: 
-// Not found: type C
-// error: 
-// Not found: Axis
-// error: 
-// Not found: type D
-// error: 
-// Not found: Axis
+// Axis[MdocApp11.this.B] not found in Tensor[(MdocApp11.this.C, MdocApp11.this.D)].
+// I found:
+// 
+//     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
+//       (MdocApp11.this.C, MdocApp11.this.D), MdocApp11.this.B, Tuple](
+//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp11.this.C,
+//         MdocApp11.this.D *: EmptyTuple.type, MdocApp11.this.B](
+//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp11.this.D,
+//           EmptyTuple.type, MdocApp11.this.B](
+//           dimwit.tensor.ShapeTypeHelpers.AxisIndex.concatRight[A, B², L])
+//       ),
+//     ???)
+// 
+// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.ShapeTypeHelpers.AxisIndex[EmptyTuple.type, MdocApp11.this.B]
+// 
+// where:    B  is a trait in class MdocApp11
+//           B² is a type variable with constraint <: Tuple
+// .
 ```
 
 ### Broadcast vs Non-Broadcast Confusion
@@ -1122,15 +1158,9 @@ val wrong = m1.dot(Axis[B])(m2)  // Axis[B] not in m2
 val t = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f)))
 val wrong = t + 10.0f  // Should use +! for scalar broadcast
 // error: 
-// Not found: Tensor2
-// error: 
-// Not found: type A
-// error: 
-// Not found: Axis
-// error: 
-// Not found: type B
-// error: 
-// Not found: Axis
+// Found:    (10.0f : Float)
+// Required: dimwit.tensor.Tensor[(MdocApp11.this.A, MdocApp11.this.B),
+//   (dimwit.tensor.DType.Float32 : dimwit.tensor.DType)]
 ```
 
 ```scala
@@ -1138,19 +1168,36 @@ val wrong = t + 10.0f  // Should use +! for scalar broadcast
 val t1 = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f))
 val t2 = Tensor1(Axis[A]).fromArray(Array(3.0f, 4.0f))
 // This works but is semantically wrong (use + instead)
-// val result = t1 +! t2  // Compiles but misleading
-// error: 
-// Not found: Tensor1
-// error: 
-// Not found: type A
-// error: 
-// Not found: Axis
-// error: 
-// Not found: Tensor1
-// error: 
-// Not found: type A
-// error: 
-// Not found: Axis
+val wrong = t1 +! t2
+// error:
+// Cannot broadcast tensors of shapes Tuple1[MdocApp11.this.A] and Tuple1[MdocApp11.this.A]. If same shape no broadcasting allowed!.
+// I found:
+// 
+//     dimwit.tensor.TensorOpsUtil.Broadcast.broadcastLeft[Tuple1[MdocApp11.this.A],
+//       Tuple1[MdocApp11.this.A], (dimwit.tensor.DType.Float32 : dimwit.tensor.DType)]
+//       (
+//       dimwit.tensor.Labels.concat[MdocApp11.this.A, EmptyTuple.type](
+//         this.A.derived$Label, dimwit.tensor.Labels.namesOfEmpty),
+//       dimwit.tensor.Labels.concat[MdocApp11.this.A, EmptyTuple.type](
+//         this.A.derived$Label, dimwit.tensor.Labels.namesOfEmpty),
+//       dimwit.tensor.TupleHelpers.StrictSubset.derive[Tuple1[MdocApp11.this.A],
+//         Tuple1[MdocApp11.this.A]](
+//         dimwit.tensor.TupleHelpers.Subset.head[MdocApp11.this.A, EmptyTuple.type,
+//           Tuple1[MdocApp11.this.A]](
+//           dimwit.tensor.TupleHelpers.SetMember.found[MdocApp11.this.A,
+//             EmptyTuple.type],
+//           dimwit.tensor.TupleHelpers.Subset.empty[Tuple1[MdocApp11.this.A]]),
+//         /* missing */
+//           summon[
+//             scala.util.NotGiven[Tuple1[MdocApp11.this.A] =:=
+//               Tuple1[MdocApp11.this.A]]
+//           ]
+//       )
+//     )
+// 
+// But no implicit values were found that match type scala.util.NotGiven[Tuple1[MdocApp11.this.A] =:= Tuple1[MdocApp11.this.A]].
+// val wrong = t1 +! t2
+//                   ^^
 ```
 
 ### Axis Errors
@@ -1160,15 +1207,26 @@ val t2 = Tensor1(Axis[A]).fromArray(Array(3.0f, 4.0f))
 val t = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f)))
 val wrong = t.sum(Axis[C])  // Axis[C] not in tensor
 // error: 
-// Not found: Tensor2
-// error: 
-// Not found: type A
-// error: 
-// Not found: Axis
-// error: 
-// Not found: type B
-// error: 
-// Not found: Axis
+// Axis[MdocApp11.this.C] not found in Tensor[(MdocApp11.this.A, MdocApp11.this.B)].
+// I found:
+// 
+//     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
+//       (MdocApp11.this.A, MdocApp11.this.B), MdocApp11.this.C, Tuple](
+//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp11.this.A,
+//         MdocApp11.this.B *: EmptyTuple.type, MdocApp11.this.C](
+//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp11.this.B,
+//           EmptyTuple.type, MdocApp11.this.C](
+//           dimwit.tensor.ShapeTypeHelpers.AxisIndex.concatRight[A², B², L])
+//       ),
+//     ???)
+// 
+// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.ShapeTypeHelpers.AxisIndex[EmptyTuple.type, MdocApp11.this.C]
+// 
+// where:    A  is a trait in class MdocApp11
+//           A² is a type variable with constraint <: Tuple
+//           B  is a trait in class MdocApp11
+//           B² is a type variable with constraint <: Tuple
+// .
 ```
 
 ```scala
@@ -1176,53 +1234,69 @@ val wrong = t.sum(Axis[C])  // Axis[C] not in tensor
 val t = Tensor2(Axis[A], Axis[B]).fill(1.0f)
 val wrong = t.vmap(Axis[C])(_.sum)  // Axis[C] doesn't exist
 // error: 
-// Not found: Tensor2
-// error: 
-// Not found: type A
-// error: 
-// Not found: Axis
-// error: 
-// Not found: type B
-// error: 
-// Not found: Axis
+// value fill is not a member of dimwit.tensor.Tensor2.DefaultsFactory[MdocApp11.this.A, MdocApp11.this.B]
 ```
 
 ### Gradient Errors
 
 ```scala
 // ERROR: Cannot differentiate Integer functions
-def intFunc(x: Tensor0[Int]): Tensor0[Int] = x + x
+def intFunc(x: Tensor0[Int32]): Tensor0[Int32] = x + x
 val wrong = Autodiff.grad(intFunc)
 // error:
-// Not found: type Tensor0
-// def intFunc(x: Tensor0[Int]): Tensor0[Int] = x + x
-//                ^^^^^^^
-// error:
-// Not found: type Tensor0
-// def intFunc(x: Tensor0[Int]): Tensor0[Int] = x + x
-//                               ^^^^^^^
-// error:
-// Not found: Autodiff
+// Operation only valid for Floating tensors.
 // val wrong = Autodiff.grad(intFunc)
-//             ^^^^^^^^
+//                                  ^
 ```
 
 ```scala
 // ERROR: Function doesn't return scalar for grad
-def nonScalar(x: Tensor1[A, Float]): Tensor1[A, Float] = x * x
+def nonScalar(x: Tensor1[A, Float32]): Tensor1[A, Float32] = x * x
 val wrong = Autodiff.grad(nonScalar)  // Use jacobian instead
 // error: 
-// Not found: type Tensor1
-// error: 
-// Not found: type A
-// error:
-// Not found: type Tensor1
-// val wrong = Autodiff.grad(nonScalar)  // Use jacobian instead
-//                                     ^
-// error: 
-// Not found: type A
-// error: 
-// Not found: Autodiff
+// None of the overloaded alternatives of method grad in object Autodiff with types
+//  [Input, V]
+//   (f: Input => dimwit.tensor.Tensor0[V])
+//     (using evidence$1: dimwit.tensor.TensorOps.IsFloating[V],
+//       inTree: dimwit.autodiff.TensorTree[Input], outTree:
+//       dimwit.autodiff.TensorTree[dimwit.tensor.Tensor0[V]]): Input =>
+//       dimwit.autodiff.Grad[Input]
+//  [T1, T2, T3, V²]
+//   (f: (T1, T2, T3) => dimwit.tensor.Tensor0[V²])
+//     (using evidence$1²: dimwit.tensor.TensorOps.IsFloating[V²],
+//       t1Tree: dimwit.autodiff.TensorTree[T1],
+//       t2Tree: dimwit.autodiff.TensorTree[T2],
+//       t3Tree: dimwit.autodiff.TensorTree[T3], outTree²:
+//       dimwit.autodiff.TensorTree[dimwit.tensor.Tensor0[V²]]): (T1, T2, T3) =>
+//       dimwit.autodiff.Grad[(T1, T2, T3)]
+//  [T1², T2², V³]
+//   (f: (T1², T2²) => dimwit.tensor.Tensor0[V³])
+//     (using evidence$1³: dimwit.tensor.TensorOps.IsFloating[V³],
+//       t1Tree²: dimwit.autodiff.TensorTree[T1²],
+//       t2Tree²: dimwit.autodiff.TensorTree[T2²], outTree³:
+//       dimwit.autodiff.TensorTree[dimwit.tensor.Tensor0[V³]]): (T1², T2²) =>
+//       dimwit.autodiff.Grad[(T1², T2²)]
+// match arguments (dimwit.tensor.Tensor1[MdocApp11.this.A, dimwit.Float32] =>
+//   dimwit.tensor.Tensor1[MdocApp11.this.A, dimwit.Float32])
+// 
+// where:    T1          is a type variable
+//           T1²         is a type variable
+//           T2          is a type variable
+//           T2²         is a type variable
+//           V           is a type variable
+//           V²          is a type variable
+//           V³          is a type variable
+//           evidence$1  is a reference to a value parameter
+//           evidence$1² is a reference to a value parameter
+//           evidence$1³ is a reference to a value parameter
+//           outTree     is a reference to a value parameter
+//           outTree²    is a reference to a value parameter
+//           outTree³    is a reference to a value parameter
+//           t1Tree      is a reference to a value parameter
+//           t1Tree²     is a reference to a value parameter
+//           t2Tree      is a reference to a value parameter
+//           t2Tree²     is a reference to a value parameter
+//
 ```
 
 ### Device Mismatches
@@ -1259,7 +1333,7 @@ val embeddings = Tensor(Shape3(Axis[Batch] -> 8, Axis[SeqLen] -> 128, Axis[Embed
 trait Feature derives Label
 
 // GOOD: Clear type signatures
-def process(input: Tensor2[Batch, Feature, Float]): Tensor1[Batch, Float] = 
+def process(input: Tensor2[Batch, Feature, Float32]): Tensor1[Batch, Float32] = 
   input.vmap(Axis[Batch])(_.sum)
 
 // AVOID: Opaque Tensor types without explicit parameters
@@ -1274,9 +1348,9 @@ trait Output derives Label
 
 // GOOD: Structured parameters with TensorTree
 case class ModelParams(
-  encoder: Tensor2[InputDim, Hidden, Float],
-  decoder: Tensor2[Hidden, Output, Float],
-  bias: Tensor1[Output, Float]
+  encoder: Tensor2[InputDim, Hidden, Float32],
+  decoder: Tensor2[Hidden, Output, Float32],
+  bias: Tensor1[Output, Float32]
 )
 
 // AVOID: Tuples or loose parameters
@@ -1324,7 +1398,7 @@ import dimwit.jax.Jit.jit
 
 trait Input derives Label
 
-val simpleFunc = (x: Tensor1[Input, Float]) => x *! Tensor0(2.0f)
+val simpleFunc = (x: Tensor1[Input, Float32]) => x *! Tensor0(2.0f)
 
 // GOOD: JIT for repeated calls
 val jitFunc = jit(simpleFunc)

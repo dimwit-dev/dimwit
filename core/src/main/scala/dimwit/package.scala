@@ -61,10 +61,10 @@ package object dimwit:
   export dimwit.tensor.{Tensor, Tensor0, Tensor1, Tensor2, Tensor3}
   export dimwit.tensor.{Shape, Shape0, Shape1, Shape2, Shape3}
   export dimwit.tensor.DType
+  export dimwit.tensor.DType.{BFloat16, Float16, Float32, Float64, Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, Bool}
+
   export dimwit.tensor.{
     VType,
-    ExecutionType,
-    ExecutionTypeFor,
     Label,
     Labels,
     Axis,
@@ -89,7 +89,8 @@ package object dimwit:
   export dimwit.jax.EagerCleanup.eagerCleanup
 
   object Conversions:
-    export dimwit.tensor.Tensor0.{float2FloatTensor, int2IntTensor, int2FloatTensor, boolean2BooleanTensor}
+    export dimwit.tensor.Tensor0.{boolean2BooleanTensor, byte2IntegerTensor, short2IntegerTensor, int2IntegerTensor, long2IntegerTensor, float2FloatingTensor, int2FloatingTensor, double2FloatingTensor}
+
   // Export random object
   export dimwit.random.Random
   export dimwit.random.Random.Key

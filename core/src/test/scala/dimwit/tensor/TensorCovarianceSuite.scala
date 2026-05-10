@@ -1,7 +1,6 @@
 package dimwit.tensor
 
 import dimwit.*
-import dimwit.Conversions.given
 import scala.collection.View.Empty
 
 class TensorCovarianceSuite extends DimwitTest:
@@ -10,9 +9,9 @@ class TensorCovarianceSuite extends DimwitTest:
     trait Parent derives Label
     trait Child1 extends Parent derives Label
     trait Child2 extends Parent derives Label
-    def genericFunction[T <: Parent: Label](t: Tensor1[T, Float]): Tensor1[T, Float] = t + t
-    val child1: Tensor1[Child1, Float] = Tensor(Shape1(Axis[Child1] -> 4)).fill(1f)
-    val child2: Tensor1[Child2, Float] = Tensor(Shape1(Axis[Child2] -> 4)).fill(1f)
+    def genericFunction[T <: Parent: Label](t: Tensor1[T, Float32]): Tensor1[T, Float32] = t + t
+    val child1: Tensor1[Child1, Float32] = Tensor(Shape1(Axis[Child1] -> 4)).fill(1f)
+    val child2: Tensor1[Child2, Float32] = Tensor(Shape1(Axis[Child2] -> 4)).fill(1f)
 
     "genericFunction(child1)" should compile
     "genericFunction(child2)" should compile
@@ -22,8 +21,8 @@ class TensorCovarianceSuite extends DimwitTest:
     trait Classes derives Label
 
     object MLContext:
-      opaque type Logit = Float
-      opaque type Prob = Float
+      opaque type Logit = Float32
+      opaque type Prob = Float32
 
       def createLogits[L: Label](s: Shape1[L]): Tensor1[L, Logit] = Tensor(s).fill(0f)
       def createProbs[L: Label](s: Shape1[L]): Tensor1[L, Prob] = Tensor(s).fill(0f)

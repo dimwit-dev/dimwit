@@ -1,7 +1,6 @@
 package dimwit.tensor
 
 import dimwit.*
-import dimwit.Conversions.given
 import dimwit.tensor.TensorOps.Convolution.Padding
 import dimwit.stats.Normal
 

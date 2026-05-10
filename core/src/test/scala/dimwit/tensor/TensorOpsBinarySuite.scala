@@ -1,7 +1,7 @@
 package dimwit.tensor
 
 import dimwit.*
-import dimwit.Conversions.given
+
 class TensorOpsBinarySuite extends DimwitTest:
 
   val t2 = Tensor2(Axis[A], Axis[B]).fromArray(
@@ -32,8 +32,8 @@ class TensorOpsBinarySuite extends DimwitTest:
       (t2 / t2_2) shouldEqual Tensor.like(t2).fromArray(Array(5.0f, 5.0f, 6.0f, 5.0f))
 
     it("Comparisons (<, <=, >, >=)"):
-      (t2 < t2_2).asBoolean shouldEqual Tensor(t2.shape).fromArray(Array(false, false, false, false))
-      (t2 > t2_2).asBoolean shouldEqual Tensor(t2.shape).fromArray(Array(true, true, true, true))
+      (t2 < t2_2).asBool shouldEqual Tensor(t2.shape).fromArray(Array(false, false, false, false))
+      (t2 > t2_2).asBool shouldEqual Tensor(t2.shape).fromArray(Array(true, true, true, true))
 
     it("elementEquals"):
       (t2 `elementEquals` t2) shouldEqual Tensor(t2.shape).fromArray(Array(true, true, true, true))
@@ -50,5 +50,5 @@ class TensorOpsBinarySuite extends DimwitTest:
       (i2 * i2_2) shouldEqual Tensor.like(i2).fromArray(Array(20, 80, 150, 320))
 
     it("Comparisons (<, <=, >, >=)"):
-      (i2 < i2_2).asBoolean shouldEqual Tensor(i2.shape).fromArray(Array(false, false, false, false))
-      (i2 >= i2_2).asBoolean shouldEqual Tensor(i2.shape).fromArray(Array(true, true, true, true))
+      (i2 < i2_2).asBool shouldEqual Tensor(i2.shape).fromArray(Array(false, false, false, false))
+      (i2 >= i2_2).asBool shouldEqual Tensor(i2.shape).fromArray(Array(true, true, true, true))

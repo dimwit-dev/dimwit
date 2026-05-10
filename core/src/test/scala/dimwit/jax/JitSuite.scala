@@ -7,7 +7,7 @@ import me.shadaj.scalapy.py
 class JitSuite extends DimwitTest:
 
   it("jit compilation works correctly"):
-    def f(t: Tensor1[A, Float]): Tensor1[A, Float] =
+    def f(t: Tensor1[A, Float32]): Tensor1[A, Float32] =
       t * ((t +! 1f) /! 2f)
 
     val jitF = jit(f)
@@ -19,7 +19,7 @@ class JitSuite extends DimwitTest:
     res should approxEqual(jittedRes)
 
   it("jitDonating compilation works correctly"):
-    def f(t: Tensor1[A, Float]): Tensor1[A, Float] =
+    def f(t: Tensor1[A, Float32]): Tensor1[A, Float32] =
       t * ((t +! 1f) /! 2f)
 
     val (jitDonate, jitF, jitReclaim) = jitDonating(f)
@@ -32,7 +32,7 @@ class JitSuite extends DimwitTest:
     res should approxEqual(jittedRes)
 
   it("jitDonatingUnsafe compilation works correctly"):
-    def f(t: Tensor1[A, Float]): Tensor1[A, Float] =
+    def f(t: Tensor1[A, Float32]): Tensor1[A, Float32] =
       t * ((t +! 1f) /! 2f)
 
     val jitF = jitDonatingUnsafe(f)
@@ -55,7 +55,7 @@ class JitSuite extends DimwitTest:
 
     val tensor = Tensor(Shape1(Axis[A] -> 5)).fill(1f)
 
-    def complexFn(t: Tensor1[A, Float]): Tensor1[A, Float] =
+    def complexFn(t: Tensor1[A, Float32]): Tensor1[A, Float32] =
       (0 until 50).foldLeft(t) { (acc, _) => acc * ((acc +! 1f) /! 2f) }
 
     val jitComplexFn = jit(complexFn)
@@ -93,19 +93,19 @@ class JitSuite extends DimwitTest:
     // Prepare functions to test
 
     // One Param
-    def fi0r1(r1: Tensor1[A, Float]): Tensor1[A, Float] = r1 +! 1f
+    def fi0r1(r1: Tensor1[A, Float32]): Tensor1[A, Float32] = r1 +! 1f
     // Two Params
-    def fi1r1(p1: Tensor2[A, B, Float], r1: Tensor1[A, Float]): Tensor1[A, Float] = r1 + p1.sum(Axis[B])
-    def fi0r2(r1: Tensor1[A, Float], r2: Tensor1[A, Float]): (Tensor1[A, Float], Tensor1[A, Float]) = (r1 +! 1f, r2 *! 2f)
+    def fi1r1(p1: Tensor2[A, B, Float32], r1: Tensor1[A, Float32]): Tensor1[A, Float32] = r1 + p1.sum(Axis[B])
+    def fi0r2(r1: Tensor1[A, Float32], r2: Tensor1[A, Float32]): (Tensor1[A, Float32], Tensor1[A, Float32]) = (r1 +! 1f, r2 *! 2f)
     // Three Params
-    def fi2r1(p1: Tensor2[A, B, Float], p2: Tensor2[A, C, Float], r1: Tensor1[A, Float]): Tensor1[A, Float] = r1 + p1.sum(Axis[B]) + p2.sum(Axis[C])
-    def fi1r2(p1: Tensor2[A, B, Float], r1: Tensor1[A, Float], r2: Tensor1[A, Float]): (Tensor1[A, Float], Tensor1[A, Float]) = (r1 + p1.sum(Axis[B]), r2 *! 2f)
-    def fi0r3(r1: Tensor1[A, Float], r2: Tensor1[A, Float], r3: Tensor1[A, Float]): (Tensor1[A, Float], Tensor1[A, Float], Tensor1[A, Float]) = (r1 +! 1f, r2 *! 2f, r3 -! 3f)
+    def fi2r1(p1: Tensor2[A, B, Float32], p2: Tensor2[A, C, Float32], r1: Tensor1[A, Float32]): Tensor1[A, Float32] = r1 + p1.sum(Axis[B]) + p2.sum(Axis[C])
+    def fi1r2(p1: Tensor2[A, B, Float32], r1: Tensor1[A, Float32], r2: Tensor1[A, Float32]): (Tensor1[A, Float32], Tensor1[A, Float32]) = (r1 + p1.sum(Axis[B]), r2 *! 2f)
+    def fi0r3(r1: Tensor1[A, Float32], r2: Tensor1[A, Float32], r3: Tensor1[A, Float32]): (Tensor1[A, Float32], Tensor1[A, Float32], Tensor1[A, Float32]) = (r1 +! 1f, r2 *! 2f, r3 -! 3f)
     // Four Params
-    def fi3r1(p1: Tensor2[A, B, Float], p2: Tensor2[A, C, Float], p3: Tensor2[A, D, Float], r1: Tensor1[A, Float]): Tensor1[A, Float] = r1 + p1.sum(Axis[B]) + p2.sum(Axis[C]) + p3.sum(Axis[D])
-    def fi2r2(p1: Tensor2[A, B, Float], p2: Tensor2[A, C, Float], r1: Tensor1[A, Float], r2: Tensor1[A, Float]): (Tensor1[A, Float], Tensor1[A, Float]) = (r1 + p1.sum(Axis[B]), r2 * p2.sum(Axis[C]))
-    def fi1r3(p1: Tensor2[A, B, Float], r1: Tensor1[A, Float], r2: Tensor1[A, Float], r3: Tensor1[A, Float]): (Tensor1[A, Float], Tensor1[A, Float], Tensor1[A, Float]) = (r1 + p1.sum(Axis[B]), r2 *! 2f, r3 -! 3f)
-    def fi0r4(r1: Tensor1[A, Float], r2: Tensor1[A, Float], r3: Tensor1[A, Float], r4: Tensor1[A, Float]): (Tensor1[A, Float], Tensor1[A, Float], Tensor1[A, Float], Tensor1[A, Float]) = (r1 +! 1f, r2 *! 2f, r3 -! 3f, r4 /! 4f)
+    def fi3r1(p1: Tensor2[A, B, Float32], p2: Tensor2[A, C, Float32], p3: Tensor2[A, D, Float32], r1: Tensor1[A, Float32]): Tensor1[A, Float32] = r1 + p1.sum(Axis[B]) + p2.sum(Axis[C]) + p3.sum(Axis[D])
+    def fi2r2(p1: Tensor2[A, B, Float32], p2: Tensor2[A, C, Float32], r1: Tensor1[A, Float32], r2: Tensor1[A, Float32]): (Tensor1[A, Float32], Tensor1[A, Float32]) = (r1 + p1.sum(Axis[B]), r2 * p2.sum(Axis[C]))
+    def fi1r3(p1: Tensor2[A, B, Float32], r1: Tensor1[A, Float32], r2: Tensor1[A, Float32], r3: Tensor1[A, Float32]): (Tensor1[A, Float32], Tensor1[A, Float32], Tensor1[A, Float32]) = (r1 + p1.sum(Axis[B]), r2 *! 2f, r3 -! 3f)
+    def fi0r4(r1: Tensor1[A, Float32], r2: Tensor1[A, Float32], r3: Tensor1[A, Float32], r4: Tensor1[A, Float32]): (Tensor1[A, Float32], Tensor1[A, Float32], Tensor1[A, Float32], Tensor1[A, Float32]) = (r1 +! 1f, r2 *! 2f, r3 -! 3f, r4 /! 4f)
 
     // Prepare test data (def so tests are independent as donating can destroy internal data)
 

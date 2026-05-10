@@ -2,7 +2,6 @@ package examples.basic
 
 import dimwit.*
 import dimwit.autodiff.*
-import dimwit.Conversions.given
 import nn.*
 import nn.ActivationFunctions.{relu, sigmoid}
 import dimwit.random.Random
@@ -11,9 +10,9 @@ import examples.timed
 import examples.dataset.MNISTLoader
 
 def binaryCrossEntropy[L: Label](
-    logits: Tensor1[L, Float],
-    label: Tensor0[Int]
-): Tensor0[Float] =
+    logits: Tensor1[L, Float32],
+    label: Tensor0[Int32]
+): Tensor0[Float32] =
   val maxLogit = logits.max
   val stableExp = (logits -! maxLogit).exp
   val logSumExp = stableExp.sum.log + maxLogit
@@ -47,18 +46,18 @@ object MLPClassifierMNist:
           layer2 = LinearLayer.Params(key2)(layer2Dim, outputDim)
         )
 
-  case class MLP(params: MLP.Params) extends Function[Tensor2[Height, Width, Float], Tensor0[Int]]:
+  case class MLP(params: MLP.Params) extends Function[Tensor2[Height, Width, Float32], Tensor0[Int32]]:
 
     private val layer1 = LinearLayer(params.layer1)
     private val layer2 = LinearLayer(params.layer2)
 
     def logits(
-        image: Tensor2[Height, Width, Float]
-    ): Tensor1[Output, Float] =
+        image: Tensor2[Height, Width, Float32]
+    ): Tensor1[Output, Float32] =
       val hidden = relu(layer1(image.flatten))
       layer2(hidden)
 
-    override def apply(image: Tensor2[Height, Width, Float]): Tensor0[Int] = logits(image).argmax(Axis[Output])
+    override def apply(image: Tensor2[Height, Width, Float32]): Tensor0[Int32] = logits(image).argmax(Axis[Output])
 
   def main(args: Array[String]): Unit =
 
@@ -74,9 +73,9 @@ object MLPClassifierMNist:
     val (trainX, trainY) = MNISTLoader.createTrainingDataset(maxSamples = Some(numSamples)).get
     val (testX, testY) = MNISTLoader.createTestDataset(maxSamples = Some(numTestSamples)).get
 
-    def batchLoss(batchImages: Tensor[(TrainSample, Height, Width), Float], batchLabels: Tensor1[TrainSample, Int])(
+    def batchLoss(batchImages: Tensor[(TrainSample, Height, Width), Float32], batchLabels: Tensor1[TrainSample, Int32])(
         params: MLP.Params
-    ): Tensor0[Float] =
+    ): Tensor0[Float32] =
       val model = MLP(params)
       val losses = zipvmap(Axis[TrainSample])(batchImages, batchLabels):
         case (image, label) =>
@@ -90,11 +89,11 @@ object MLPClassifierMNist:
     )(initKey)
 
     def accuracy[S: Label](
-        predictions: Tensor1[S, Int],
-        targets: Tensor1[S, Int]
-    ): Tensor0[Float] =
+        predictions: Tensor1[S, Int32],
+        targets: Tensor1[S, Int32]
+    ): Tensor0[Float32] =
       val matches = zipvmap(Axis[S])(predictions, targets)(_ === _)
-      matches.asFloat.mean
+      matches.asFloat32.mean
 
     // val optimizer = GradientDescent(learningRate = Tensor0(1e-4f))
     // type OptState = Unit
@@ -106,8 +105,8 @@ object MLPClassifierMNist:
     type OptState = AdamState[MLP.Params]
 
     def gradientStep(
-        imageBatch: Tensor[(TrainSample, Height, Width), Float],
-        labelBatch: Tensor1[TrainSample, Int],
+        imageBatch: Tensor[(TrainSample, Height, Width), Float32],
+        labelBatch: Tensor1[TrainSample, Int32],
         params: MLP.Params,
         state: OptState
     ): (MLP.Params, OptState) =
@@ -117,8 +116,8 @@ object MLPClassifierMNist:
     val (jitDonate, jitStep, jitReclaim) = jitDonating(gradientStep)
 
     def miniBatchGradientDescent(
-        imageBatches: Seq[Tensor[(TrainSample, Height, Width), Float]],
-        labelBatches: Seq[Tensor1[TrainSample, Int]]
+        imageBatches: Seq[Tensor[(TrainSample, Height, Width), Float32]],
+        labelBatches: Seq[Tensor1[TrainSample, Int32]]
     )(
         params: MLP.Params,
         initialState: OptState
@@ -127,12 +126,12 @@ object MLPClassifierMNist:
         .zip(labelBatches)
         .foldLeft(jitDonate(params, initialState)):
           case ((currentParams, state), (imageBatch, labelBatch)) =>
-            jitStep(imageBatch, labelBatch, currentParams, state)
+            jitStep(imageBatch, labelBatch.asInt32, currentParams, state)
       jitReclaim(res)
 
     val trainMiniBatchGradientDescent = miniBatchGradientDescent(
       trainX.chunk(Axis[TrainSample], numSamples / batchSize),
-      trainY.chunk(Axis[TrainSample], numSamples / batchSize)
+      trainY.asInt32.chunk(Axis[TrainSample], numSamples / batchSize)
     )
     val trainTrajectory = Iterator.iterate((initParams, optimizer.init(initParams))): (currentParams, state) =>
       timed("Training"):
@@ -140,19 +139,19 @@ object MLPClassifierMNist:
         trainMiniBatchGradientDescent(currentParams, state)
     def evaluate[S <: Sample: Label](
         params: MLP.Params,
-        dataX: Tensor3[S, Height, Width, Float],
-        dataY: Tensor1[S, Int]
-    ): Tensor0[Float] =
+        dataX: Tensor3[S, Height, Width, Float32],
+        dataY: Tensor1[S, Int32]
+    ): Tensor0[Float32] =
       val model = MLP(params)
       val predictions = dataX.vmap(Axis[S])(model)
-      accuracy(predictions, dataY)
+      accuracy(predictions, dataY.asInt32)
     val jitEvaluate = evaluate
     val (finalParams, finalState) = trainTrajectory.zipWithIndex
       .tapEach:
         case ((params, state), epoch) =>
           timed("Evaluation"):
-            val testAccuracy = evaluate(params, testX, testY)
-            val trainAccuracy = evaluate(params, trainX, trainY)
+            val testAccuracy = evaluate(params, testX, testY.asInt32)
+            val trainAccuracy = evaluate(params, trainX, trainY.asInt32)
             println(
               List(
                 s"Epoch $epoch",

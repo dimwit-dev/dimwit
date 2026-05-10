@@ -1,7 +1,6 @@
 package dimwit.tensor
 
 import dimwit.*
-import dimwit.Conversions.given
 import dimwit.tensor.Labels.concat
 import scala.compiletime.testing.typeCheckErrors
 
@@ -178,7 +177,7 @@ class TensorOpsStructureSuite extends DimwitTest:
       ab should approxEqual(ab2)
 
     it("generic shape in function"):
-      def f[T <: Tuple: Labels](t: Tensor[T, Float]): Tensor[T, Float] =
+      def f[T <: Tuple: Labels](t: Tensor[T, Float32]): Tensor[T, Float32] =
         val unflattened = t.flatten
         unflattened.unflatten(t.shape)
 

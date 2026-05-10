@@ -7,32 +7,32 @@ import dimwit.jax.Jax.scipy_stats as jstats
 import dimwit.jax.Jax.PyDynamic
 import dimwit.tensor.TensorOps
 
-opaque type LogProb = Float
-opaque type Prob = Float
+opaque type LogProb = Float32
+opaque type Prob = Float32
 
 object LogProb:
 
-  given IsFloating[LogProb] = summon[IsFloating[Float]]
+  given IsFloating[LogProb] = summon[IsFloating[Float32]]
 
-  def apply[T <: Tuple: Labels](t: Tensor[T, Float]): Tensor[T, LogProb] = t
+  def apply[T <: Tuple: Labels](t: Tensor[T, Float32]): Tensor[T, LogProb] = t
 
   extension [T <: Tuple: Labels](t: Tensor[T, LogProb])
 
     def exp: Tensor[T, Prob] = TensorOps.exp(t)
-    def log: Tensor[T, Float] = TensorOps.log(t) // Lose LogProb if we log again
-    def asFloat: Tensor[T, Float] = t
+    def log: Tensor[T, Float32] = TensorOps.log(t) // Lose LogProb if we log again
+    def asFloat: Tensor[T, Float32] = t
 
 object Prob:
 
-  given IsFloating[Prob] = summon[IsFloating[Float]]
+  given IsFloating[Prob] = summon[IsFloating[Float32]]
 
-  def apply[T <: Tuple: Labels](t: Tensor[T, Float]): Tensor[T, Prob] = t
+  def apply[T <: Tuple: Labels](t: Tensor[T, Float32]): Tensor[T, Prob] = t
 
   extension [T <: Tuple: Labels](t: Tensor[T, Prob])
 
-    def exp: Tensor[T, Float] = TensorOps.exp(t) // Lose Prob if we exp again
+    def exp: Tensor[T, Float32] = TensorOps.exp(t) // Lose Prob if we exp again
     def log: Tensor[T, LogProb] = TensorOps.log(t)
-    def asFloat: Tensor[T, Float] = t
+    def asFloat: Tensor[T, Float32] = t
 
 trait Distribution[EventShape <: Tuple: Labels, V]:
 
@@ -58,7 +58,7 @@ trait Distribution[EventShape <: Tuple: Labels, V]:
   * @tparam EventShape Shape of the tensor of independent values
   * @tparam V Value type
   */
-trait IndependentDistribution[EventShape <: Tuple: Labels, V: ExecutionType] extends Distribution[EventShape, V]:
+trait IndependentDistribution[EventShape <: Tuple: Labels, V] extends Distribution[EventShape, V]:
 
   /** Element-wise log probabilities (primitive operation) */
   def elementWiseLogProb(x: Tensor[EventShape, V]): Tensor[EventShape, LogProb]
@@ -78,7 +78,7 @@ object IndependentDistribution:
     * Each element of the resulting tensor is an independent sample from
     * the same univariate distribution.
     */
-  def fromUnivariate[EventShape <: Tuple: Labels, V: ExecutionType](
+  def fromUnivariate[EventShape <: Tuple: Labels, V](
       shape: Shape[EventShape],
       univariate: UnivariateDistribution[V]
   ): IndependentDistribution[EventShape, V] =

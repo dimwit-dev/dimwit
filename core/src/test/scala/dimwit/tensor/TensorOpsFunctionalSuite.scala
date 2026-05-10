@@ -2,6 +2,7 @@ package dimwit.tensor
 
 import dimwit.*
 import dimwit.Conversions.given
+
 class TensorOpsFunctionalSuite extends DimwitTest:
 
   val t2 = Tensor2(Axis[A], Axis[B]).fromArray(
@@ -26,18 +27,18 @@ class TensorOpsFunctionalSuite extends DimwitTest:
       res shouldEqual Tensor1(Axis[B]).fromArray(Array(4.0f, 6.0f))
 
     it("nested vmap"):
-      val res = t2.vmap(Axis[A])(_.vmap(Axis[B])(_ => 0.0f))
+      val res = t2.vmap(Axis[A])(_.vmap(Axis[B])(_ => Tensor0(0.0f)))
       res shouldEqual Tensor.like(t2).fill(0.0f)
 
   describe("zipvmap (Parallel Mapping)"):
 
-    def l2[L: Label](v1: Tensor1[L, Float], v2: Tensor1[L, Float]): Tensor0[Float] = (v1 - v2).pow(2.0f).sum.sqrt
+    def l2[L: Label](v1: Tensor1[L, Float32], v2: Tensor1[L, Float32]): Tensor0[Float32] = (v1 - v2).pow(2.0f).sum.sqrt
 
     it("zipvmap f should get correct runtime shape."):
       val t1 = Tensor(Shape(Axis[A] -> 2, Axis[B] -> 3)).fill(0f)
       val t2 = Tensor(Shape(Axis[A] -> 2, Axis[B] -> 3)).fill(0f)
       val shapesCorrect = zipvmap(Axis[A])(t1, t2): (v1, v2) =>
-        v1.shape == Shape(Axis[B] -> 3) && v2.shape == Shape(Axis[B] -> 3)
+        Tensor0(v1.shape == Shape(Axis[B] -> 3) && v2.shape == Shape(Axis[B] -> 3))
       shapesCorrect.all.item shouldBe true
 
     it("zipvmap2 adds two tensors"):
@@ -60,7 +61,7 @@ class TensorOpsFunctionalSuite extends DimwitTest:
 
   describe("vapply (Axis-wise application)"):
 
-    def l2[L: Label](v1: Tensor1[L, Float], v2: Tensor1[L, Float]): Tensor0[Float] = (v1 - v2).pow(2.0f).sum.sqrt
+    def l2[L: Label](v1: Tensor1[L, Float32], v2: Tensor1[L, Float32]): Tensor0[Float32] = (v1 - v2).pow(2.0f).sum.sqrt
 
     it("vapply(identity) is identity"):
       t2.vapply(Axis[A])(identity) shouldEqual t2

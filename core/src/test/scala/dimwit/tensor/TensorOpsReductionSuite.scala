@@ -1,7 +1,7 @@
 package dimwit.tensor
 
 import dimwit.*
-import dimwit.Conversions.given
+
 class TensorOpsReductionSuite extends DimwitTest:
 
   val t2 = Tensor2(
@@ -179,10 +179,9 @@ class TensorOpsReductionSuite extends DimwitTest:
       val allFalse = Tensor.like(b2).fill(false)
       allFalse.any shouldEqual Tensor0(false)
 
-  describe("Approximate Equality") {
+  describe("Approximate Equality"):
     it("approxEquals"):
       val t2Near = t2 *! Tensor0(1.0000001f)
       t2.approxEquals(t2Near).item shouldBe true
       val t2Far = t2 *! Tensor0(1.1f)
       t2.approxEquals(t2Far).item shouldBe false
-  }
