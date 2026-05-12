@@ -65,9 +65,9 @@ def main =
     val t_i32: Tensor1[A, Int32] = Tensor1(Axis[A]).fromArray(array)
     val t_b: Tensor[Tuple1[A], Bool] = t_i32.asBool
     val t_f32_1: Tensor[Tuple1[A], Float32] = t_i32.asFloat32
-    val t_f32_2: Tensor[Tuple1[A], Float32] = t_i32.asFloat[Float32]
-    val t_f64: Tensor[Tuple1[A], Float64] = t_i32.asFloat[Float64]
+    val t_f32_2: Tensor[Tuple1[A], Float32] = t_i32.asFloat(VType[Float32])
+    val t_f64: Tensor[Tuple1[A], Float64] = t_i32.asFloat(VType[Float64])
 
     class ExampleScope[V: IsFloating]:
-      def castToFloat(t: Tensor0[Int32]): Tensor0[V] = t.asFloat[V]
+      def castToFloat(t: Tensor0[Int32]): Tensor0[V] = t.asFloat(VType[V])
   }

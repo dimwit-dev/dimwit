@@ -308,7 +308,7 @@ class DistributionSuite extends DimwitTest:
         Jax.jnp.bincount(samples.jaxValue, minlength = 4).astype(Jax.jnp.float32)
       )
       val frequencies = counts *! (1.0f / numSamples.toFloat)
-      frequencies should approxEqual(probs.asFloat, 0.02f)
+      frequencies should approxEqual(probs.asFloat32, 0.02f)
 
   describe("Beta"):
     it("logProbs matches JAX"):

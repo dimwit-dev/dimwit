@@ -78,7 +78,7 @@ object IndependentDistribution:
     * Each element of the resulting tensor is an independent sample from
     * the same univariate distribution.
     */
-  def fromUnivariate[EventShape <: Tuple: Labels, V: ExecutionType](
+  def fromUnivariate[EventShape <: Tuple: Labels, V](
       shape: Shape[EventShape],
       univariate: UnivariateDistribution[V]
   ): IndependentDistribution[EventShape, V] =

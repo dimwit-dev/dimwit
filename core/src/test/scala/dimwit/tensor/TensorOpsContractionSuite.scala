@@ -1,7 +1,6 @@
 package dimwit.tensor
 
 import dimwit.*
-import dimwit.Conversions.given
 class TensorOpsContractionSuite extends DimwitTest:
 
   val v1 = Tensor1(Axis[A]).fromArray(

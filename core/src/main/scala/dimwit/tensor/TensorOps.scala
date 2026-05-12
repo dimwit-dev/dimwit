@@ -38,6 +38,9 @@ object TensorOps:
 
   import TensorOpsUtil.*
 
+  sealed trait HasDType[V]:
+    def dtype: DType
+
   @implicitNotFound("Operation only valid for Numeric (Int or Float) tensors.")
   sealed trait IsNumber[V]
 
@@ -51,7 +54,7 @@ object TensorOps:
     given [V](using ev2: IsInteger[V]): IsNumber[V] = ev2
 
   @implicitNotFound("Operation only valid for Floating tensors.")
-  trait IsFloating[V] extends IsNumber[V]:
+  trait IsFloating[V] extends IsNumber[V], HasDType[V]:
     def dtype: DType
 
   object IsFloating:
@@ -64,11 +67,11 @@ object TensorOps:
     def apply[V](using ev: IsBoolean[V]): IsBoolean[V] = ev
 
   @implicitNotFound("Operation only valid for Integer tensors.")
-  trait IsInteger[V] extends IsNumber[V]:
+  trait IsInteger[V] extends IsNumber[V], HasDType[V]:
     def dtype: DType
 
   @implicitNotFound("Operation only valid for Boolean tensors.")
-  trait IsBoolean[V]:
+  trait IsBoolean[V] extends HasDType[V]:
     def dtype: DType
 
   // -----------------------------------------------------------
@@ -98,11 +101,11 @@ object TensorOps:
         Tensor(jaxValue = Jax.jnp.equal(t.jaxValue, other.jaxValue))
 
       def asBool: Tensor[T, Bool] = t.asType(VType[Bool])
-      def asBoolean[NewV: IsBoolean]: Tensor[T, NewV] = t.asType(VType[NewV])
+      def asBoolean[NewV: IsBoolean](vtype: VType[NewV]): Tensor[T, NewV] = t.asType(vtype)
       def asInt32: Tensor[T, Int32] = t.asType(VType[Int32])
-      def asInt[NewV: IsInteger]: Tensor[T, NewV] = t.asType(VType[NewV])
+      def asInt[NewV: IsInteger](vtype: VType[NewV]): Tensor[T, NewV] = t.asType(vtype)
       def asFloat32: Tensor[T, Float32] = t.asType(VType[Float32])
-      def asFloat[NewV: IsFloating]: Tensor[T, NewV] = t.asType(VType[NewV])
+      def asFloat[NewV: IsFloating](vtype: VType[NewV]): Tensor[T, NewV] = t.asType(vtype)
 
     // ---------------------------------------------------------
     // IsNumber operations (IsFloat or IsInt)
@@ -139,7 +142,11 @@ object TensorOps:
 
       def abs: Tensor[T, V] = Tensor(Jax.jnp.abs(t.jaxValue))
       def sign: Tensor[T, V] = Tensor(Jax.jnp.sign(t.jaxValue))
+      def clip(min: Float, max: Float): Tensor[T, V] = Tensor(Jax.jnp.clip(t.jaxValue, min, max))
+      def clip(min: Tensor0[V], max: Float): Tensor[T, V] = Tensor(Jax.jnp.clip(t.jaxValue, min.jaxValue, max))
+      def clip(min: Float, max: Tensor0[V]): Tensor[T, V] = Tensor(Jax.jnp.clip(t.jaxValue, min, max.jaxValue))
       def clip(min: Tensor0[V], max: Tensor0[V]): Tensor[T, V] = Tensor(Jax.jnp.clip(t.jaxValue, min.jaxValue, max.jaxValue))
+      def pow(n: Float): Tensor[T, V] = Tensor(Jax.jnp.power(t.jaxValue, n))
       def pow(n: Tensor0[V]): Tensor[T, V] = Tensor(Jax.jnp.power(t.jaxValue, n.jaxValue))
 
     // ---------------------------------------------------------
@@ -322,7 +329,7 @@ object TensorOps:
     extension [S1: Label, InChannel: Label, V: IsFloating](input: Tensor[S1 *: InChannel *: EmptyTuple, V])
 
       def conv1d[OutChannel: Label](
-          kernel: Tensor[S1 *: InChannel *: OutChannel *: EmptyTuple, Float],
+          kernel: Tensor[S1 *: InChannel *: OutChannel *: EmptyTuple, V],
           stride: Stride1[S1] | Int = 1,
           padding: Padding = Padding.SAME
       ): Tensor[S1 *: OutChannel *: EmptyTuple, V] =
@@ -348,7 +355,7 @@ object TensorOps:
     extension [S1: Label, OutChannel: Label, V: IsFloating](input: Tensor[S1 *: OutChannel *: EmptyTuple, V])
 
       def transposeConv1d[InChannel: Label](
-          kernel: Tensor[S1 *: InChannel *: OutChannel *: EmptyTuple, Float],
+          kernel: Tensor[S1 *: InChannel *: OutChannel *: EmptyTuple, V],
           stride: Stride1[S1] | Int = 1,
           padding: Padding = Padding.SAME
       ): Tensor[S1 *: InChannel *: EmptyTuple, V] =
@@ -380,7 +387,7 @@ object TensorOps:
     extension [S1: Label, S2: Label, InChannel: Label, V: IsFloating](input: Tensor[S1 *: S2 *: InChannel *: EmptyTuple, V])
 
       def conv2d[OutChannel: Label](
-          kernel: Tensor[S1 *: S2 *: InChannel *: OutChannel *: EmptyTuple, Float],
+          kernel: Tensor[S1 *: S2 *: InChannel *: OutChannel *: EmptyTuple, V],
           stride: Stride2[S1, S2] | Int = 1,
           padding: Padding = Padding.SAME
       ): Tensor[S1 *: S2 *: OutChannel *: EmptyTuple, V] =
@@ -406,7 +413,7 @@ object TensorOps:
     extension [S1: Label, S2: Label, OutChannel: Label, V: IsFloating](input: Tensor[S1 *: S2 *: OutChannel *: EmptyTuple, V])
 
       def transposeConv2d[InChannel: Label](
-          kernel: Tensor[S1 *: S2 *: InChannel *: OutChannel *: EmptyTuple, Float],
+          kernel: Tensor[S1 *: S2 *: InChannel *: OutChannel *: EmptyTuple, V],
           stride: Stride2[S1, S2] | Int = 1,
           padding: Padding = Padding.SAME
       ): Tensor[S1 *: S2 *: InChannel *: EmptyTuple, V] =
@@ -441,7 +448,7 @@ object TensorOps:
     extension [S1: Label, S2: Label, S3: Label, InChannel: Label, V: IsFloating](input: Tensor[S1 *: S2 *: S3 *: InChannel *: EmptyTuple, V])
 
       def conv3d[OutChannel: Label](
-          kernel: Tensor[S1 *: S2 *: S3 *: InChannel *: OutChannel *: EmptyTuple, Float],
+          kernel: Tensor[S1 *: S2 *: S3 *: InChannel *: OutChannel *: EmptyTuple, V],
           stride: Stride3[S1, S2, S3] | Int = 1,
           padding: Padding = Padding.SAME
       ): Tensor[S1 *: S2 *: S3 *: OutChannel *: EmptyTuple, V] =
@@ -469,7 +476,7 @@ object TensorOps:
     extension [S1: Label, S2: Label, S3: Label, OutChannel: Label, V: IsFloating](input: Tensor[S1 *: S2 *: S3 *: OutChannel *: EmptyTuple, V])
 
       def transposeConv3d[InChannel: Label](
-          kernel: Tensor[S1 *: S2 *: S3 *: InChannel *: OutChannel *: EmptyTuple, Float],
+          kernel: Tensor[S1 *: S2 *: S3 *: InChannel *: OutChannel *: EmptyTuple, V],
           stride: Stride3[S1, S2, S3] | Int = 1,
           padding: Padding = Padding.SAME
       ): Tensor[S1 *: S2 *: S3 *: InChannel *: EmptyTuple, V] =
@@ -1073,6 +1080,18 @@ object TensorOps:
         val result = tensor.jaxValue.at.bracketAccess(pyIndices).set(value.jaxValue)
         Tensor(result)
 
+      // Convenience overload for Float
+      def set[Inputs <: Tuple, LabelsToRemove <: Tuple](
+          inputs: Inputs
+      )(using
+          sliceExtractor: SliceLabelExtractor[Inputs, LabelsToRemove],
+          ev: AxesConditionalRemover[T, LabelsToRemove, ExtractLabels[Inputs], EmptyTuple],
+          labels: Labels[T]
+      )(value: Float): Tensor[T, V] =
+        val pyIndices = tensor.calcPyIndices(inputs, ev.indices)
+        val result = tensor.jaxValue.at.bracketAccess(pyIndices).set(value)
+        Tensor(result)
+
       // Convenience overload for AxisAtIndex
       def set[L, LabelsToRemove <: Tuple, R <: Tuple](
           selector: AxisAtIndex[L]
@@ -1469,25 +1488,21 @@ object TensorOps:
       def /(scalar: Tensor0[V]): Tensor0[V] = TensorOps.divide(t, scalar)
       def /(scalar: Float): Tensor0[V] = TensorOps.divide(t, Tensor0.likeDType(t)(scalar))
 
-    /*
-    extension [V: IsNumber: Writer](scalar: V)
+    extension (scalar: Float)
 
-      def +![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] =
-        given ExecutionType[V] = ExecutionTypeFor[V](t.dtype)
-        Tensor0(scalar).broadcastTo(t.shape) + t
-      def -![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] =
-        given ExecutionType[V] = ExecutionTypeFor[V](t.dtype)
-        Tensor0(scalar).broadcastTo(t.shape) - t
-      def *![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] =
-        given ExecutionType[V] = ExecutionTypeFor[V](t.dtype)
-        Tensor0(scalar).broadcastTo(t.shape) * t
-     
-    extension [V: IsFloating: Writer](scalar: V)
+      def +[V: IsNumber](t: Tensor0[V]): Tensor0[V] = add(Tensor0.likeDType(t)(scalar), t)
+      def +![T <: Tuple: Labels, V: IsNumber](t: Tensor[T, V])(using bc: Broadcast[EmptyTuple, T, V]): Tensor[bc.Out, V] = bc.applyTo(Tensor0.likeDType(t)(scalar), t)(add)
 
-      def /![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] =
-        given ExecutionType[V] = ExecutionTypeFor[V](t.dtype)
-        Tensor0(scalar).broadcastTo(t.shape) / t
-     */
+      def -[V: IsNumber](t: Tensor0[V]): Tensor0[V] = subtract(Tensor0.likeDType(t)(scalar), t)
+      def -![T <: Tuple: Labels, V: IsNumber](t: Tensor[T, V])(using bc: Broadcast[EmptyTuple, T, V]): Tensor[bc.Out, V] = bc.applyTo(Tensor0.likeDType(t)(scalar), t)(subtract)
+
+      def *[V: IsNumber](t: Tensor0[V]): Tensor0[V] = multiply(Tensor0.likeDType(t)(scalar), t)
+      def *![T <: Tuple: Labels, V: IsNumber](t: Tensor[T, V])(using bc: Broadcast[EmptyTuple, T, V]): Tensor[bc.Out, V] = bc.applyTo(Tensor0.likeDType(t)(scalar), t)(multiply)
+
+    extension (scalar: Float)
+
+      def /[V: IsFloating](t: Tensor0[V]): Tensor0[V] = divide(Tensor0.likeDType(t)(scalar), t)
+      def /![T <: Tuple: Labels, V: IsFloating](t: Tensor[T, V])(using bc: Broadcast[EmptyTuple, T, V]): Tensor[bc.Out, V] = bc.applyTo(Tensor0.likeDType(t)(scalar), t)(divide)
 
   object Tensor1Ops:
 

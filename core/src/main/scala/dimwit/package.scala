@@ -65,7 +65,6 @@ package object dimwit:
 
   export dimwit.tensor.{
     VType,
-    ExecutionType,
     Label,
     Labels,
     Axis,

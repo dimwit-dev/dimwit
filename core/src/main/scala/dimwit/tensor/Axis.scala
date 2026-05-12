@@ -1,6 +1,7 @@
 package dimwit.tensor
 
 import dimwit.|*|
+import dimwit.tensor.DType.Int32
 
 import scala.compiletime.{constValue, erasedValue, summonInline}
 
@@ -14,7 +15,7 @@ final class Axis[L: Label]:
   def at(index: Int): AxisAtIndex[L] = AxisAtIndex(this, index)
   def at(range: Range): AxisAtRange[L] = AxisAtRange(this, range)
   def at(indices: Seq[Int]): AxisAtIndices[L] = AxisAtIndices(this, indices)
-  def at(index: Tensor0[Int]): AxisAtTensorIndex[L] = AxisAtTensorIndex(this, index)
+  def at(index: Tensor0[Int32]): AxisAtTensorIndex[L] = AxisAtTensorIndex(this, index)
   def at[I <: NonEmptyTuple](indices: I): AxisAtTupleIndices[L, I] = AxisAtTupleIndices(this, indices)
   def as[U](newAxis: Axis[U]): (Axis[L], Axis[U]) = (this, newAxis)
 
@@ -45,7 +46,7 @@ case class AxisAtRange[L](axis: Axis[L], range: Range) extends AxisSelector[L]
 case class AxisAtIndices[L](axis: Axis[L], indices: Seq[Int]) extends AxisSelector[L]
 
 /* Represent an axis selection by a tensor containing indices. This allows for dynamic indexing based on the contents of the tensor. */
-case class AxisAtTensorIndex[L](axis: Axis[L], index: Tensor0[Int]) extends AxisSelector[L]
+case class AxisAtTensorIndex[L](axis: Axis[L], index: Tensor0[Int32]) extends AxisSelector[L]
 
 /* Represent an axis selection by a tuple containing indices. */
 case class AxisAtTupleIndices[L, I <: NonEmptyTuple](axis: Axis[L], indices: I) extends AxisSelector[L]

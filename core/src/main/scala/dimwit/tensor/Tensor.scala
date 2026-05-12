@@ -5,7 +5,7 @@ import scala.compiletime.{erasedValue, summonFrom}
 import dimwit.jax.Jax
 import dimwit.jax.JaxDType
 import dimwit.jax.Jax.PyDynamic
-import dimwit.tensor.{Label, Labels, ExecutionType, VType}
+import dimwit.tensor.{Label, Labels, VType}
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
 import dimwit.random.Random
@@ -227,25 +227,27 @@ object Tensor2:
 
   case class TypedFactory[L1: Label, L2: Label, V](axis1: Axis[L1], axis2: Axis[L2], vtype: VType[V]):
 
+    private def createShape[V](values: Array2D[V]): Shape2[L1, L2] = Shape2(AxisExtent(axis1, values.length), AxisExtent(axis2, values.head.length))
+
     // --- Boolean ---
-    def fromArray(values: Array2D[Boolean])(using IsBoolean[V]): Tensor2[L1, L2, V] = ???
+    def fromArray(values: Array2D[Boolean])(using IsBoolean[V]): Tensor2[L1, L2, V] = Tensor(createShape(values), VType[V]).fromArray(values.flatten)
 
     // --- Integer ---
-    def fromArray(values: Array2D[Byte])(using IsInteger[V]): Tensor2[L1, L2, V] = ???
-    def fromArray(values: Array2D[Short])(using IsInteger[V]): Tensor2[L1, L2, V] = ???
-    def fromArray(values: Array2D[Int])(using IsInteger[V]): Tensor2[L1, L2, V] = ???
-    def fromArray(values: Array2D[Long])(using IsInteger[V]): Tensor2[L1, L2, V] = ???
+    def fromArray(values: Array2D[Byte])(using IsInteger[V]): Tensor2[L1, L2, V] = Tensor(createShape(values), VType[V]).fromArray(values.flatten)
+    def fromArray(values: Array2D[Short])(using IsInteger[V]): Tensor2[L1, L2, V] = Tensor(createShape(values), VType[V]).fromArray(values.flatten)
+    def fromArray(values: Array2D[Int])(using IsInteger[V]): Tensor2[L1, L2, V] = Tensor(createShape(values), VType[V]).fromArray(values.flatten)
+    def fromArray(values: Array2D[Long])(using IsInteger[V]): Tensor2[L1, L2, V] = Tensor(createShape(values), VType[V]).fromArray(values.flatten)
 
     // --- Floating ---
-    def fromArray(values: Array2D[Float])(using IsFloating[V]): Tensor2[L1, L2, V] = ???
-    def fromArray(values: Array2D[Double])(using IsFloating[V]): Tensor2[L1, L2, V] = ???
+    def fromArray(values: Array2D[Float])(using IsFloating[V]): Tensor2[L1, L2, V] = Tensor(createShape(values), VType[V]).fromArray(values.flatten)
+    def fromArray(values: Array2D[Double])(using IsFloating[V]): Tensor2[L1, L2, V] = Tensor(createShape(values), VType[V]).fromArray(values.flatten)
 
   def apply[L1: Label, L2: Label](axis1: Axis[L1], axis2: Axis[L2]): DefaultsFactory[L1, L2] = DefaultsFactory(axis1, axis2)
   def apply[L1: Label, L2: Label, V](axis1: Axis[L1], axis2: Axis[L2], vtype: VType[V]): TypedFactory[L1, L2, V] = TypedFactory(axis1, axis2, vtype)
 
-  private def eyeImpl[L: Label, V](dim: AxisExtent[L], dtype: DType): Tensor2[L, Prime[L], V] = Tensor(Jax.jnp.eye(dim.size, dtype = dtype.jaxType))
-  def eye[L: Label](dim: AxisExtent[L])(using et: ExecutionType[Float]): Tensor2[L, Prime[L], Float] = eyeImpl(dim, et.dtype)
-  def eye[L: Label, V](dim: AxisExtent[L], vtype: VType[V]): Tensor2[L, Prime[L], V] = eyeImpl(dim, vtype.dtype)
+  private def eyeImpl[L: Label, V](dim: AxisExtent[L], vtype: VType[V]): Tensor2[L, Prime[L], V] = Tensor(Jax.jnp.eye(dim.size, dtype = vtype.dtype.jaxType))
+  def eye[L: Label](dim: AxisExtent[L]): Tensor2[L, Prime[L], Float32] = eyeImpl(dim, VType[Float32])
+  def eye[L: Label, V](dim: AxisExtent[L], vtype: VType[V]): Tensor2[L, Prime[L], V] = eyeImpl(dim, vtype)
   def diag[L: Label, V](diag: Tensor1[L, V]): Tensor2[L, Prime[L], V] = Tensor(Jax.jnp.diag(diag.jaxValue))
 
 object Tensor3:
@@ -266,18 +268,20 @@ object Tensor3:
 
   case class TypedFactory[L1: Label, L2: Label, L3: Label, V](axis1: Axis[L1], axis2: Axis[L2], axis3: Axis[L3], vtype: VType[V]):
 
+    private def createShape[V](values: Array3D[V]): Shape3[L1, L2, L3] = Shape3(AxisExtent(axis1, values.length), AxisExtent(axis2, values.head.length), AxisExtent(axis3, values.head.head.length))
+
     // --- Boolean ---
-    def fromArray(values: Array3D[Boolean])(using IsBoolean[V]): Tensor3[L1, L2, L3, V] = ???
+    def fromArray(values: Array3D[Boolean])(using IsBoolean[V]): Tensor3[L1, L2, L3, V] = Tensor(createShape(values), VType[V]).fromArray(values.flatten.flatten)
 
     // --- Integer ---
-    def fromArray(values: Array3D[Byte])(using IsInteger[V]): Tensor3[L1, L2, L3, V] = ???
-    def fromArray(values: Array3D[Short])(using IsInteger[V]): Tensor3[L1, L2, L3, V] = ???
-    def fromArray(values: Array3D[Int])(using IsInteger[V]): Tensor3[L1, L2, L3, V] = ???
-    def fromArray(values: Array3D[Long])(using IsInteger[V]): Tensor3[L1, L2, L3, V] = ???
+    def fromArray(values: Array3D[Byte])(using IsInteger[V]): Tensor3[L1, L2, L3, V] = Tensor(createShape(values), VType[V]).fromArray(values.flatten.flatten)
+    def fromArray(values: Array3D[Short])(using IsInteger[V]): Tensor3[L1, L2, L3, V] = Tensor(createShape(values), VType[V]).fromArray(values.flatten.flatten)
+    def fromArray(values: Array3D[Int])(using IsInteger[V]): Tensor3[L1, L2, L3, V] = Tensor(createShape(values), VType[V]).fromArray(values.flatten.flatten)
+    def fromArray(values: Array3D[Long])(using IsInteger[V]): Tensor3[L1, L2, L3, V] = Tensor(createShape(values), VType[V]).fromArray(values.flatten.flatten)
 
     // --- Floating ---
-    def fromArray(values: Array3D[Float])(using IsFloating[V]): Tensor3[L1, L2, L3, V] = ???
-    def fromArray(values: Array3D[Double])(using IsFloating[V]): Tensor3[L1, L2, L3, V] = ???
+    def fromArray(values: Array3D[Float])(using IsFloating[V]): Tensor3[L1, L2, L3, V] = Tensor(createShape(values), VType[V]).fromArray(values.flatten.flatten)
+    def fromArray(values: Array3D[Double])(using IsFloating[V]): Tensor3[L1, L2, L3, V] = Tensor(createShape(values), VType[V]).fromArray(values.flatten.flatten)
 
   def apply[L1: Label, L2: Label, L3: Label](axis1: Axis[L1], axis2: Axis[L2], axis3: Axis[L3]): DefaultsFactory[L1, L2, L3] = DefaultsFactory(axis1, axis2, axis3)
 

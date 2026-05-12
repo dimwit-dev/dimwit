@@ -32,7 +32,7 @@ object Normal:
 
   /** Sample from standard normal distribution N(0, 1) */
   def standardSample(key: Random.Key): Tensor0[Float32] = new Normal(Tensor0(0f), Tensor0(1f)).sample(key)
-  def standardNormal[T <: Tuple: Labels, V: IsFloating](shape: Shape[T]): Normal[T, V] = Normal.standardIsotropic(shape, scale = Tensor0(VType[V])(1f))
+  def standardNormal[T <: Tuple: Labels](shape: Shape[T]): Normal[T, Float32] = Normal.standardIsotropic(shape, scale = Tensor0(VType[Float32])(1f))
 
 /** Uniform distribution */
 class Uniform[T <: Tuple: Labels, V: IsFloating](val low: Tensor[T, V], val high: Tensor[T, V]) extends IndependentDistribution[T, V]:
@@ -125,7 +125,7 @@ class HalfNormal[T <: Tuple: Labels, V: IsFloating](val loc: Tensor[T, V], val s
       Jax.jnp.log(2.0) + jstats.norm.logpdf(x.jaxValue, loc = loc.jaxValue, scale = scale.jaxValue)
     )
     val valid = x >= loc
-    val negInf = ??? // LogProb(Tensor.like(x).fill(Float.NegativeInfinity))
+    val negInf = LogProb(Tensor.like(x).fill(Float.NegativeInfinity).asFloat32)
     where(valid, rawLogProb, negInf)
 
   override def sample(k: Random.Key): Tensor[T, V] =

@@ -1,7 +1,6 @@
 package dimwit.tensor
 
 import dimwit.*
-import dimwit.Conversions.given
 class TensorOpsBroadcastSuite extends DimwitTest:
 
   val tA = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f))
