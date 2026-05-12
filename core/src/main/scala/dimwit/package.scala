@@ -88,6 +88,9 @@ package object dimwit:
   export dimwit.jax.Jit.{jit, jitDonating, jitDonatingUnsafe}
   export dimwit.jax.EagerCleanup.eagerCleanup
 
+  object Conversions:
+    export dimwit.tensor.Tensor0.{boolean2BooleanTensor, byte2IntegerTensor, short2IntegerTensor, int2IntegerTensor, long2IntegerTensor, float2FloatingTensor, int2FloatingTensor, double2FloatingTensor}
+
   // Export random object
   export dimwit.random.Random
   export dimwit.random.Random.Key

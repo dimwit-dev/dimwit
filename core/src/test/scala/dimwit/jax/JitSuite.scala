@@ -1,6 +1,7 @@
 package dimwit.jax
 
 import dimwit.*
+import dimwit.Conversions.given
 import me.shadaj.scalapy.py
 
 class JitSuite extends DimwitTest:

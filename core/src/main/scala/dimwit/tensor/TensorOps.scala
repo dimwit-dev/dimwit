@@ -130,23 +130,16 @@ object TensorOps:
     extension [T <: Tuple: Labels, V: IsNumber](t: Tensor[T, V])
 
       def +![O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, V] = bc.applyTo(t, other)(add)
-      def +!(other: Float)(using bc: Broadcast[T, EmptyTuple, V]): Tensor[bc.Out, V] = t +! Tensor0.likeDType(t)(other)
 
       def unary_- : Tensor[T, V] = negate(t)
       def -![O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, V] = bc.applyTo(t, other)(subtract)
-      def -!(other: Float)(using bc: Broadcast[T, EmptyTuple, V]): Tensor[bc.Out, V] = t -! Tensor0.likeDType(t)(other)
 
       def *![O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, V] = bc.applyTo(t, other)(multiply)
-      def *!(other: Float)(using bc: Broadcast[T, EmptyTuple, V]): Tensor[bc.Out, V] = t *! Tensor0.likeDType(t)(other)
       def scale(other: Tensor0[V]): Tensor[T, V] = multiplyScalar(t, other)
 
       def abs: Tensor[T, V] = Tensor(Jax.jnp.abs(t.jaxValue))
       def sign: Tensor[T, V] = Tensor(Jax.jnp.sign(t.jaxValue))
-      def clip(min: Float, max: Float): Tensor[T, V] = Tensor(Jax.jnp.clip(t.jaxValue, min, max))
-      def clip(min: Tensor0[V], max: Float): Tensor[T, V] = Tensor(Jax.jnp.clip(t.jaxValue, min.jaxValue, max))
-      def clip(min: Float, max: Tensor0[V]): Tensor[T, V] = Tensor(Jax.jnp.clip(t.jaxValue, min, max.jaxValue))
       def clip(min: Tensor0[V], max: Tensor0[V]): Tensor[T, V] = Tensor(Jax.jnp.clip(t.jaxValue, min.jaxValue, max.jaxValue))
-      def pow(n: Float): Tensor[T, V] = Tensor(Jax.jnp.power(t.jaxValue, n))
       def pow(n: Tensor0[V]): Tensor[T, V] = Tensor(Jax.jnp.power(t.jaxValue, n.jaxValue))
 
     // ---------------------------------------------------------
@@ -160,7 +153,6 @@ object TensorOps:
 
       def /(other: Tensor[T, V]): Tensor[T, V] = divide(t, other)
       def /![O <: Tuple](other: Tensor[O, V])(using join: Broadcast[T, O, V]): Tensor[join.Out, V] = join.applyTo(t, other)(divide)
-      def /!(other: Float)(using bc: Broadcast[T, EmptyTuple, V]): Tensor[bc.Out, V] = t /! Tensor0.likeDType(t)(other)
 
       def sqrt: Tensor[T, V] = Tensor(Jax.jnp.sqrt(t.jaxValue))
       def exp: Tensor[T, V] = Tensor(Jax.jnp.exp(t.jaxValue))
@@ -1477,16 +1469,12 @@ object TensorOps:
     extension [V: IsNumber](t: Tensor0[V])
 
       def +(t2: Tensor0[V]): Tensor0[V] = TensorOps.add(t, t2)
-      def +(scalar: Float): Tensor0[V] = TensorOps.add(t, Tensor0.likeDType(t)(scalar))
       def -(t2: Tensor0[V]): Tensor0[V] = TensorOps.subtract(t, t2)
-      def -(scalar: Float): Tensor0[V] = TensorOps.subtract(t, Tensor0.likeDType(t)(scalar))
       def *(t2: Tensor0[V]): Tensor0[V] = TensorOps.multiply(t, t2)
-      def *(scalar: Float): Tensor0[V] = TensorOps.multiply(t, Tensor0.likeDType(t)(scalar))
 
     extension [V: IsFloating](t: Tensor0[V])
 
       def /(scalar: Tensor0[V]): Tensor0[V] = TensorOps.divide(t, scalar)
-      def /(scalar: Float): Tensor0[V] = TensorOps.divide(t, Tensor0.likeDType(t)(scalar))
 
     extension (scalar: Float)
 

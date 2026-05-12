@@ -1,6 +1,7 @@
 package dimwit.tensor
 
 import dimwit.*
+import dimwit.Conversions.given
 
 class TensorOpsFunctionalSuite extends DimwitTest:
 

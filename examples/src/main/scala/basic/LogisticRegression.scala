@@ -1,6 +1,7 @@
 package examples.basic
 
 import dimwit.*
+import dimwit.Conversions.given
 import dimwit.autodiff.*
 import nn.*
 import nn.ActivationFunctions.{sigmoid, relu}

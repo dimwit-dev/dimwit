@@ -1,6 +1,7 @@
 package dimwit.stats
 
 import dimwit.*
+import dimwit.Conversions.given
 import dimwit.jax.Jax
 import dimwit.random.Random
 import dimwit.jax.Jax.scipy_stats as jstats

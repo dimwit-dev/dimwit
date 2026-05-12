@@ -1,6 +1,7 @@
 package examples.complex.nanoGPT
 
 import dimwit.*
+import dimwit.Conversions.given
 
 import nn.ActivationFunctions.*
 import dimwit.random.Random

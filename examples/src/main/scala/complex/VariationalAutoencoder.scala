@@ -3,6 +3,7 @@ package examples.complex.vae
 import examples.timed
 
 import dimwit.*
+import dimwit.Conversions.given
 import dimwit.autodiff.*
 import dimwit.autodiff.FloatTree.*
 import dimwit.stats.Normal

@@ -1,6 +1,7 @@
 package dimwit.tensor
 
 import dimwit.*
+
 class TensorOpsReductionSuite extends DimwitTest:
 
   val t2 = Tensor2(

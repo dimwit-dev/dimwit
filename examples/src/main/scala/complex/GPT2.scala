@@ -1,6 +1,7 @@
 package examples.complex
 
 import dimwit.*
+import dimwit.Conversions.given
 import dimwit.python.PyBridge.liftPyTensor
 
 import nn.ActivationFunctions.*

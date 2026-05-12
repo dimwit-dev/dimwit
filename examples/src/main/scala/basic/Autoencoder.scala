@@ -1,6 +1,7 @@
 package examples.basic.ae
 
 import dimwit.*
+import dimwit.Conversions.given
 
 import examples.timed
 import dimwit.stats.Normal

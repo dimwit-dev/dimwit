@@ -1,6 +1,7 @@
 package examples.basic.mnistcnn
 
 import dimwit.*
+import dimwit.Conversions.given
 import dimwit.autodiff.FloatTree.ops.*
 import nn.*
 import nn.ActivationFunctions.relu

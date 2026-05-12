@@ -1,6 +1,7 @@
 package dimwit.autodiff
 
 import dimwit.*
+import dimwit.Conversions.given
 import dimwit.autodiff.FloatTree.*
 import dimwit.autodiff.FloatTree.ops.*
 
