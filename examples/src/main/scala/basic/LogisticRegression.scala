@@ -2,7 +2,6 @@ package examples.basic
 
 import dimwit.*
 import dimwit.autodiff.*
-import dimwit.Conversions.given
 import nn.*
 import nn.ActivationFunctions.{sigmoid, relu}
 import dimwit.random.Random
@@ -17,33 +16,33 @@ object LogisticRegression:
   // Define a binary logistic regression model
   case class BinaryLogisticRegression(
       params: BinaryLogisticRegression.Params
-  ) extends Function[Tensor1[Feature, Float], Tensor0[Boolean]]:
+  ) extends Function[Tensor1[Feature, Float32], Tensor0[Bool]]:
 
-    def logits(input: Tensor1[Feature, Float]): Tensor0[Float] =
+    def logits(input: Tensor1[Feature, Float32]): Tensor0[Float32] =
       params.weights.dot(Axis[Feature])(input) + params.bias
 
-    def probits(input: Tensor1[Feature, Float]): Tensor0[Float] =
+    def probits(input: Tensor1[Feature, Float32]): Tensor0[Float32] =
       sigmoid(logits(input))
 
-    def apply(input: Tensor1[Feature, Float]): Tensor0[Boolean] =
+    def apply(input: Tensor1[Feature, Float32]): Tensor0[Bool] =
       logits(input) >= Tensor0(0f)
 
   // Parameters are, by convention, defined in the companion object
   object BinaryLogisticRegression:
     case class Params(
-        weights: Tensor1[Feature, Float],
-        bias: Tensor0[Float]
+        weights: Tensor1[Feature, Float32],
+        bias: Tensor0[Float32]
     ) derives TensorTree
 
     // The loss is a simple binary cross-entropy loss
-    def loss(data: Tensor2[Sample, Feature, Float], labels: Tensor1[Sample, Boolean])(params: BinaryLogisticRegression.Params)
-        : Tensor0[Float] =
+    def loss(data: Tensor2[Sample, Feature, Float32], labels: Tensor1[Sample, Bool])(params: BinaryLogisticRegression.Params)
+        : Tensor0[Float32] =
 
       // Create the model with the given parameters
       val model = BinaryLogisticRegression(params)
 
       // Compute the logistic loss for the model over the dataset
-      val losses = zipvmap(Axis[Sample])(data, labels.asFloat):
+      val losses = zipvmap(Axis[Sample])(data, labels.asFloat32):
         case (sample, label) =>
           val logits = model.logits(sample)
           relu(logits) - logits * label + ((-logits.abs).exp + 1f).log
@@ -97,7 +96,7 @@ object LogisticRegression:
     val trainLabels = labelsInitial.take(Axis[Sample])(trainPerm)
     val valLabels = labelsInitial.take(Axis[Sample])(testPerm)
 
-    def calcMeanAndStd(t: Tensor2[Sample, Feature, Float]): (Tensor1[Feature, Float], Tensor1[Feature, Float]) =
+    def calcMeanAndStd(t: Tensor2[Sample, Feature, Float32]): (Tensor1[Feature, Float32], Tensor1[Feature, Float32]) =
       val mean = t.vmap(Axis[Feature])(_.mean)
       val std = zipvmap(Axis[Feature])(t, mean):
         case (x, m) =>
@@ -105,8 +104,8 @@ object LogisticRegression:
           (x -! m).pow(2f).mean.sqrt + epsilon
       (mean, std)
 
-    def standardizeData(mean: Tensor1[Feature, Float], std: Tensor1[Feature, Float])(data: Tensor2[Sample, Feature, Float])
-        : Tensor2[Sample, Feature, Float] =
+    def standardizeData(mean: Tensor1[Feature, Float32], std: Tensor1[Feature, Float32])(data: Tensor2[Sample, Feature, Float32])
+        : Tensor2[Sample, Feature, Float32] =
       (data -! mean) /! std
 
     // Standardize the training and validation data
@@ -124,7 +123,7 @@ object LogisticRegression:
     val trainLoss = jit(BinaryLogisticRegression.loss(trainingData, trainLabels))
     val valLoss = jit(BinaryLogisticRegression.loss(valData, valLabels))
     val learningRate = 5e-1f
-    val gd = GradientDescent(learningRate)
+    val gd = GradientDescent(Tensor0(learningRate))
 
     // Training loop
     val numiterations = 1000
@@ -138,8 +137,8 @@ object LogisticRegression:
           println(
             List(
               "epoch: " + index,
-              "trainAcc: " + (1f - (trainPreds.asFloat - trainLabels.asFloat).abs.mean),
-              "valAcc: " + (1f - (valPreds.asFloat - valLabels.asFloat).abs.mean)
+              "trainAcc: " + (1f - (trainPreds.asFloat32 - trainLabels.asFloat32).abs.mean),
+              "valAcc: " + (1f - (valPreds.asFloat32 - valLabels.asFloat32).abs.mean)
             ).mkString(", ")
           )
       .map((params, _) => params)

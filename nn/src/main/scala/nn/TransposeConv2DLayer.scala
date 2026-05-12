@@ -7,7 +7,7 @@ import dimwit.stats.Normal
 object TransposeConvLayer:
 
   case class Params[S1, S2, InChannels, OutChannels](
-      kernel: Tensor[S1 *: S2 *: InChannels *: OutChannels *: EmptyTuple, Float]
+      kernel: Tensor[S1 *: S2 *: InChannels *: OutChannels *: EmptyTuple, Float32]
   )
 
   object Params:
@@ -22,8 +22,6 @@ object TransposeConvLayer:
       */
     def apply[S1: Label, S2: Label, InChannels: Label, OutChannels: Label](paramKey: Key)(
         kernelShape: Shape[S1 *: S2 *: InChannels *: OutChannels *: EmptyTuple]
-    )(using
-        executionType: ExecutionType[Float]
     ): Params[S1, S2, InChannels, OutChannels] =
       Params(
         kernel = Normal.standardNormal(kernelShape).sample(paramKey)
@@ -40,5 +38,5 @@ case class TransposeConvLayer[S1: Label, S2: Label, InChannels: Label, OutChanne
     *
     * Input: (Spatial..., OutChannels) Output: (Spatial..., InChannels)
     */
-  def apply(x: Tensor[S1 *: S2 *: OutChannels *: EmptyTuple, Float]): Tensor[S1 *: S2 *: InChannels *: EmptyTuple, Float] =
+  def apply(x: Tensor[S1 *: S2 *: OutChannels *: EmptyTuple, Float32]): Tensor[S1 *: S2 *: InChannels *: EmptyTuple, Float32] =
     x.transposeConv2d(params.kernel, stride, padding)

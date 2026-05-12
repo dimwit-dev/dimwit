@@ -1,7 +1,6 @@
 package nn
 
 import dimwit.*
-import dimwit.Conversions.given
 import dimwit.autodiff.FloatTree.ops.*
 import dimwit.autodiff.FloatTree.*
 import dimwit.autodiff.*
@@ -43,8 +42,7 @@ trait GradientOptimizer:
   def iterate[Params: TensorTree: FloatTree](init: Params)(df: Params => Grad[Params]): Iterator[Params] =
     iterateWithState(init)(df).map(_._1)
 
-case class GradientDescent(learningRate: Tensor0[Float]) extends GradientOptimizer:
-  import dimwit.Conversions.given
+case class GradientDescent(learningRate: Tensor0[Float32]) extends GradientOptimizer:
 
   type State[P] = Unit // Stateless optimizer
 
@@ -54,14 +52,14 @@ case class GradientDescent(learningRate: Tensor0[Float]) extends GradientOptimiz
     val newParams = params -- gradients.value.scale(learningRate)
     (newParams, ())
 
-case class Lion(learningRate: Tensor0[Float], weightDecay: Tensor0[Float] = Tensor0(0.0f), beta1: Tensor0[Float] = Tensor0(0.9f), beta2: Tensor0[Float] = Tensor0(0.99f)) extends GradientOptimizer:
+case class Lion(learningRate: Tensor0[Float32], weightDecay: Tensor0[Float32] = Tensor0(0.0f), beta1: Tensor0[Float32] = Tensor0(0.9f), beta2: Tensor0[Float32] = Tensor0(0.99f)) extends GradientOptimizer:
 
   type State[P] = P // momentum state has same structure as params
 
   def init[Params: TensorTree: FloatTree](params: Params): Params =
     params.map([T <: Tuple] =>
       (n: Labels[T]) ?=>
-        (t: Tensor[T, Float]) =>
+        (t: Tensor[T, Float32]) =>
           Tensor(t.shape).fill(0f)
     )
 
@@ -78,8 +76,8 @@ case class Lion(learningRate: Tensor0[Float], weightDecay: Tensor0[Float] = Tens
 case class AdamState[P](
     momentums: P, // momentums
     velocities: P, // velocities
-    b1: Tensor0[Float], // decay rate for momentums mᵗ
-    b2: Tensor0[Float] // decay rate for velocities vᵗ
+    b1: Tensor0[Float32], // decay rate for momentums mᵗ
+    b2: Tensor0[Float32] // decay rate for velocities vᵗ
 )
 
 /** Implements the Adam optimization algorithm.
@@ -87,10 +85,10 @@ case class AdamState[P](
   * @see [[https://arxiv.org/abs/1412.6980 Adam: A Method for Stochastic Optimization]]
   */
 case class Adam(
-    learningRate: Tensor0[Float], // step size (learning rate)
-    b1: Tensor0[Float] = Tensor0(0.9f), // decay rate for momentums mᵗ
-    b2: Tensor0[Float] = Tensor0(0.999f), // decay rate for velocities vᵗ
-    epsilon: Tensor0[Float] = Tensor0(1e-8f) // small constant to prevent division by zero
+    learningRate: Tensor0[Float32], // step size (learning rate)
+    b1: Tensor0[Float32] = Tensor0(0.9f), // decay rate for momentums mᵗ
+    b2: Tensor0[Float32] = Tensor0(0.999f), // decay rate for velocities vᵗ
+    epsilon: Tensor0[Float32] = Tensor0(1e-8f) // small constant to prevent division by zero
 ) extends GradientOptimizer:
 
   private val β1 = b1
@@ -144,7 +142,7 @@ case class Adam(
   */
 case class AdamW(
     val adam: Adam,
-    val weightDecayFactor: Tensor0[Float]
+    val weightDecayFactor: Tensor0[Float32]
 ) extends GradientOptimizer:
 
   type State[P] = adam.State[P]

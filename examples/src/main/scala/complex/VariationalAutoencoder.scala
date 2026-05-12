@@ -5,7 +5,6 @@ import examples.timed
 import dimwit.*
 import dimwit.autodiff.*
 import dimwit.autodiff.FloatTree.*
-import dimwit.Conversions.given
 import dimwit.stats.Normal
 import dimwit.random.Random
 import examples.dataset.MNISTLoader
@@ -36,7 +35,7 @@ class Encoder(p: Encoder.Params):
   val meanLayer = LinearLayer(p.meanLayer)
   val logVarLayer = LinearLayer(p.logVarLayer)
 
-  def apply(v: Tensor1[Pixel, Float]): (Tensor1[Latent, Float], Tensor1[Latent, Float]) =
+  def apply(v: Tensor1[Pixel, Float32]): (Tensor1[Latent, Float32], Tensor1[Latent, Float32]) =
     val h1 = relu(layer1(v))
     val h2 = relu(layer2(h1))
     val mean = meanLayer(h2)
@@ -57,7 +56,7 @@ class Decoder(p: Decoder.Params):
   val layer2 = LinearLayer(p.layer2)
   val outputLayer = LinearLayer(p.outputLayer)
 
-  def apply(v: Tensor1[Latent, Float]): Tensor1[ReconstructedPixel, Float] =
+  def apply(v: Tensor1[Latent, Float32]): Tensor1[ReconstructedPixel, Float32] =
     val h1 = relu(layer1(v))
     val h2 = relu(layer2(h1))
     sigmoid(outputLayer(h2))
@@ -69,7 +68,7 @@ object Decoder:
       outputLayer: LinearLayer.Params[DHidden2, ReconstructedPixel]
   )
 
-def reparametrize(mean: Tensor1[Latent, Float], logVar: Tensor1[Latent, Float], key: Random.Key): Tensor1[Latent, Float] =
+def reparametrize(mean: Tensor1[Latent, Float32], logVar: Tensor1[Latent, Float32], key: Random.Key): Tensor1[Latent, Float32] =
   val std = (logVar *! 0.5f).exp
   Normal(mean, std).sample(key)
 
@@ -78,13 +77,13 @@ case class VariationalAutoencoder(params: VariationalAutoencoder.Params):
   val encoder = Encoder(params.encoderParams)
   val decoder = Decoder(params.decoderParams)
 
-  def apply(pixels: Tensor1[Pixel, Float], key: Random.Key): (Tensor1[ReconstructedPixel, Float], Tensor1[Latent, Float], Tensor1[Latent, Float]) =
+  def apply(pixels: Tensor1[Pixel, Float32], key: Random.Key): (Tensor1[ReconstructedPixel, Float32], Tensor1[Latent, Float32], Tensor1[Latent, Float32]) =
     val (mean, logVar) = encoder(pixels)
     val latent = reparametrize(mean, logVar, key)
     val reconstructedPixels = decoder(latent)
     (reconstructedPixels, mean, logVar)
 
-  def loss(original: Tensor1[Pixel, Float], key: Random.Key): Tensor0[Float] =
+  def loss(original: Tensor1[Pixel, Float32], key: Random.Key): Tensor0[Float32] =
     val (reconstructedPixels, mean, logVar) = apply(original, key)
     val eps = 1e-5f
     val reconstructionLoss = -((original * (reconstructedPixels +! eps).log) + ((1f -! original) * (1f -! reconstructedPixels +! eps).log)).sum
@@ -172,7 +171,7 @@ object VariationalAutoencoderExample:
     /*
      * Training
      */
-    def batchLoss[S <: Sample: Label](key: Random.Key, trainData: Tensor3[S, Height, Width, Float])(params: Params): Tensor0[Float] =
+    def batchLoss[S <: Sample: Label](key: Random.Key, trainData: Tensor3[S, Height, Width, Float32])(params: Params): Tensor0[Float32] =
       val vae = VariationalAutoencoder(params)
       val batchSize = trainData.shape.extent(Axis[S]).size
       val keys = key.splitToTensor(Axis[S] -> batchSize)
@@ -183,7 +182,7 @@ object VariationalAutoencoderExample:
 
     val batches = trainImages.chunk(Axis[TrainSample], numSamples / batchSize)
     val optimizer = GradientDescent(learningRate = Tensor0(learningRate))
-    def trainBatch(trainKey: Random.Key, batch: Tensor3[TrainSample, Height, Width, Float], params: Params): Params =
+    def trainBatch(trainKey: Random.Key, batch: Tensor3[TrainSample, Height, Width, Float32], params: Params): Params =
       val grads = grad(batchLoss(trainKey, batch))(params)
       val (newParams, _) = optimizer.update(grads, params, ())
       newParams
@@ -200,7 +199,7 @@ object VariationalAutoencoderExample:
 
     val keysForEpochs = dataKey.split(numEpochs)
 
-    val initialParams = Params(encoderParams, decoderParams).map([T <: Tuple] => (n: Labels[T]) ?=> (t: Tensor[T, Float]) => t *! 0.1f)
+    val initialParams = Params(encoderParams, decoderParams).map([T <: Tuple] => (n: Labels[T]) ?=> (t: Tensor[T, Float32]) => t *! 0.1f)
 
     val trainedParams = (0 until numEpochs).foldLeft(initialParams):
       case (params, epoch) =>
@@ -214,7 +213,7 @@ object VariationalAutoencoderExample:
     /*
      * Evaluation
      */
-    def plotImg[H, W](img2d: Tensor2[H, W, Float]): Unit =
+    def plotImg[H, W](img2d: Tensor2[H, W, Float32]): Unit =
       import me.shadaj.scalapy.py
       val plt = py.module("matplotlib.pyplot")
       plt.imshow(toPyTensor(img2d), cmap = "gray")

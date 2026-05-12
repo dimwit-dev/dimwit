@@ -29,6 +29,7 @@ object Normal:
 
   def isotropic[T <: Tuple: Labels, V: IsFloating](loc: Tensor[T, V], scale: Tensor0[V]): Normal[T, V] = new Normal(loc = loc, scale = scale.broadcastTo(loc.shape))
   def standardIsotropic[T <: Tuple: Labels, V: IsFloating](shape: Shape[T], scale: Tensor0[V]): Normal[T, V] = isotropic(loc = Tensor(shape, VType[V]).fill(0f), scale = scale)
+  def standardIsotropic[T <: Tuple: Labels](shape: Shape[T], scale: Float): Normal[T, Float32] = isotropic(loc = Tensor(shape).fill(0f), scale = Tensor0(scale))
 
   /** Sample from standard normal distribution N(0, 1) */
   def standardSample(key: Random.Key): Tensor0[Float32] = new Normal(Tensor0(0f), Tensor0(1f)).sample(key)
@@ -46,12 +47,12 @@ class Uniform[T <: Tuple: Labels, V: IsFloating](val low: Tensor[T, V], val high
     )
 
 /** Uniform distribution */
-class DiscreteUniform[T <: Tuple: Labels](val min: Tensor[T, Int], val max: Tensor[T, Int]) extends IndependentDistribution[T, Int]:
+class DiscreteUniform[T <: Tuple: Labels](val min: Tensor[T, Int32], val max: Tensor[T, Int32]) extends IndependentDistribution[T, Int32]:
 
-  override def elementWiseLogProb(x: Tensor[T, Int]): Tensor[T, LogProb] =
+  override def elementWiseLogProb(x: Tensor[T, Int32]): Tensor[T, LogProb] =
     liftPyTensor(jstats.randint.logpmf(x.jaxValue, low = min.jaxValue, high = max.jaxValue))
 
-  override def sample(key: Random.Key): Tensor[T, Int] =
+  override def sample(key: Random.Key): Tensor[T, Int32] =
     liftPyTensor(
       Jax.jrandom.randint(key.jaxKey, shape = min.shape.dimensions.toPythonProxy, minval = min.jaxValue, maxval = max.jaxValue)
     )
@@ -64,7 +65,7 @@ object Uniform:
     new Uniform(low, high)
 
   /** Create a discrete Uniform distribution from low and high int tensors */
-  def apply[T <: Tuple: Labels](min: Tensor[T, Int], max: Tensor[T, Int]): DiscreteUniform[T] =
+  def apply[T <: Tuple: Labels](min: Tensor[T, Int32], max: Tensor[T, Int32]): DiscreteUniform[T] =
     require(min.shape.dimensions == max.shape.dimensions, "min and max must have the same dimensions")
     new DiscreteUniform(min, max)
 

@@ -1,7 +1,6 @@
 package examples.basic.mnistcnn
 
 import dimwit.*
-import dimwit.Conversions.given
 import dimwit.autodiff.FloatTree.ops.*
 import nn.*
 import nn.ActivationFunctions.relu
@@ -12,9 +11,9 @@ import examples.basic.MLPClassifierMNist.MLP
 
 // Logits-based Cross Entropy (same as yours)
 def binaryCrossEntropy[L: Label](
-    logits: Tensor1[L, Float],
-    label: Tensor0[Int]
-): Tensor0[Float] =
+    logits: Tensor1[L, Float32],
+    label: Tensor0[Int32]
+): Tensor0[Float32] =
   val maxLogit = logits.max
   val logSumExp = ((logits -! maxLogit).exp.sum + 1e-7f).log + maxLogit
   val targetLogit = logits.slice(Axis[L].at(label))
@@ -32,8 +31,8 @@ object MNistCNN:
 
   object CNN:
     case class Params(
-        conv1: Conv2DLayer.Params[Height, Width, Channel, Hidden],
-        conv2: Conv2DLayer.Params[Height, Width, Hidden, PixelEmbedding],
+        conv1: Conv2DLayer.Params[Height, Width, Channel, Hidden, Float32],
+        conv2: Conv2DLayer.Params[Height, Width, Hidden, PixelEmbedding, Float32],
         output: LinearLayer.Params[ImageEmbedding, Output]
     )
 
@@ -56,18 +55,18 @@ object MNistCNN:
           output = LinearLayer.Params(keys(2))(embeddingDim, outputDim)
         )
 
-  case class CNN(params: CNN.Params) extends Function[Tensor2[Height, Width, Float], Tensor0[Int]]:
+  case class CNN(params: CNN.Params) extends Function[Tensor2[Height, Width, Float32], Tensor0[Int32]]:
     private val conv1 = Conv2DLayer(params.conv1, stride = 2, padding = Padding.SAME)
     private val conv2 = Conv2DLayer(params.conv2, stride = 2, padding = Padding.SAME)
     private val output = LinearLayer(params.output)
 
-    def logits(image: Tensor2[Height, Width, Float]): Tensor1[Output, Float] =
+    def logits(image: Tensor2[Height, Width, Float32]): Tensor1[Output, Float32] =
       val input = image.appendAxis(Axis[Channel])
       val hidden = relu(conv1(input))
       val features = relu(conv2(hidden))
       output(features.flatten)
 
-    override def apply(image: Tensor2[Height, Width, Float]): Tensor0[Int] =
+    override def apply(image: Tensor2[Height, Width, Float32]): Tensor0[Int32] =
       logits(image).argmax(Axis[Output])
 
   def main(args: Array[String]): Unit =
@@ -86,9 +85,9 @@ object MNistCNN:
     val initParams = CNN.Params(trainKey)(16, 32)
     val scaledInitialParams = initParams **! Tensor0(0.1f)
 
-    def batchLoss(batchImages: Tensor[(TrainSample, Height, Width), Float], batchLabels: Tensor1[TrainSample, Int])(
+    def batchLoss(batchImages: Tensor[(TrainSample, Height, Width), Float32], batchLabels: Tensor1[TrainSample, Int32])(
         params: CNN.Params
-    ): Tensor0[Float] =
+    ): Tensor0[Float32] =
       val model = CNN(params)
       val batchLosses = zipvmap(Axis[TrainSample])(batchImages, batchLabels):
         case (img, lbl) =>
@@ -98,8 +97,8 @@ object MNistCNN:
     val optimizer = GradientDescent(learningRate = Tensor0(learningRate))
 
     def gradientStep(
-        imageBatch: Tensor[(TrainSample, Height, Width), Float],
-        labelBatch: Tensor1[TrainSample, Int],
+        imageBatch: Tensor[(TrainSample, Height, Width), Float32],
+        labelBatch: Tensor1[TrainSample, Int32],
         params: CNN.Params
     ): CNN.Params =
       val grads = Autodiff.grad(batchLoss(imageBatch, labelBatch))(params)
@@ -115,19 +114,19 @@ object MNistCNN:
         val lblBatches = trainY.chunk(Axis[TrainSample], numSamples / batchSize)
         val newParams = imgBatches.zip(lblBatches).foldLeft(jitDonate(params)):
           case (params, (imgB, lblB)) =>
-            jitStep(imgB, lblB, params)
+            jitStep(imgB, lblB.asInt32, params)
         jitReclaim(newParams)
 
     // Evaluation
-    def evaluate[S <: Sample: Label](params: CNN.Params, dataX: Tensor[(S, Height, Width), Float], dataY: Tensor1[S, Int]): Tensor0[Float] =
+    def evaluate[S <: Sample: Label](params: CNN.Params, dataX: Tensor[(S, Height, Width), Float32], dataY: Tensor1[S, Int32]): Tensor0[Float32] =
       val model = CNN(params)
       val predictions = dataX.vmap(Axis[S])(model)
       val matches = zipvmap(Axis[S])(predictions, dataY)(_ === _)
-      matches.asFloat.mean
+      matches.asFloat32.mean
 
     trainTrajectory.drop(1).zipWithIndex.foreach:
       case (params, epoch) =>
         if epoch % 1 == 0 then
           dimwit.gc()
-          val acc = evaluate(params, testX, testY)
+          val acc = evaluate(params, testX, testY.asInt32)
           println(f"Epoch $epoch | Test Accuracy: ${acc.item * 100}%.2f%%")

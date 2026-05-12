@@ -139,6 +139,12 @@ type Tensor4[L1, L2, L3, L4, V] = Tensor[(L1, L2, L3, L4), V]
 
 object Tensor0:
 
+  given float2FloatingTensor[V: IsFloating]: Conversion[Float, Tensor0[V]] with
+    def apply(value: Float): Tensor0[V] = Tensor0(VType[V])(value)
+
+  given int2IntegerTensor[V: IsInteger]: Conversion[Int, Tensor0[V]] with
+    def apply(value: Int): Tensor0[V] = Tensor0(VType[V])(value)
+
   object DefaultsFactory:
 
     def apply(value: Boolean): Tensor0[Bool] = Tensor0(VType[Bool])(value)

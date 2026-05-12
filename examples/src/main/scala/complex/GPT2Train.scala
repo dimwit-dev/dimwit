@@ -1,7 +1,6 @@
 package examples.complex.nanoGPT
 
 import dimwit.*
-import dimwit.Conversions.given
 
 import nn.ActivationFunctions.*
 import dimwit.random.Random
@@ -72,17 +71,17 @@ trait EmbeddingMixed derives Label
 trait Batch derives Label
 
 case class LayerNormalizationParams(
-    weight: Tensor1[Embedding, Float],
-    bias: Tensor1[Embedding, Float]
+    weight: Tensor1[Embedding, Float32],
+    bias: Tensor1[Embedding, Float32]
 )
 
 case class LinearLayerParams[In, Out](
-    weight: Tensor2[In, Out, Float],
-    bias: Tensor1[Out, Float]
+    weight: Tensor2[In, Out, Float32],
+    bias: Tensor1[Out, Float32]
 )
 
 case class ProjectionLayerParams[In, Out](
-    weight: Tensor2[In, Out, Float]
+    weight: Tensor2[In, Out, Float32]
 )
 
 trait Head derives Label
@@ -90,7 +89,7 @@ trait HeadKey derives Label
 trait HeadQuery derives Label
 trait HeadValue derives Label
 
-case class HeadsParams[Kind](val weights: Tensor3[Head, Embedding, Kind, Float], val bias: Tensor2[Head, Kind, Float])
+case class HeadsParams[Kind](val weights: Tensor3[Head, Embedding, Kind, Float32], val bias: Tensor2[Head, Kind, Float32])
 
 case class MultiHeadAttentionParams(
     wq: HeadsParams[HeadQuery],
@@ -112,8 +111,8 @@ case class TransformerLayerParams(
 ) derives TensorTree
 
 case class GPT2Params(
-    vocabularyEmbeddings: Tensor2[Vocab, Embedding, Float],
-    positionalEmbeddings: Tensor2[Context, Embedding, Float],
+    vocabularyEmbeddings: Tensor2[Vocab, Embedding, Float32],
+    positionalEmbeddings: Tensor2[Context, Embedding, Float32],
     layers: List[TransformerLayerParams],
     outputNormalization: LayerNormalizationParams
 ) derives TensorTree
@@ -174,48 +173,48 @@ object GPT2Params:
       outputNormalization = initLayerNormalizationParams()
     )
 
-case class GPT2(params: GPT2Params) extends (Tensor1[Context, Int] => Tensor1[Context, Int]):
+case class GPT2(params: GPT2Params) extends (Tensor1[Context, Int32] => Tensor1[Context, Int32]):
 
-  private case class LinearLayer[In: Label, Out: Label](params: LinearLayerParams[In, Out]) extends (Tensor1[In, Float] => Tensor1[Out, Float]):
-    override def apply(x: Tensor1[In, Float]): Tensor1[Out, Float] =
+  private case class LinearLayer[In: Label, Out: Label](params: LinearLayerParams[In, Out]) extends (Tensor1[In, Float32] => Tensor1[Out, Float32]):
+    override def apply(x: Tensor1[In, Float32]): Tensor1[Out, Float32] =
       x.dot(Axis[In])(params.weight) + params.bias
 
-  private case class EmbeddingMixer(params: EmbeddingMixerParams) extends (Tensor2[Context, Embedding, Float] => Tensor2[Context, Embedding, Float]):
+  private case class EmbeddingMixer(params: EmbeddingMixerParams) extends (Tensor2[Context, Embedding, Float32] => Tensor2[Context, Embedding, Float32]):
     private val hiddenLayer = LinearLayer(params.c_fc)
     private val outputLayer = LinearLayer(params.c_proj)
     // TODO add dropout
 
-    def apply(in: Tensor2[Context, Embedding, Float]): Tensor2[Context, Embedding, Float] =
+    def apply(in: Tensor2[Context, Embedding, Float32]): Tensor2[Context, Embedding, Float32] =
       in.vmap(Axis[Context])(x =>
         val hidden = gelu(hiddenLayer(x))
         outputLayer(hidden)
       )
 
-  private case class ProjectionLayer[In: Label, Out: Label](params: ProjectionLayerParams[In, Out]) extends (Tensor1[In, Float] => Tensor1[Out, Float]):
-    def apply(x: Tensor1[In, Float]): Tensor1[Out, Float] =
+  private case class ProjectionLayer[In: Label, Out: Label](params: ProjectionLayerParams[In, Out]) extends (Tensor1[In, Float32] => Tensor1[Out, Float32]):
+    def apply(x: Tensor1[In, Float32]): Tensor1[Out, Float32] =
       x.dot(Axis[In])(params.weight)
 
-  private case class MultiHeadAttention(params: MultiHeadAttentionParams) extends (Tensor2[Context, Embedding, Float] => Tensor2[Context, Embedding, Float]):
+  private case class MultiHeadAttention(params: MultiHeadAttentionParams) extends (Tensor2[Context, Embedding, Float32] => Tensor2[Context, Embedding, Float32]):
 
     private val projection = LinearLayer(params.proj)
 
-    def apply(x: Tensor2[Context, Embedding, Float]): Tensor2[Context, Embedding, Float] =
+    def apply(x: Tensor2[Context, Embedding, Float32]): Tensor2[Context, Embedding, Float32] =
       val heads = zipvmap(Axis[Head])(params.wq.weights, params.wq.bias, params.wk.weights, params.wk.bias, params.wv.weights, params.wv.bias):
         attention.tupled(_)(x)
       heads.vmap(Axis[Context])(heads => projection(heads.flatten))
 
     private def attention(
-        wq: Tensor2[Embedding, HeadQuery, Float],
-        wqBias: Tensor1[HeadQuery, Float],
-        wk: Tensor2[Embedding, HeadKey, Float],
-        wkBias: Tensor1[HeadKey, Float],
-        wv: Tensor2[Embedding, HeadValue, Float],
-        wvBias: Tensor1[HeadValue, Float]
-    )(x: Tensor2[Context, Embedding, Float]): Tensor2[Context, HeadValue, Float] =
+        wq: Tensor2[Embedding, HeadQuery, Float32],
+        wqBias: Tensor1[HeadQuery, Float32],
+        wk: Tensor2[Embedding, HeadKey, Float32],
+        wkBias: Tensor1[HeadKey, Float32],
+        wv: Tensor2[Embedding, HeadValue, Float32],
+        wvBias: Tensor1[HeadValue, Float32]
+    )(x: Tensor2[Context, Embedding, Float32]): Tensor2[Context, HeadValue, Float32] =
 
       trait AttnWeights derives Label
 
-      def causalMasking(attnScores: Tensor2[Context, Prime[Context], Float]): Tensor2[Context, Prime[Context], Float] =
+      def causalMasking(attnScores: Tensor2[Context, Prime[Context], Float32]): Tensor2[Context, Prime[Context], Float32] =
         val ctxLength = attnScores.shape(Axis[Context])
         val causalMask = tril(Tensor(Shape((Axis[Context] -> ctxLength, Axis[Prime[Context]] -> ctxLength))).fill(true))
         where(causalMask, attnScores, Tensor.like(attnScores).fill(Float.NegativeInfinity))
@@ -230,44 +229,44 @@ case class GPT2(params: GPT2Params) extends (Tensor1[Context, Int] => Tensor1[Co
       val res = attnWeights.dot(Axis[AttnWeights ~ Context])(values)
       res
 
-  private case class LayerNorm(params: LayerNormalizationParams) extends (Tensor1[Embedding, Float] => Tensor1[Embedding, Float]):
+  private case class LayerNorm(params: LayerNormalizationParams) extends (Tensor1[Embedding, Float32] => Tensor1[Embedding, Float32]):
 
-    private def standardize(x: Tensor1[Embedding, Float]): Tensor1[Embedding, Float] =
+    private def standardize(x: Tensor1[Embedding, Float32]): Tensor1[Embedding, Float32] =
       val x0 = x -! x.mean
       val variance = x0.pow(2).mean
       val epsilon = 1e-6f
       x0 /! (variance + epsilon).sqrt
 
-    def apply(x: Tensor1[Embedding, Float]): Tensor1[Embedding, Float] =
+    def apply(x: Tensor1[Embedding, Float32]): Tensor1[Embedding, Float32] =
       standardize(x) * params.weight + params.bias
 
-  private case class TransformerLayer(params: TransformerLayerParams) extends (Tensor2[Context, Embedding, Float] => Tensor2[Context, Embedding, Float]):
+  private case class TransformerLayer(params: TransformerLayerParams) extends (Tensor2[Context, Embedding, Float32] => Tensor2[Context, Embedding, Float32]):
     private val embeddingMixer = EmbeddingMixer(params.embeddingMixer)
     private val multiHeadAttention = MultiHeadAttention(params.attn)
     private val preNormalization = LayerNorm(params.ln1)
     private val postNormalization = LayerNorm(params.ln2)
 
-    def apply(t: Tensor2[Context, Embedding, Float]): Tensor2[Context, Embedding, Float] =
+    def apply(t: Tensor2[Context, Embedding, Float32]): Tensor2[Context, Embedding, Float32] =
       var x = t
       x = x + multiHeadAttention(x.vmap(Axis[Context])(preNormalization))
       x = x + embeddingMixer(x.vmap(Axis[Context])(postNormalization))
       x
 
-  private case class TransformerBlock(layers: List[TransformerLayer]) extends (Tensor2[Context, Embedding, Float] => Tensor2[Context, Embedding, Float]):
-    override def apply(t: Tensor2[Context, Embedding, Float]): Tensor2[Context, Embedding, Float] =
+  private case class TransformerBlock(layers: List[TransformerLayer]) extends (Tensor2[Context, Embedding, Float32] => Tensor2[Context, Embedding, Float32]):
+    override def apply(t: Tensor2[Context, Embedding, Float32]): Tensor2[Context, Embedding, Float32] =
       layers.foldLeft(t):
         case (t, layer) => layer(t)
 
-  case class Embedder(vocabularyEmbeddings: Tensor2[Vocab, Embedding, Float], positionalEmbeddings: Tensor2[Context, Embedding, Float]):
+  case class Embedder(vocabularyEmbeddings: Tensor2[Vocab, Embedding, Float32], positionalEmbeddings: Tensor2[Context, Embedding, Float32]):
 
-    def apply(tokens: Tensor1[Context, Int]): Tensor2[Context, Embedding, Float] =
+    def apply(tokens: Tensor1[Context, Int32]): Tensor2[Context, Embedding, Float32] =
       val embeddings = vocabularyEmbeddings.take(Axis[Vocab])(tokens)
       embeddings + positionalEmbeddings
 
-  case class OutputLayer(normalization: LayerNormalizationParams, projectionParams: ProjectionLayerParams[Embedding, Vocab]) extends (Tensor1[Embedding, Float] => Tensor1[Vocab, Float]):
+  case class OutputLayer(normalization: LayerNormalizationParams, projectionParams: ProjectionLayerParams[Embedding, Vocab]) extends (Tensor1[Embedding, Float32] => Tensor1[Vocab, Float32]):
     private val normalizationLayer = LayerNorm(normalization)
     private val projection = ProjectionLayer(projectionParams)
-    override def apply(x: Tensor1[Embedding, Float]): Tensor1[Vocab, Float] =
+    override def apply(x: Tensor1[Embedding, Float32]): Tensor1[Vocab, Float32] =
       projection(normalizationLayer(x))
 
   private val embedder = Embedder(params.vocabularyEmbeddings, params.positionalEmbeddings)
@@ -277,22 +276,24 @@ case class GPT2(params: GPT2Params) extends (Tensor1[Context, Int] => Tensor1[Co
     ProjectionLayerParams(params.vocabularyEmbeddings.transpose) // Tying output weights with input embeddings
   )
 
-  def logits(inputTokens: Tensor1[Context, Int]): Tensor2[Context, Vocab, Float] =
+  def logits(inputTokens: Tensor1[Context, Int32]): Tensor2[Context, Vocab, Float32] =
     val startEmbeddings = embedder(inputTokens)
     val endEmbeddings = transformerBlock(startEmbeddings)
     endEmbeddings.vmap(Axis[Context])(x => outputLayer(x))
 
-  def probits(inputTokens: Tensor1[Context, Int]): Tensor2[Context, Vocab, Float] =
+  def probits(inputTokens: Tensor1[Context, Int32]): Tensor2[Context, Vocab, Float32] =
     val x = logits(inputTokens)
     val res = x.vapply(Axis[Vocab])(softmax)
     return res
 
-  def apply(inputTokens: Tensor1[Context, Int]): Tensor1[Context, Int] =
+  def apply(inputTokens: Tensor1[Context, Int32]): Tensor1[Context, Int32] =
     val x = probits(inputTokens)
     val res = x.argmax(Axis[Vocab])
     return res
 
 @main def train(): Unit =
+
+  import Tensor0.given
 
   dimwit.initialize()
 
@@ -301,12 +302,12 @@ case class GPT2(params: GPT2Params) extends (Tensor1[Context, Int] => Tensor1[Co
   PythonSetup.initialize
   lazy val np = py.module("numpy")
   case class Sample(
-      input: Tensor2[Batch, Context, Int],
-      labels: Tensor2[Batch, Context, Int]
+      input: Tensor2[Batch, Context, Int32],
+      labels: Tensor2[Batch, Context, Int32]
   )
   def createDataset(key: Random.Key, pathToBinaryFile: String): Iterator[Sample] =
-    val data = Tensor1.fromPy(Axis[Data], VType[Int])(Jax.jnp.asarray(np.memmap(pathToBinaryFile, dtype = np.uint16, mode = "r")))
-    def sliceContextBlockAt(idx: Tensor0[Int]): Tensor1[Context, Int] =
+    val data = dimwit.python.PyBridge.liftPyTensor1(Axis[Data], VType[Int32])(Jax.jnp.asarray(np.memmap(pathToBinaryFile, dtype = np.uint16, mode = "r")))
+    def sliceContextBlockAt(idx: Tensor0[Int32]): Tensor1[Context, Int32] =
       data
         .dynamicSlice(idx, contextLength)
         .relabelTo(Axis[Context])
@@ -329,6 +330,7 @@ case class GPT2(params: GPT2Params) extends (Tensor1[Context, Int] => Tensor1[Co
 
   val initParams = GPT2Params.init(Random.Key(42))
 
+  import Tensor0.given
   val adam = Adam(learningRate = learningRate, b1 = beta1, b2 = beta2, epsilon = 1e-8f)
   val adamW = AdamW(adam, weightDecayFactor = 1e-1f)
   type AdamWState = adamW.State[GPT2Params]
@@ -336,10 +338,10 @@ case class GPT2(params: GPT2Params) extends (Tensor1[Context, Int] => Tensor1[Co
   case class TrainingState(
       params: GPT2Params,
       adamWState: AdamWState,
-      loss: Tensor0[Float]
+      loss: Tensor0[Float32]
   )
 
-  def batchLoss(input: Tensor2[Batch, Context, Int], labels: Tensor2[Batch, Context, Int])(params: GPT2Params): Tensor0[Float] =
+  def batchLoss(input: Tensor2[Batch, Context, Int32], labels: Tensor2[Batch, Context, Int32])(params: GPT2Params): Tensor0[Float32] =
     val model = GPT2(params)
     val logits = input.vmap(Axis[Batch])(model.logits)
     val lossPerSample = zipvmap(Axis[Batch])(labels, logits): (labels, logits) =>
@@ -349,8 +351,8 @@ case class GPT2(params: GPT2Params) extends (Tensor1[Context, Int] => Tensor1[Co
     lossPerSample.mean
 
   def gradientStep(
-      input: Tensor2[Batch, Context, Int],
-      labels: Tensor2[Batch, Context, Int],
+      input: Tensor2[Batch, Context, Int32],
+      labels: Tensor2[Batch, Context, Int32],
       state: TrainingState
   ): TrainingState =
     val lossBatch = batchLoss(input, labels)
@@ -360,7 +362,7 @@ case class GPT2(params: GPT2Params) extends (Tensor1[Context, Int] => Tensor1[Co
     TrainingState(params = params, adamWState = adamWState, loss = loss)
   val jitStep = jitDonatingUnsafe(gradientStep)
 
-  def evaluate(input: Tensor2[Batch, Context, Int], labels: Tensor2[Batch, Context, Int], params: GPT2Params): Tensor0[Float] =
+  def evaluate(input: Tensor2[Batch, Context, Int32], labels: Tensor2[Batch, Context, Int32], params: GPT2Params): Tensor0[Float32] =
     batchLoss(input, labels)(params)
   // val evalF = jit(evaluate)
   val evalF = eagerCleanup(evaluate)

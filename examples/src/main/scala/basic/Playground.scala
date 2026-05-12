@@ -9,7 +9,7 @@ object Playground extends App:
   trait A derives Label
   trait B derives Label
 
-  def f(x: Tensor1[A, Float]): Tensor0[Float] =
+  def f(x: Tensor1[A, Float32]): Tensor0[Float32] =
     x.sum
 
   grad(f)

@@ -72,6 +72,7 @@ object FloatTree:
       def `//!`(p2: Tensor0[Float32]): P = p1.map([T <: Tuple] => (n: Labels[T]) ?=> (a: Tensor[T, Float32]) => a /! p2)
 
       def sqrt: P = p1.map([T <: Tuple] => (n: Labels[T]) ?=> (a: Tensor[T, Float32]) => TensorOps.sqrt(a))
+      def pow(exponent: Float): P = pow(Tensor0(exponent))
       def pow(exponent: Tensor0[Float32]): P = p1.map([T <: Tuple] => (n: Labels[T]) ?=> (a: Tensor[T, Float32]) => TensorOps.pow(a)(exponent))
       def scale(scalar: Tensor0[Float32]): P = p1.map([T <: Tuple] => (n: Labels[T]) ?=> (a: Tensor[T, Float32]) => TensorOps.scale(a)(scalar))
       def sign: P = p1.map([T <: Tuple] => (n: Labels[T]) ?=> (a: Tensor[T, Float32]) => TensorOps.sign(a))
