@@ -44,17 +44,17 @@ class Dirichlet[L: Label, V: IsFloating](
       )
     )
 
-class Multinomial[L: Label, V: IsInteger](
-    val n: Tensor0[V],
+class Multinomial[L: Label](
+    val n: Tensor0[Int32],
     val probs: Tensor1[L, Prob]
-) extends MultivariateDistribution[L, V]:
+) extends MultivariateDistribution[L, Int32]:
 
-  private val categorical: Categorical[L, V] = Categorical[L, V](probs)
+  private val categorical: Categorical[L] = Categorical[L](probs)
 
-  override def logProb(x: Tensor1[L, V]): Tensor0[LogProb] =
+  override def logProb(x: Tensor1[L, Int32]): Tensor0[LogProb] =
     liftPyTensor(jstats.multinomial.logpmf(x.jaxValue, n = n.jaxValue, p = probs.jaxValue))
 
-  override def sample(key: Random.Key): Tensor1[L, V] =
+  override def sample(key: Random.Key): Tensor1[L, Int32] =
     // Sample from categorical n times using splitvmap, then bincount
     trait Draws derives Label
     val draws = key.splitvmap(Axis[Draws] -> n.item)(k => categorical.sample(k))

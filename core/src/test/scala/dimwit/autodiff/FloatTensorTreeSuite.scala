@@ -1,7 +1,6 @@
 package dimwit.autodiff
 
 import dimwit.*
-import dimwit.Conversions.given
 import dimwit.autodiff.FloatTree.*
 import dimwit.autodiff.FloatTree.ops.*
 
@@ -10,10 +9,10 @@ class FloatTensorTreeSuite extends DimwitTest:
   describe("map"):
     it("1-level case class"):
       case class Params(
-          val w1: Tensor1[A, Float],
-          val b1: Tensor0[Float],
-          val w2: Tensor2[A, B, Float],
-          val b2: Tensor0[Float]
+          val w1: Tensor1[A, Float32],
+          val b1: Tensor0[Float32],
+          val w2: Tensor2[A, B, Float32],
+          val b2: Tensor0[Float32]
       )
       val params = Params(
         Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)),
@@ -21,7 +20,7 @@ class FloatTensorTreeSuite extends DimwitTest:
         Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(0.1f, 0.2f), Array(0.3f, 0.4f), Array(0.5f, 0.6f))),
         Tensor0(0.25f)
       )
-      val res = params.map([T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float]) => x +! 0.5f)
+      val res = params.map([T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float32]) => x +! 0.5f)
       res.w1 should approxEqual(params.w1 +! 0.5f)
       res.b1 should approxEqual(params.b1 + 0.5f)
       res.w2 should approxEqual(params.w2 +! 0.5f)
@@ -29,8 +28,8 @@ class FloatTensorTreeSuite extends DimwitTest:
 
     it("2-level case class"):
       case class LayerParams(
-          val w: Tensor2[A, B, Float],
-          val b: Tensor0[Float]
+          val w: Tensor2[A, B, Float32],
+          val b: Tensor0[Float32]
       )
       case class ModelParams(
           val layer1: LayerParams,
@@ -45,7 +44,7 @@ class FloatTensorTreeSuite extends DimwitTest:
         Tensor0(0.75f)
       )
       val params = ModelParams(layer1Params, layer2Params)
-      val res = params.map([T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float]) => x +! 0.5f)
+      val res = params.map([T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float32]) => x +! 0.5f)
 
       res.layer1.w should approxEqual(params.layer1.w +! 0.5f)
       res.layer1.b should approxEqual(params.layer1.b + 0.5f)
@@ -54,20 +53,20 @@ class FloatTensorTreeSuite extends DimwitTest:
 
     it("case class with tuple"):
       case class LayerParams(
-          val weightBias: (Tensor2[A, B, Float], Tensor0[Float])
+          val weightBias: (Tensor2[A, B, Float32], Tensor0[Float32])
       )
       val layerParams = LayerParams(
         Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(0.1f, 0.2f), Array(0.3f, 0.4f), Array(0.5f, 0.6f))),
         Tensor0(0.25f)
       )
-      val res = layerParams.map([T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float]) => x +! 0.5f)
+      val res = layerParams.map([T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float32]) => x +! 0.5f)
 
       res.weightBias._1 should approxEqual(layerParams.weightBias._1 +! 0.5f)
       res.weightBias._2 should approxEqual(layerParams.weightBias._2 + 0.5f)
 
     it("case class with list"):
       case class Params(
-          val layerWeights: List[Tensor2[A, B, Float]]
+          val layerWeights: List[Tensor2[A, B, Float32]]
       )
       val layerParams = Params(
         List(
@@ -75,7 +74,7 @@ class FloatTensorTreeSuite extends DimwitTest:
           Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.1f, 1.2f), Array(1.3f, 1.4f), Array(1.5f, 1.6f)))
         )
       )
-      val res = layerParams.map([T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float]) => x +! 0.5f)
+      val res = layerParams.map([T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float32]) => x +! 0.5f)
 
       res.layerWeights(0) should approxEqual(layerParams.layerWeights(0) +! 0.5f)
       res.layerWeights(1) should approxEqual(layerParams.layerWeights(1) +! 0.5f)
@@ -83,8 +82,8 @@ class FloatTensorTreeSuite extends DimwitTest:
   describe("zipmap"):
     it("1-level case class"):
       case class Params(
-          val w1: Tensor1[A, Float],
-          val b1: Tensor0[Float]
+          val w1: Tensor1[A, Float32],
+          val b1: Tensor0[Float32]
       )
       val params1 = Params(
         Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)),
@@ -94,15 +93,15 @@ class FloatTensorTreeSuite extends DimwitTest:
         Tensor1(Axis[A]).fromArray(Array(0.4f, 0.5f, 0.6f)),
         Tensor0(1.5f)
       )
-      def addTensors[T <: Tuple: Labels](t1: Tensor[T, Float], t2: Tensor[T, Float]): Tensor[T, Float] = t1 + t2
-      val res = params1.zipMap(params2, [T <: Tuple] => (labels: Labels[T]) ?=> (x1: Tensor[T, Float], x2: Tensor[T, Float]) => addTensors[T](x1, x2))
+      def addTensors[T <: Tuple: Labels](t1: Tensor[T, Float32], t2: Tensor[T, Float32]): Tensor[T, Float32] = t1 + t2
+      val res = params1.zipMap(params2, [T <: Tuple] => (labels: Labels[T]) ?=> (x1: Tensor[T, Float32], x2: Tensor[T, Float32]) => addTensors[T](x1, x2))
       res.w1 should approxEqual(params1.w1 + params2.w1)
       res.b1 should approxEqual(params1.b1 + params2.b1)
 
   describe("Extension methods"):
     case class Params(
-        w: Tensor1[A, Float],
-        b: Tensor0[Float]
+        w: Tensor1[A, Float32],
+        b: Tensor0[Float32]
     )
 
     val params = Params(
@@ -191,5 +190,7 @@ class FloatTensorTreeSuite extends DimwitTest:
         val res = params.fillCopy(99f)
         res.w.shape shouldBe params.w.shape
         res.b.shape shouldBe params.b.shape
+        val xxx = res.w.approxElementEquals(Tensor.like(res.w).fill(99f)).all
+        val yyy = xxx.item
         res.w.approxElementEquals(Tensor.like(res.w).fill(99f)).all.item shouldBe true
         res.b.approxElementEquals(Tensor.like(res.b).fill(99f)).all.item shouldBe true

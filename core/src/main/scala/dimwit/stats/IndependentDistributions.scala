@@ -28,11 +28,11 @@ object Normal:
     new Normal(loc, scale)
 
   def isotropic[T <: Tuple: Labels, V: IsFloating](loc: Tensor[T, V], scale: Tensor0[V]): Normal[T, V] = new Normal(loc = loc, scale = scale.broadcastTo(loc.shape))
-  def standardIsotropic[T <: Tuple: Labels, V: IsFloating](shape: Shape[T], scale: Tensor0[V]): Normal[T, V] = isotropic(loc = Tensor(shape).fill[V](0f), scale = scale)
+  def standardIsotropic[T <: Tuple: Labels, V: IsFloating](shape: Shape[T], scale: Tensor0[V]): Normal[T, V] = isotropic(loc = Tensor(shape, VType[V]).fill(0f), scale = scale)
 
   /** Sample from standard normal distribution N(0, 1) */
   def standardSample(key: Random.Key): Tensor0[Float32] = new Normal(Tensor0(0f), Tensor0(1f)).sample(key)
-  def standardNormal[T <: Tuple: Labels, V: IsFloating](shape: Shape[T]): Normal[T, V] = Normal.standardIsotropic(shape, scale = Tensor0[V](1f))
+  def standardNormal[T <: Tuple: Labels, V: IsFloating](shape: Shape[T]): Normal[T, V] = Normal.standardIsotropic(shape, scale = Tensor0(VType[V])(1f))
 
 /** Uniform distribution */
 class Uniform[T <: Tuple: Labels, V: IsFloating](val low: Tensor[T, V], val high: Tensor[T, V]) extends IndependentDistribution[T, V]:
@@ -69,12 +69,12 @@ object Uniform:
     new DiscreteUniform(min, max)
 
 /** Bernoulli distribution */
-class Bernoulli[T <: Tuple: Labels](val probs: Tensor[T, Prob]) extends IndependentDistribution[T, Boolean]:
+class Bernoulli[T <: Tuple: Labels](val probs: Tensor[T, Prob]) extends IndependentDistribution[T, Bool]:
 
-  override def elementWiseLogProb(x: Tensor[T, Boolean]): Tensor[T, LogProb] =
+  override def elementWiseLogProb(x: Tensor[T, Bool]): Tensor[T, LogProb] =
     liftPyTensor(jstats.bernoulli.logpmf(x.jaxValue, p = probs.jaxValue))
 
-  override def sample(key: Random.Key): Tensor[T, Boolean] =
+  override def sample(key: Random.Key): Tensor[T, Bool] =
     liftPyTensor(Jax.jrandom.bernoulli(key.jaxKey, p = probs.jaxValue))
 
 object Bernoulli:

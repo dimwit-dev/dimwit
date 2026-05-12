@@ -2,7 +2,6 @@ package dimwit.autodiff
 
 import dimwit.*
 import dimwit.jax.Jax
-import dimwit.Conversions.given
 import me.shadaj.scalapy.py
 class ToPyTreeSuite extends DimwitTest:
 
@@ -10,8 +9,8 @@ class ToPyTreeSuite extends DimwitTest:
 
     it("1-level case class"):
       case class Params(
-          val w: Tensor1[A, Float],
-          val b: Tensor0[Float]
+          val w: Tensor1[A, Float32],
+          val b: Tensor0[Float32]
       )
       val params = Params(
         Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)),
@@ -26,8 +25,8 @@ class ToPyTreeSuite extends DimwitTest:
 
     it("2-level case class"):
       case class LayerParams(
-          val w: Tensor2[A, B, Float],
-          val b: Tensor0[Float]
+          val w: Tensor2[A, B, Float32],
+          val b: Tensor0[Float32]
       )
       case class ModelParams(
           val layer1: LayerParams,
@@ -59,7 +58,7 @@ class ToPyTreeSuite extends DimwitTest:
         Tensor0(0.5f)
       )
 
-      val tc = TensorTree[(Tensor1[A, Float], Tensor0[Float])]
+      val tc = TensorTree[(Tensor1[A, Float32], Tensor0[Float32])]
       val reconstructed = tc.fromPyTree(tc.toPyTree(myTuple))
 
       reconstructed._1 should approxEqual(myTuple._1)
@@ -67,7 +66,7 @@ class ToPyTreeSuite extends DimwitTest:
 
     it("case class with list"):
       case class Params(
-          val layerWeights: List[Tensor2[A, B, Float]]
+          val layerWeights: List[Tensor2[A, B, Float32]]
       )
       val params = Params(
         List(

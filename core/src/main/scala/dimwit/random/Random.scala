@@ -1,6 +1,7 @@
 package dimwit.random
 
 import dimwit.tensor.*
+import dimwit.tensor.DType.Int32
 import dimwit.tensor.TensorOps.*
 import dimwit.jax.{Jax, JaxDType}
 import dimwit.autodiff.TensorTree
@@ -83,7 +84,7 @@ object Random:
     * @return
     *   A 1D tensor containing a random permutation of [0, 1, ..., n-1]
     */
-  def permutation[L: Label](dim: AxisExtent[L])(key: Key): Tensor1[L, Int] =
+  def permutation[L: Label](dim: AxisExtent[L])(key: Key): Tensor1[L, Int32] =
     liftPyTensor(Jax.jrandom.permutation(key.jaxKey, dim.size))
 
   object Key:

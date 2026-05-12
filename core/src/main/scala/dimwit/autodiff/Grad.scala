@@ -36,4 +36,4 @@ object Grad:
     def fromPyTree(pyVal: Jax.PyAny): Grad[T] = Grad(ev.fromPyTree(pyVal))
 
   // FloatTree witness for gradient math (++, --, scale, etc.)
-  given [T](using FloatTree[T]): FloatTree[Grad[T]] with {}
+  // given [T, V: IsFloating](using FloatTree[T, V]): FloatTree[Grad[T], V] with {}

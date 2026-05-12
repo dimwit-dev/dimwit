@@ -1,7 +1,6 @@
 package dimwit.autodiff
 
 import dimwit.*
-import dimwit.DType.*
 import dimwit.autodiff.Autodiff.Gradient
 
 class AutodiffSuite extends DimwitTest:

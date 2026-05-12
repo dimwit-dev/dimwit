@@ -21,6 +21,7 @@ import dimwit.tensor.TensorOps.IsFloating
 import DType.*
 import dimwit.tensor.TensorOps.IsInteger
 import dimwit.tensor.TensorOps.IsBoolean
+import dimwit.tensor.TensorOps.IsNumber
 
 class Tensor[T <: Tuple: Labels, V] private[dimwit] (
     private[dimwit] val jaxValue: Jax.PyDynamic
@@ -64,45 +65,46 @@ object Tensor:
 
   type IndicesOf[T <: Tuple] = Tuple.Map[T, [_] =>> Int]
 
-  case class Factory[T <: Tuple: Labels](override val shape: Shape[T]) extends FactoryLowPrio[T]:
+  case class DefaultsFactory[T <: Tuple: Labels](shape: Shape[T]):
 
-    def fill(value: Float): Tensor[T, Float32] = fill[Float32](value)
-    def fill(value: Double): Tensor[T, Float64] = fill[Float64](value)
-    def fromArray(values: Array[Float]): Tensor[T, Float32] = fromArray[Float32](values)
-    def fromArray(values: Array[Double]): Tensor[T, Float64] = fromArray[Float64](values)
+    def fill(value: Float): Tensor[T, Float32] = Tensor(shape, VType[Float32]).fill(value)
+    def fill(value: Double): Tensor[T, Float64] = Tensor(shape, VType[Float64]).fill(value)
+    def fromArray(values: Array[Float]): Tensor[T, Float32] = Tensor(shape, VType[Float32]).fromArray(values)
+    def fromArray(values: Array[Double]): Tensor[T, Float64] = Tensor(shape, VType[Float64]).fromArray(values)
 
-    def fill(value: Byte): Tensor[T, Int8] = fill[Int8](value)
-    def fill(value: Short): Tensor[T, Int16] = fill[Int16](value)
-    def fill(value: Int): Tensor[T, Int32] = fill[Int32](value)
-    def fill(value: Long): Tensor[T, Int64] = fill[Int64](value)
-    def fromArray(values: Array[Byte]): Tensor[T, Int8] = fromArray[Int8](values)
-    def fromArray(values: Array[Short]): Tensor[T, Int16] = fromArray[Int16](values)
-    def fromArray(values: Array[Int]): Tensor[T, Int32] = fromArray[Int32](values)
-    def fromArray(values: Array[Long]): Tensor[T, Int64] = fromArray[Int64](values)
+    def fill(value: Byte): Tensor[T, Int8] = Tensor(shape, VType[Int8]).fill(value)
+    def fill(value: Short): Tensor[T, Int16] = Tensor(shape, VType[Int16]).fill(value)
+    def fill(value: Int): Tensor[T, Int32] = Tensor(shape, VType[Int32]).fill(value)
+    def fill(value: Long): Tensor[T, Int64] = Tensor(shape, VType[Int64]).fill(value)
+    def fromArray(values: Array[Byte]): Tensor[T, Int8] = Tensor(shape, VType[Int8]).fromArray(values)
+    def fromArray(values: Array[Short]): Tensor[T, Int16] = Tensor(shape, VType[Int16]).fromArray(values)
+    def fromArray(values: Array[Int]): Tensor[T, Int32] = Tensor(shape, VType[Int32]).fromArray(values)
+    def fromArray(values: Array[Long]): Tensor[T, Int64] = Tensor(shape, VType[Int64]).fromArray(values)
 
-    def fill(value: Boolean): Tensor[T, Bool] = fill[Bool](value)
-    def fromArray(values: Array[Boolean]): Tensor[T, Bool] = fromArray[Bool](values)
+    def fill(value: Boolean): Tensor[T, Bool] = Tensor(shape, VType[Bool]).fill(value)
+    def fromArray(values: Array[Boolean]): Tensor[T, Bool] = Tensor(shape, VType[Bool]).fromArray(values)
 
-  trait FactoryLowPrio[T <: Tuple: Labels]:
+  case class TypedFactory[T <: Tuple: Labels, V](shape: Shape[T], vtype: VType[V]):
 
-    def shape: Shape[T]
+    // --- Boolean ---
+    def fill(value: Boolean)(using IsBoolean[V]): Tensor[T, V] = Tensor(Jax.jnp.full(shape.dimensions.toPythonProxy, value, dtype = vtype.dtype.jaxType))
+    def fromArray(values: Array[Boolean])(using IsBoolean[V]): Tensor[T, V] = ArrayWriter.fromArray[T, V](shape, values)
 
-    def fill[V: IsBoolean](value: Boolean): Tensor[T, V] = Tensor(Jax.jnp.full(shape.dimensions.toPythonProxy, value, dtype = IsBoolean[V].dtype.jaxType))
-    def fromArray[V: IsBoolean](values: Array[Boolean]): Tensor[T, V] = ArrayWriter.fromArray[T, V](shape, values)
+    // --- Integer ---
+    def fill(value: Byte)(using IsInteger[V]): Tensor[T, V] = Tensor(Jax.jnp.full(shape.dimensions.toPythonProxy, value, dtype = vtype.dtype.jaxType))
+    def fill(value: Short)(using IsInteger[V]): Tensor[T, V] = Tensor(Jax.jnp.full(shape.dimensions.toPythonProxy, value.toInt, dtype = vtype.dtype.jaxType))
+    def fill(value: Int)(using IsInteger[V]): Tensor[T, V] = Tensor(Jax.jnp.full(shape.dimensions.toPythonProxy, value, dtype = vtype.dtype.jaxType))
+    def fill(value: Long)(using IsInteger[V]): Tensor[T, V] = Tensor(Jax.jnp.full(shape.dimensions.toPythonProxy, value, dtype = vtype.dtype.jaxType))
+    def fromArray(values: Array[Byte])(using IsInteger[V]): Tensor[T, V] = ArrayWriter.fromArray[T, V](shape, values)
+    def fromArray(values: Array[Short])(using IsInteger[V]): Tensor[T, V] = ArrayWriter.fromArray[T, V](shape, values)
+    def fromArray(values: Array[Int])(using IsInteger[V]): Tensor[T, V] = ArrayWriter.fromArray[T, V](shape, values)
+    def fromArray(values: Array[Long])(using IsInteger[V]): Tensor[T, V] = ArrayWriter.fromArray[T, V](shape, values)
 
-    def fill[V: IsInteger](value: Byte): Tensor[T, V] = Tensor(Jax.jnp.full(shape.dimensions.toPythonProxy, value, dtype = IsInteger[V].dtype.jaxType))
-    def fill[V: IsInteger](value: Short): Tensor[T, V] = Tensor(Jax.jnp.full(shape.dimensions.toPythonProxy, value.toInt, dtype = IsInteger[V].dtype.jaxType))
-    def fill[V: IsInteger](value: Int): Tensor[T, V] = Tensor(Jax.jnp.full(shape.dimensions.toPythonProxy, value, dtype = IsInteger[V].dtype.jaxType))
-    def fill[V: IsInteger](value: Long): Tensor[T, V] = Tensor(Jax.jnp.full(shape.dimensions.toPythonProxy, value, dtype = IsInteger[V].dtype.jaxType))
-    def fromArray[V: IsInteger](values: Array[Byte]): Tensor[T, V] = ArrayWriter.fromArray[T, V](shape, values)
-    def fromArray[V: IsInteger](values: Array[Short]): Tensor[T, V] = ArrayWriter.fromArray[T, V](shape, values)
-    def fromArray[V: IsInteger](values: Array[Int]): Tensor[T, V] = ArrayWriter.fromArray[T, V](shape, values)
-    def fromArray[V: IsInteger](values: Array[Long]): Tensor[T, V] = ArrayWriter.fromArray[T, V](shape, values)
-
-    def fill[V: IsFloating](value: Float): Tensor[T, V] = Tensor(Jax.jnp.full(shape.dimensions.toPythonProxy, value, dtype = IsFloating[V].dtype.jaxType))
-    def fill[V: IsFloating](value: Double): Tensor[T, V] = Tensor(Jax.jnp.full(shape.dimensions.toPythonProxy, value, dtype = IsFloating[V].dtype.jaxType))
-    def fromArray[V: IsFloating](values: Array[Float]): Tensor[T, V] = ArrayWriter.fromArray[T, V](shape, values)
-    def fromArray[V: IsFloating](values: Array[Double]): Tensor[T, V] = ArrayWriter.fromArray[T, V](shape, values)
+    // --- Floating ---
+    def fill(value: Float)(using IsFloating[V]): Tensor[T, V] = Tensor(Jax.jnp.full(shape.dimensions.toPythonProxy, value, dtype = vtype.dtype.jaxType))
+    def fill(value: Double)(using IsFloating[V]): Tensor[T, V] = Tensor(Jax.jnp.full(shape.dimensions.toPythonProxy, value, dtype = vtype.dtype.jaxType))
+    def fromArray(values: Array[Float])(using IsFloating[V]): Tensor[T, V] = ArrayWriter.fromArray[T, V](shape, values)
+    def fromArray(values: Array[Double])(using IsFloating[V]): Tensor[T, V] = ArrayWriter.fromArray[T, V](shape, values)
 
   case class LikeFactory[T <: Tuple: Labels, V](val other: Tensor[T, V]):
 
@@ -124,8 +126,9 @@ object Tensor:
     def fromArray(values: Array[Double])(using IsFloating[V]): Tensor[T, V] = ArrayWriter.fromArray[T, V](other.shape, values)
 
   private[dimwit] def apply[T <: Tuple: Labels, V](jaxValue: Jax.PyDynamic): Tensor[T, V] = new Tensor(jaxValue)
-  def apply[T <: Tuple: Labels](shape: Shape[T]): Tensor.Factory[T] = Tensor.Factory(shape)
 
+  def apply[T <: Tuple: Labels](shape: Shape[T]): DefaultsFactory[T] = DefaultsFactory(shape)
+  def apply[T <: Tuple: Labels, V](shape: Shape[T], vtype: VType[V]): TypedFactory[T, V] = TypedFactory(shape, vtype)
   def like[T <: Tuple: Labels, V](template: Tensor[T, V]): Tensor.LikeFactory[T, V] = Tensor.LikeFactory(template)
 
 type Tensor0[V] = Tensor[EmptyTuple, V]
@@ -134,91 +137,111 @@ type Tensor2[L1, L2, V] = Tensor[(L1, L2), V]
 type Tensor3[L1, L2, L3, V] = Tensor[(L1, L2, L3), V]
 type Tensor4[L1, L2, L3, L4, V] = Tensor[(L1, L2, L3, L4), V]
 
-object Tensor0 extends Tensor0LowPrio:
+object Tensor0:
 
-  def apply(value: Boolean): Tensor0[Bool] = apply[Bool](value)
+  object DefaultsFactory:
 
-  def apply(value: Byte): Tensor0[Int8] = apply[Int8](value)
-  def apply(value: Short): Tensor0[Int16] = apply[Int16](value)
-  def apply(value: Int): Tensor0[Int32] = apply[Int32](value)
-  def apply(value: Long): Tensor0[Int64] = apply[Int64](value)
+    def apply(value: Boolean): Tensor0[Bool] = Tensor0(VType[Bool])(value)
 
-  def apply(value: Float): Tensor0[Float32] = apply[Float32](value)
-  def apply(value: Double): Tensor0[Float64] = apply[Float64](value)
+    def apply(value: Byte): Tensor0[Int8] = Tensor0(VType[Int8])(value)
+    def apply(value: Short): Tensor0[Int16] = Tensor0(VType[Int16])(value)
+    def apply(value: Int): Tensor0[Int32] = Tensor0(VType[Int32])(value)
+    def apply(value: Long): Tensor0[Int64] = Tensor0(VType[Int64])(value)
 
-trait Tensor0LowPrio:
+    def apply(value: Float): Tensor0[Float32] = Tensor0(VType[Float32])(value)
+    def apply(value: Double): Tensor0[Float64] = Tensor0(VType[Float64])(value)
 
-  def apply[V: IsBoolean](value: Boolean): Tensor0[V] = Tensor(Jax.jnp.full(Shape0.dimensions.toPythonProxy, value, dtype = IsBoolean[V].dtype.jaxType))
+  case class TypedFactory[V](vtype: VType[V]):
 
-  def apply[V: IsInteger](value: Byte): Tensor0[V] = Tensor(Jax.jnp.full(Shape0.dimensions.toPythonProxy, value, dtype = IsInteger[V].dtype.jaxType))
-  def apply[V: IsInteger](value: Short): Tensor0[V] = Tensor(Jax.jnp.full(Shape0.dimensions.toPythonProxy, value.toInt, dtype = IsInteger[V].dtype.jaxType))
-  def apply[V: IsInteger](value: Int): Tensor0[V] = Tensor(Jax.jnp.full(Shape0.dimensions.toPythonProxy, value, dtype = IsInteger[V].dtype.jaxType))
-  def apply[V: IsInteger](value: Long): Tensor0[V] = Tensor(Jax.jnp.full(Shape0.dimensions.toPythonProxy, value, dtype = IsInteger[V].dtype.jaxType))
+    // --- Boolean ---
+    def apply(value: Boolean)(using IsBoolean[V]): Tensor0[V] = Tensor(Jax.jnp.array(value, dtype = vtype.dtype.jaxType))
 
-  def apply[V: IsFloating](value: Float): Tensor0[V] = Tensor(Jax.jnp.full(Shape0.dimensions.toPythonProxy, value, dtype = IsFloating[V].dtype.jaxType))
-  def apply[V: IsFloating](value: Double): Tensor0[V] = Tensor(Jax.jnp.full(Shape0.dimensions.toPythonProxy, value, dtype = IsFloating[V].dtype.jaxType))
+    // --- Integer ---
+    def apply(value: Byte)(using IsInteger[V]): Tensor0[V] = Tensor(Jax.jnp.array(value, dtype = vtype.dtype.jaxType))
+    def apply(value: Short)(using IsInteger[V]): Tensor0[V] = Tensor(Jax.jnp.array(value.toInt, dtype = vtype.dtype.jaxType))
+    def apply(value: Int)(using IsInteger[V]): Tensor0[V] = Tensor(Jax.jnp.array(value, dtype = vtype.dtype.jaxType))
+    def apply(value: Long)(using IsInteger[V]): Tensor0[V] = Tensor(Jax.jnp.array(value, dtype = vtype.dtype.jaxType))
+
+    // --- Floating ---
+    def apply(value: Float)(using IsFloating[V]): Tensor0[V] = Tensor(Jax.jnp.array(value, dtype = vtype.dtype.jaxType))
+    def apply(value: Double)(using IsFloating[V]): Tensor0[V] = Tensor(Jax.jnp.array(value, dtype = vtype.dtype.jaxType))
+
+  export DefaultsFactory.*
+  def apply[V](vtype: VType[V]): TypedFactory[V] = TypedFactory(vtype)
 
   def like[V: Writer](template: Tensor0[V])(value: V): Tensor0[V] = Tensor(Jax.jnp.full(Shape0.dimensions.toPythonProxy, value, dtype = template.dtype.jaxType))
+  def likeDType[V, T <: Tuple](template: Tensor[T, V])(value: Float): Tensor0[V] = Tensor(Jax.jnp.full(Shape0.dimensions.toPythonProxy, value, dtype = template.dtype.jaxType))
 
   def apply[V](jaxValue: Jax.PyDynamic): Tensor0[V] = Tensor(jaxValue)
 
 object Tensor1:
 
-  case class Factory[L: Label]() extends FactoryLowPrio[L]:
+  case class DefaultsFactory[L: Label](axis: Axis[L]):
 
-    def fromArray(values: Array[Boolean]): Tensor1[L, Bool] = fromArray[Bool](values)
+    // --- Boolean ---
+    def fromArray(values: Array[Boolean]): Tensor1[L, Bool] = Tensor1(axis, VType[Bool]).fromArray(values)
 
-    def fromArray(values: Array[Byte]): Tensor1[L, Int8] = fromArray[Int8](values)
-    def fromArray(values: Array[Short]): Tensor1[L, Int16] = fromArray[Int16](values)
-    def fromArray(values: Array[Int]): Tensor1[L, Int32] = fromArray[Int32](values)
-    def fromArray(values: Array[Long]): Tensor1[L, Int64] = fromArray[Int64](values)
+    // --- Integer ---
+    def fromArray(values: Array[Byte]): Tensor1[L, Int8] = Tensor1(axis, VType[Int8]).fromArray(values)
+    def fromArray(values: Array[Short]): Tensor1[L, Int16] = Tensor1(axis, VType[Int16]).fromArray(values)
+    def fromArray(values: Array[Int]): Tensor1[L, Int32] = Tensor1(axis, VType[Int32]).fromArray(values)
+    def fromArray(values: Array[Long]): Tensor1[L, Int64] = Tensor1(axis, VType[Int64]).fromArray(values)
 
-    def fromArray(values: Array[Float]): Tensor1[L, Float32] = fromArray[Float32](values)
-    def fromArray(values: Array[Double]): Tensor1[L, Float64] = fromArray[Float64](values)
+    // --- Floating ---
+    def fromArray(values: Array[Float]): Tensor1[L, Float32] = Tensor1(axis, VType[Float32]).fromArray(values)
+    def fromArray(values: Array[Double]): Tensor1[L, Float64] = Tensor1(axis, VType[Float64]).fromArray(values)
 
-  trait FactoryLowPrio[L: Label]:
+  case class TypedFactory[L: Label, V](axis: Axis[L], vtype: VType[V]):
 
-    def fromArray[V: IsBoolean](values: Array[Boolean]): Tensor1[L, V] = ArrayWriter.fromArray[Tuple1[L], V](Shape1(Axis[L] -> values.length), values)
+    // --- Boolean ---
+    def fromArray(values: Array[Boolean])(using IsBoolean[V]): Tensor1[L, V] = ArrayWriter.fromArray[Tuple1[L], V](Shape1(axis -> values.length), values)
 
-    def fromArray[V: IsInteger](values: Array[Byte]): Tensor1[L, V] = ArrayWriter.fromArray[Tuple1[L], V](Shape1(Axis[L] -> values.length), values)
-    def fromArray[V: IsInteger](values: Array[Short]): Tensor1[L, V] = ArrayWriter.fromArray[Tuple1[L], V](Shape1(Axis[L] -> values.length), values)
-    def fromArray[V: IsInteger](values: Array[Int]): Tensor1[L, V] = ArrayWriter.fromArray[Tuple1[L], V](Shape1(Axis[L] -> values.length), values)
-    def fromArray[V: IsInteger](values: Array[Long]): Tensor1[L, V] = ArrayWriter.fromArray[Tuple1[L], V](Shape1(Axis[L] -> values.length), values)
+    // --- Integer ---
+    def fromArray(values: Array[Byte])(using IsInteger[V]): Tensor1[L, V] = ArrayWriter.fromArray[Tuple1[L], V](Shape1(axis -> values.length), values)
+    def fromArray(values: Array[Short])(using IsInteger[V]): Tensor1[L, V] = ArrayWriter.fromArray[Tuple1[L], V](Shape1(axis -> values.length), values)
+    def fromArray(values: Array[Int])(using IsInteger[V]): Tensor1[L, V] = ArrayWriter.fromArray[Tuple1[L], V](Shape1(axis -> values.length), values)
+    def fromArray(values: Array[Long])(using IsInteger[V]): Tensor1[L, V] = ArrayWriter.fromArray[Tuple1[L], V](Shape1(axis -> values.length), values)
 
-    def fromArray[V: IsFloating](values: Array[Float]): Tensor1[L, V] = ArrayWriter.fromArray[Tuple1[L], V](Shape1(Axis[L] -> values.length), values)
-    def fromArray[V: IsFloating](values: Array[Double]): Tensor1[L, V] = ArrayWriter.fromArray[Tuple1[L], V](Shape1(Axis[L] -> values.length), values)
+    // --- Floating ---
+    def fromArray(values: Array[Float])(using IsFloating[V]): Tensor1[L, V] = ArrayWriter.fromArray[Tuple1[L], V](Shape1(axis -> values.length), values)
+    def fromArray(values: Array[Double])(using IsFloating[V]): Tensor1[L, V] = ArrayWriter.fromArray[Tuple1[L], V](Shape1(axis -> values.length), values)
 
-  def apply[L: Label](axis: Axis[L]): Factory[L] = Factory()
+  def apply[L: Label](axis: Axis[L]): DefaultsFactory[L] = DefaultsFactory(axis)
+  def apply[L: Label, V](axis: Axis[L], vtype: VType[V]): TypedFactory[L, V] = TypedFactory(axis, vtype)
 
 object Tensor2:
 
   type Array2D[V] = Array[Array[V]]
 
-  case class Factory[L: Label]() extends FactoryLowPrio[L]:
+  case class DefaultsFactory[L1: Label, L2: Label](axis1: Axis[L1], axis2: Axis[L2]):
 
-    def fromArray(values: Array2D[Boolean]): Tensor1[L, Bool] = fromArray[Bool](values)
+    def fromArray(values: Array2D[Boolean]): Tensor2[L1, L2, Bool] = Tensor2(axis1, axis2, VType[Bool]).fromArray(values)
 
-    def fromArray(values: Array2D[Byte]): Tensor1[L, Int8] = fromArray[Int8](values)
-    def fromArray(values: Array2D[Short]): Tensor1[L, Int16] = fromArray[Int16](values)
-    def fromArray(values: Array2D[Int]): Tensor1[L, Int32] = fromArray[Int32](values)
-    def fromArray(values: Array2D[Long]): Tensor1[L, Int64] = fromArray[Int64](values)
+    def fromArray(values: Array2D[Byte]): Tensor2[L1, L2, Int8] = Tensor2(axis1, axis2, VType[Int8]).fromArray(values)
+    def fromArray(values: Array2D[Short]): Tensor2[L1, L2, Int16] = Tensor2(axis1, axis2, VType[Int16]).fromArray(values)
+    def fromArray(values: Array2D[Int]): Tensor2[L1, L2, Int32] = Tensor2(axis1, axis2, VType[Int32]).fromArray(values)
+    def fromArray(values: Array2D[Long]): Tensor2[L1, L2, Int64] = Tensor2(axis1, axis2, VType[Int64]).fromArray(values)
 
-    def fromArray(values: Array2D[Float]): Tensor1[L, Float32] = fromArray[Float32](values)
-    def fromArray(values: Array2D[Double]): Tensor1[L, Float64] = fromArray[Float64](values)
+    def fromArray(values: Array2D[Float]): Tensor2[L1, L2, Float32] = Tensor2(axis1, axis2, VType[Float32]).fromArray(values)
+    def fromArray(values: Array2D[Double]): Tensor2[L1, L2, Float64] = Tensor2(axis1, axis2, VType[Float64]).fromArray(values)
 
-  trait FactoryLowPrio[L: Label]:
+  case class TypedFactory[L1: Label, L2: Label, V](axis1: Axis[L1], axis2: Axis[L2], vtype: VType[V]):
 
-    def fromArray[V: IsBoolean](values: Array2D[Boolean]): Tensor1[L, V] = ???
+    // --- Boolean ---
+    def fromArray(values: Array2D[Boolean])(using IsBoolean[V]): Tensor2[L1, L2, V] = ???
 
-    def fromArray[V: IsInteger](values: Array2D[Byte]): Tensor1[L, V] = ???
-    def fromArray[V: IsInteger](values: Array2D[Short]): Tensor1[L, V] = ???
-    def fromArray[V: IsInteger](values: Array2D[Int]): Tensor1[L, V] = ???
-    def fromArray[V: IsInteger](values: Array2D[Long]): Tensor1[L, V] = ???
+    // --- Integer ---
+    def fromArray(values: Array2D[Byte])(using IsInteger[V]): Tensor2[L1, L2, V] = ???
+    def fromArray(values: Array2D[Short])(using IsInteger[V]): Tensor2[L1, L2, V] = ???
+    def fromArray(values: Array2D[Int])(using IsInteger[V]): Tensor2[L1, L2, V] = ???
+    def fromArray(values: Array2D[Long])(using IsInteger[V]): Tensor2[L1, L2, V] = ???
 
-    def fromArray[V: IsFloating](values: Array2D[Float]): Tensor1[L, V] = ???
-    def fromArray[V: IsFloating](values: Array2D[Double]): Tensor1[L, V] = ???
+    // --- Floating ---
+    def fromArray(values: Array2D[Float])(using IsFloating[V]): Tensor2[L1, L2, V] = ???
+    def fromArray(values: Array2D[Double])(using IsFloating[V]): Tensor2[L1, L2, V] = ???
 
-  def apply[L: Label](axis: Axis[L]): Factory[L] = Factory()
+  def apply[L1: Label, L2: Label](axis1: Axis[L1], axis2: Axis[L2]): DefaultsFactory[L1, L2] = DefaultsFactory(axis1, axis2)
+  def apply[L1: Label, L2: Label, V](axis1: Axis[L1], axis2: Axis[L2], vtype: VType[V]): TypedFactory[L1, L2, V] = TypedFactory(axis1, axis2, vtype)
 
   private def eyeImpl[L: Label, V](dim: AxisExtent[L], dtype: DType): Tensor2[L, Prime[L], V] = Tensor(Jax.jnp.eye(dim.size, dtype = dtype.jaxType))
   def eye[L: Label](dim: AxisExtent[L])(using et: ExecutionType[Float]): Tensor2[L, Prime[L], Float] = eyeImpl(dim, et.dtype)
@@ -229,28 +252,33 @@ object Tensor3:
 
   type Array3D[V] = Array[Array[Array[V]]]
 
-  case class Factory[L: Label]() extends FactoryLowPrio[L]:
+  case class DefaultsFactory[L1: Label, L2: Label, L3: Label](axis1: Axis[L1], axis2: Axis[L2], axis3: Axis[L3]):
 
-    def fromArray(values: Array3D[Boolean]): Tensor1[L, Bool] = fromArray[Bool](values)
+    def fromArray(values: Array3D[Boolean]): Tensor3[L1, L2, L3, Bool] = Tensor3(axis1, axis2, axis3, VType[Bool]).fromArray(values)
 
-    def fromArray(values: Array3D[Byte]): Tensor1[L, Int8] = fromArray[Int8](values)
-    def fromArray(values: Array3D[Short]): Tensor1[L, Int16] = fromArray[Int16](values)
-    def fromArray(values: Array3D[Int]): Tensor1[L, Int32] = fromArray[Int32](values)
-    def fromArray(values: Array3D[Long]): Tensor1[L, Int64] = fromArray[Int64](values)
+    def fromArray(values: Array3D[Byte]): Tensor3[L1, L2, L3, Int8] = Tensor3(axis1, axis2, axis3, VType[Int8]).fromArray(values)
+    def fromArray(values: Array3D[Short]): Tensor3[L1, L2, L3, Int16] = Tensor3(axis1, axis2, axis3, VType[Int16]).fromArray(values)
+    def fromArray(values: Array3D[Int]): Tensor3[L1, L2, L3, Int32] = Tensor3(axis1, axis2, axis3, VType[Int32]).fromArray(values)
+    def fromArray(values: Array3D[Long]): Tensor3[L1, L2, L3, Int64] = Tensor3(axis1, axis2, axis3, VType[Int64]).fromArray(values)
 
-    def fromArray(values: Array3D[Float]): Tensor1[L, Float32] = fromArray[Float32](values)
-    def fromArray(values: Array3D[Double]): Tensor1[L, Float64] = fromArray[Float64](values)
+    def fromArray(values: Array3D[Float]): Tensor3[L1, L2, L3, Float32] = Tensor3(axis1, axis2, axis3, VType[Float32]).fromArray(values)
+    def fromArray(values: Array3D[Double]): Tensor3[L1, L2, L3, Float64] = Tensor3(axis1, axis2, axis3, VType[Float64]).fromArray(values)
 
-  trait FactoryLowPrio[L: Label]:
+  case class TypedFactory[L1: Label, L2: Label, L3: Label, V](axis1: Axis[L1], axis2: Axis[L2], axis3: Axis[L3], vtype: VType[V]):
 
-    def fromArray[V: IsBoolean](values: Array3D[Boolean]): Tensor1[L, V] = ???
+    // --- Boolean ---
+    def fromArray(values: Array3D[Boolean])(using IsBoolean[V]): Tensor3[L1, L2, L3, V] = ???
 
-    def fromArray[V: IsInteger](values: Array3D[Byte]): Tensor1[L, V] = ???
-    def fromArray[V: IsInteger](values: Array3D[Short]): Tensor1[L, V] = ???
-    def fromArray[V: IsInteger](values: Array3D[Int]): Tensor1[L, V] = ???
-    def fromArray[V: IsInteger](values: Array3D[Long]): Tensor1[L, V] = ???
+    // --- Integer ---
+    def fromArray(values: Array3D[Byte])(using IsInteger[V]): Tensor3[L1, L2, L3, V] = ???
+    def fromArray(values: Array3D[Short])(using IsInteger[V]): Tensor3[L1, L2, L3, V] = ???
+    def fromArray(values: Array3D[Int])(using IsInteger[V]): Tensor3[L1, L2, L3, V] = ???
+    def fromArray(values: Array3D[Long])(using IsInteger[V]): Tensor3[L1, L2, L3, V] = ???
 
-    def fromArray[V: IsFloating](values: Array3D[Float]): Tensor1[L, V] = ???
-    def fromArray[V: IsFloating](values: Array3D[Double]): Tensor1[L, V] = ???
+    // --- Floating ---
+    def fromArray(values: Array3D[Float])(using IsFloating[V]): Tensor3[L1, L2, L3, V] = ???
+    def fromArray(values: Array3D[Double])(using IsFloating[V]): Tensor3[L1, L2, L3, V] = ???
 
-  def apply[L: Label](axis: Axis[L]): Factory[L] = Factory()
+  def apply[L1: Label, L2: Label, L3: Label](axis1: Axis[L1], axis2: Axis[L2], axis3: Axis[L3]): DefaultsFactory[L1, L2, L3] = DefaultsFactory(axis1, axis2, axis3)
+
+  def apply[L1: Label, L2: Label, L3: Label, V](axis1: Axis[L1], axis2: Axis[L2], axis3: Axis[L3], vtype: VType[V]): TypedFactory[L1, L2, L3, V] = TypedFactory(axis1, axis2, axis3, vtype)

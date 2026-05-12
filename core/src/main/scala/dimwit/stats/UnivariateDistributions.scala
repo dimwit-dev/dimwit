@@ -14,16 +14,16 @@ import dimwit.python.PyBridge.liftPyTensor
   */
 type UnivariateDistribution[V] = Distribution[EmptyTuple, V]
 
-class Categorical[L: Label, V: IsInteger](val probs: Tensor1[L, Prob]) extends UnivariateDistribution[V]:
+class Categorical[L: Label](val probs: Tensor1[L, Prob]) extends UnivariateDistribution[Int32]:
 
   private val logProbs: Tensor1[L, LogProb] = probs.log
 
-  override def logProb(x: Tensor0[V]): Tensor0[LogProb] =
+  override def logProb(x: Tensor0[Int32]): Tensor0[LogProb] =
     liftPyTensor(logProbs.jaxValue.__getitem__(x.jaxValue))
 
-  override def sample(key: Key): Tensor0[V] =
+  override def sample(key: Key): Tensor0[Int32] =
     liftPyTensor(Jax.jrandom.categorical(key.jaxKey, logProbs.jaxValue))
 
 object Categorical:
-  def apply[L: Label, V: IsInteger](probs: Tensor1[L, Prob]): Categorical[L, V] = new Categorical(probs)
-  def fromFloat[L: Label, V: IsInteger](probs: Tensor1[L, Float32]): Categorical[L, V] = new Categorical(Prob(probs))
+  def apply[L: Label](probs: Tensor1[L, Prob]): Categorical[L] = new Categorical(probs)
+  def fromFloat[L: Label](probs: Tensor1[L, Float32]): Categorical[L] = new Categorical(Prob(probs))
