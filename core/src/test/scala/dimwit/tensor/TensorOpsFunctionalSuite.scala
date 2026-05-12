@@ -1,6 +1,7 @@
 package dimwit.tensor
 
 import dimwit.*
+
 class TensorOpsFunctionalSuite extends DimwitTest:
 
   val t2 = Tensor2(Axis[A], Axis[B]).fromArray(

@@ -852,13 +852,16 @@ This section demonstrates **compile-time** and **runtime** errors to help coding
 
 ### Type Constraint Violations
 
-```scala mdoc:reset:fail
+```scala mdoc:reset
 import dimwit.*
 
 trait A derives Label
 trait B derives Label
 trait C derives Label
 trait D derives Label
+```
+
+```scala mdoc:fail
 // ERROR: Cannot perform floating-point operations on Int tensors
 val intTensor = Tensor1(Axis[A]).fromArray(Array(1, 2, 3))
 val wrong = intTensor.exp  // exp requires IsFloating constraint
@@ -899,7 +902,7 @@ val wrong = t + 10.0f  // Should use +! for scalar broadcast
 val t1 = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f))
 val t2 = Tensor1(Axis[A]).fromArray(Array(3.0f, 4.0f))
 // This works but is semantically wrong (use + instead)
-// val result = t1 +! t2  // Compiles but misleading
+val wrong = t1 +! t2
 ```
 
 ### Axis Errors

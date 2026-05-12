@@ -7,6 +7,7 @@ import dimwit.tensor.TupleHelpers.PrimeConcatType
 import dimwit.jax.Jax
 import me.shadaj.scalapy.py
 import dimwit.tensor.Label
+import dimwit.tensor.TensorOps.IsFloating
 
 object Autodiff:
 
@@ -22,10 +23,10 @@ object Autodiff:
     case Tensor[inS, v2] => Tensor[PrimeConcatType[OutShape, inS], V]
 
   // TODO replace with TupledFunction when available (no longer experimental)
-  def grad[T1, T2, V](f: (T1, T2) => Tensor0[V])(using t1Tree: TensorTree[T1], t2Tree: TensorTree[T2], outTree: TensorTree[Tensor0[V]]): (T1, T2) => Grad[(T1, T2)] = (t1, t2) => grad(f.tupled)((t1, t2))
-  def grad[T1, T2, T3, V](f: (T1, T2, T3) => Tensor0[V])(using t1Tree: TensorTree[T1], t2Tree: TensorTree[T2], t3Tree: TensorTree[T3], outTree: TensorTree[Tensor0[V]]): (T1, T2, T3) => Grad[(T1, T2, T3)] = (t1, t2, t3) => grad(f.tupled)((t1, t2, t3))
+  def grad[T1, T2, V: IsFloating](f: (T1, T2) => Tensor0[V])(using t1Tree: TensorTree[T1], t2Tree: TensorTree[T2], outTree: TensorTree[Tensor0[V]]): (T1, T2) => Grad[(T1, T2)] = (t1, t2) => grad(f.tupled)((t1, t2))
+  def grad[T1, T2, T3, V: IsFloating](f: (T1, T2, T3) => Tensor0[V])(using t1Tree: TensorTree[T1], t2Tree: TensorTree[T2], t3Tree: TensorTree[T3], outTree: TensorTree[Tensor0[V]]): (T1, T2, T3) => Grad[(T1, T2, T3)] = (t1, t2, t3) => grad(f.tupled)((t1, t2, t3))
 
-  def grad[Input, V](f: Input => Tensor0[V])(using
+  def grad[Input, V: IsFloating](f: Input => Tensor0[V])(using
       inTree: TensorTree[Input],
       outTree: TensorTree[Tensor0[V]]
   ): Input => Grad[Input] =
@@ -42,10 +43,10 @@ object Autodiff:
       val pyGrad = gpy(pyParams)
       Grad(inTree.fromPyTree(pyGrad).asInstanceOf[Input])
 
-  def valueAndGrad[T1, T2, V](f: (T1, T2) => Tensor0[V])(using t1Tree: TensorTree[T1], t2Tree: TensorTree[T2], outTree: TensorTree[Tensor0[V]]): (T1, T2) => (Tensor0[V], Grad[(T1, T2)]) = (t1, t2) => valueAndGrad(f.tupled)((t1, t2))
-  def valueAndGrad[T1, T2, T3, V](f: (T1, T2, T3) => Tensor0[V])(using t1Tree: TensorTree[T1], t2Tree: TensorTree[T2], t3Tree: TensorTree[T3], outTree: TensorTree[Tensor0[V]]): (T1, T2, T3) => (Tensor0[V], Grad[(T1, T2, T3)]) = (t1, t2, t3) => valueAndGrad(f.tupled)((t1, t2, t3))
+  def valueAndGrad[T1, T2, V: IsFloating](f: (T1, T2) => Tensor0[V])(using t1Tree: TensorTree[T1], t2Tree: TensorTree[T2], outTree: TensorTree[Tensor0[V]]): (T1, T2) => (Tensor0[V], Grad[(T1, T2)]) = (t1, t2) => valueAndGrad(f.tupled)((t1, t2))
+  def valueAndGrad[T1, T2, T3, V: IsFloating](f: (T1, T2, T3) => Tensor0[V])(using t1Tree: TensorTree[T1], t2Tree: TensorTree[T2], t3Tree: TensorTree[T3], outTree: TensorTree[Tensor0[V]]): (T1, T2, T3) => (Tensor0[V], Grad[(T1, T2, T3)]) = (t1, t2, t3) => valueAndGrad(f.tupled)((t1, t2, t3))
 
-  def valueAndGrad[Input, V](f: Input => Tensor0[V])(using
+  def valueAndGrad[Input, V: IsFloating](f: Input => Tensor0[V])(using
       inTree: TensorTree[Input],
       outTree: TensorTree[Tensor0[V]]
   ): Input => (Tensor0[V], Grad[Input]) =
