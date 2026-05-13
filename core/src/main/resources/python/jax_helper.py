@@ -2,7 +2,6 @@
 
 import jax
 import jax.numpy as jnp
-from jax import vmap
 
 import builtins
 builtins.jax = jax
@@ -28,6 +27,20 @@ def wrap(jax_transform, f, kwargs=None):
     if kwargs:
         return jax_transform(wrap_fn(f), **kwargs)
     return jax_transform(wrap_fn(f))
+
+def scan(f, init, xs, kwargs=None):
+    """
+    Wrapper for jax.lax.scan.
+    
+    Args:
+        f: The loop function.
+        init: The initial state.
+        xs: The sequence to scan over.
+        kwargs: Additional arguments like 'length' or 'reverse'.
+    """
+    if kwargs:
+        return jax.lax.scan(wrap_fn(f), init, xs, **kwargs)
+    return jax.lax.scan(wrap_fn(f), init, xs)
 
 def vmap(f, dims):
     return wrap(jax.vmap, f, kwargs={"in_axes": dims})
@@ -59,8 +72,6 @@ def apply_over_axes(f, axis):
 def vmap2(f, dims):
     in_axes = (dims, dims) if isinstance(dims, int) else dims
     return wrap(jax.vmap, f, kwargs={"in_axes": in_axes})
-
-
 
 def grad(f):
     return wrap(jax.grad, f)
