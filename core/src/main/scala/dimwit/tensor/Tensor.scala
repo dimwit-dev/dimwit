@@ -17,11 +17,8 @@ import dimwit.Prime
 import ShapeTypeHelpers.AxisIndex
 import dimwit.hardware.Device
 import me.shadaj.scalapy.readwrite.Writer.stringWriter.given
-import dimwit.tensor.TensorOps.IsFloating
+import dimwit.tensor.TensorOps.{IsBoolean, IsInteger, IsFloating}
 import DType.*
-import dimwit.tensor.TensorOps.IsInteger
-import dimwit.tensor.TensorOps.IsBoolean
-import dimwit.tensor.TensorOps.IsNumber
 
 class Tensor[T <: Tuple: Labels, V] private[dimwit] (
     private[dimwit] val jaxValue: Jax.PyDynamic

@@ -66,7 +66,6 @@ class FloatTensorTreeSuite extends DimwitTest:
       res.weightBias._2 should approxEqual(layerParams.weightBias._2 + 0.5f)
 
     it("case class with tuple Float16"):
-      val xxx = Tensor2(Axis[A], Axis[B], VType[Float16]).fromArray(Array(Array(0.1f, 0.2f), Array(0.3f, 0.4f), Array(0.5f, 0.6f)))
       case class LayerParams(
           val weightBias: (Tensor2[A, B, Float16], Tensor0[Float16])
       )
@@ -205,7 +204,5 @@ class FloatTensorTreeSuite extends DimwitTest:
         val res = params.fillCopy(99f)
         res.w.shape shouldBe params.w.shape
         res.b.shape shouldBe params.b.shape
-        val xxx = res.w.approxElementEquals(Tensor.like(res.w).fill(99f)).all
-        val yyy = xxx.item
         res.w.approxElementEquals(Tensor.like(res.w).fill(99f)).all.item shouldBe true
         res.b.approxElementEquals(Tensor.like(res.b).fill(99f)).all.item shouldBe true
