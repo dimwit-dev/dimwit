@@ -92,8 +92,11 @@ object FloatTree:
       def scale(scalar: Tensor0[V]): P = p1.map([T <: Tuple] => (n: Labels[T]) ?=> (a: Tensor[T, V]) => TensorOps.scale(a)(scalar))
       def sign: P = p1.map([T <: Tuple] => (n: Labels[T]) ?=> (a: Tensor[T, V]) => TensorOps.sign(a))
 
-      def asFloatTree[NewV: IsFloating](vtype: VType[NewV]): P = p1.map([T <: Tuple] => (n: Labels[T]) ?=> (a: Tensor[T, V]) => a.asFloat(vtype))
-
       def fillCopy(value: Float): P = p1.map([T <: Tuple] => (n: Labels[T]) ?=> (a: Tensor[T, V]) => Tensor(a.shape, VType[V]).fill(value))
+
+    extension [F[_], V](p: F[V])(using tt: TensorTree[F[V]], ft: FloatTree[F[V], V], isF: IsFloating[V])
+
+      def asFloats[NewV: IsFloating](vtype: VType[NewV])(using m: Mirror.ProductOf[F[NewV]]): F[NewV] =
+        p.map([T <: Tuple] => (n: Labels[T]) ?=> (a: Tensor[T, V]) => a.asFloat(vtype)).asInstanceOf[F[NewV]]
 
 type FloatTreeFor[V] = [P] =>> FloatTree[P, V]

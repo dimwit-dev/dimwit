@@ -65,7 +65,7 @@ class FloatTensorTreeSuite extends DimwitTest:
       res.weightBias._1 should approxEqual(layerParams.weightBias._1 +! 0.5f)
       res.weightBias._2 should approxEqual(layerParams.weightBias._2 + 0.5f)
 
-    it("case class with tuple Float16"):
+    it("example for Float16"):
       case class LayerParams(
           val weightBias: (Tensor2[A, B, Float16], Tensor0[Float16])
       )
@@ -77,6 +77,30 @@ class FloatTensorTreeSuite extends DimwitTest:
 
       res.weightBias._1.asFloat32 should approxEqual((layerParams.weightBias._1 +! 0.5f).asFloat32)
       res.weightBias._2.asFloat32 should approxEqual((layerParams.weightBias._2 + 0.5f).asFloat32)
+
+    it("example for V"):
+      case class LayerParams[V](
+          val weightBias: (Tensor2[A, B, V], Tensor0[V])
+      )
+      val layerParams = LayerParams(
+        Tensor2(Axis[A], Axis[B], VType[Float16]).fromArray(Array(Array(0.1f, 0.2f), Array(0.3f, 0.4f), Array(0.5f, 0.6f))),
+        Tensor0(VType[Float16])(0.25f)
+      )
+      val res = layerParams.map([T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float16]) => x +! 0.5f)
+
+      res.weightBias._1.asFloat32 should approxEqual((layerParams.weightBias._1 +! 0.5f).asFloat32)
+      res.weightBias._2.asFloat32 should approxEqual((layerParams.weightBias._2 + 0.5f).asFloat32)
+
+    it("example for Float32 to Float16"):
+      case class LayerParams[V](
+          val weightBias: (Tensor2[A, B, V], Tensor0[V])
+      )
+      val layerParams = LayerParams(
+        Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(0.1f, 0.2f), Array(0.3f, 0.4f), Array(0.5f, 0.6f))),
+        Tensor0(0.25f)
+      )
+      val layerParamsFloat16: LayerParams[Float16] = layerParams.asFloats(VType[Float16])
+      layerParamsFloat16.weightBias._1.dtype.name shouldBe "float16"
 
     it("case class with list"):
       case class Params(

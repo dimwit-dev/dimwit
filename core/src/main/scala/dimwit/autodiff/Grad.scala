@@ -2,6 +2,7 @@ package dimwit.autodiff
 
 import dimwit.*
 import dimwit.jax.Jax
+import scala.deriving.Mirror
 
 /** Type-level tag marking a parameter structure as gradients.
   *
@@ -37,3 +38,12 @@ object Grad:
 
   // FloatTree witness for gradient math (++, --, scale, etc.)
   // given [T, V: IsFloating](using FloatTree[T, V]): FloatTree[Grad[T], V] with {}
+
+  // Bridge extension so we can call .asFloats directly on Grad[Params[V]]
+  extension [F[_], V](g: Grad[F[V]])(using
+      tt: TensorTree[F[V]],
+      ft: FloatTree[F[V], V],
+      isF: IsFloating[V]
+  )
+    def asFloats[NewV: IsFloating](vtype: VType[NewV])(using m: Mirror.ProductOf[F[NewV]]): Grad[F[NewV]] =
+      Grad(dimwit.FloatTree.ops.asFloats(g.value)(vtype))
