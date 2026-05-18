@@ -1,6 +1,7 @@
-package nn
+package dimwit.nn
 
-import dimwit.*
+import dimwit.tensor.*
+import dimwit.tensor.TensorOps.IsFloating
 import dimwit.jax.Jax
 import dimwit.python.PyBridge.{liftPyTensor, toPyTensor}
 

@@ -11,7 +11,7 @@ ThisBuild / resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/c
 addCommandAlias("testAndCoverage", "; clean; coverage; test; coverageReport")
 
 lazy val root = (project in file("."))
-  .aggregate(core, nn, examples)
+  .aggregate(core, optimizer, examples)
   .settings(
     name := "dimwit-root"
   )
@@ -43,16 +43,16 @@ lazy val core = (project in file("core"))
     Compile / packageDoc / publishArtifact := true
   )
 
-lazy val nn = (project in file("nn"))
+lazy val optimizer = (project in file("optimizer"))
   .settings(
-    name := "dimwit-nn"
+    name := "dimwit-optimizer"
   )
   .dependsOn(core)
 
 // Examples subproject
 lazy val examples = (project in file("examples"))
   .dependsOn(core)
-  .dependsOn(nn)
+  .dependsOn(optimizer)
   .settings(
     name := "dimwit-examples",
     // Examples use the same Scala version and dependencies as main project
@@ -81,7 +81,7 @@ lazy val examples = (project in file("examples"))
 // Processes files in /mdocs that need to be copied to the root (e.g. README.md)
 lazy val docsRoot = (project in file(".dimwit-docs-root"))
   .enablePlugins(MdocPlugin)
-  .dependsOn(core, nn)
+  .dependsOn(core, optimizer)
   .settings(
     name := "dimwit-docs-root",
     mdocIn := (ThisBuild / baseDirectory).value / "mdocs",
@@ -98,7 +98,7 @@ lazy val docsRoot = (project in file(".dimwit-docs-root"))
 // Processes all other docs in /mdocs/docs/ → output to docs/
 lazy val docs = (project in file(".dimwit-docs"))
   .enablePlugins(MdocPlugin)
-  .dependsOn(core, nn)
+  .dependsOn(core, optimizer)
   .settings(
     name := "dimwit-docs",
     mdocIn := (ThisBuild / baseDirectory).value / "mdocs/docs",

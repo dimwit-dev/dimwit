@@ -1,4 +1,4 @@
-package nn
+package dimwit.optimizer
 
 import dimwit.*
 import dimwit.autodiff.FloatTree.ops.*
