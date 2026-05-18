@@ -19,19 +19,19 @@ trait Batch derives Label
 trait Feature derives Label
 
 // parameters are explicitly defined and usually bundled in a case class
-case class Params(w: Tensor1[Feature, Float], b: Tensor0[Float]) derives TensorTree
+case class Params(w: Tensor1[Feature, Float32], b: Tensor0[Float32]) derives TensorTree
 
 // the model as a function of data and parametesrs
-def model(x: Tensor2[Batch, Feature, Float], y: Tensor1[Batch, Float])(params: Params): Tensor1[Batch, Float] =
+def model(x: Tensor2[Batch, Feature, Float32], y: Tensor1[Batch, Float32])(params: Params): Tensor1[Batch, Float32] =
   x.dot(Axis[Feature])(params.w) +! params.b
 
 // the loss function as a function of data and parameters
-def loss(x: Tensor2[Batch, Feature, Float], y: Tensor1[Batch, Float])(params: Params): Tensor0[Float] =
+def loss(x: Tensor2[Batch, Feature, Float32], y: Tensor1[Batch, Float32])(params: Params): Tensor0[Float32] =
   val pred = model(x, y)(params)
   (pred - y).pow(Tensor0(2.0f)).mean
 
 // the training loop, which produces an iterator of parameters
-def fit(x: Tensor2[Batch, Feature, Float], y: Tensor1[Batch, Float]): Iterator[Params] =
+def fit(x: Tensor2[Batch, Feature, Float32], y: Tensor1[Batch, Float32]): Iterator[Params] =
 
   // initialize parameters
   val p0 = Params(
@@ -146,11 +146,11 @@ Let's inspect the tensor more closely:
 
 ```scala
 tensor
-// res2: Tensor[Tuple2[Batch, Feature], Float] = [[1. 2.]
+// res2: Tensor[Tuple2[Batch, Feature], Float32] = [[1. 2.]
 //  [3. 4.]
 //  [5. 6.]]
 ```
-We see that the full type of the tensor is `Tensor[(Batch, Feature), Float]`, which indicates that the tensor has two axes, `Batch` and `Feature`, and that the data type of the tensor is `Float`. As this type is rather bulky to write, we can also use the convenient type aliases `Tensor2`, `Tensor1` and `Tensor0` for tensors of rank 2, rank 1 and rank 0 respectively. In this case, the type of the tensor could also be written as `Tensor2[Batch, Feature, Float]`.
+We see that the full type of the tensor is `Tensor[(Batch, Feature), Float32]`, which indicates that the tensor has two axes, `Batch` and `Feature`, and that the data type of the tensor is `Float`. As this type is rather bulky to write, we can also use the convenient type aliases `Tensor2`, `Tensor1` and `Tensor0` for tensors of rank 2, rank 1 and rank 0 respectively. In this case, the type of the tensor could also be written as `Tensor2[Batch, Feature, Float32]`.
 
 
 In addition to the type aliases, we also have convenient factory methods for tensors of rank 0 to 2. These allow us to create tensors without having to explicitly create the shape. 
@@ -183,8 +183,8 @@ val matrix = Tensor2(Axis[Feature], Axis[Batch]).fromArray(
 
 ##### A note on type annotations for tensors
 
-In DimWit, the type of a tensor is represented at the type level as `Tensor[ShapeTuple, VType]`, where `ShapeTuple` is a tuple of the labels of the axes and `DataType` is the type of the data. Hence a tensor with shape `Shape(Axis[Batch] -> 3, Axis[Feature] -> 2)` and data type `Float` has the type `Tensor[(Batch, Feature), Float]`. To make type annotations more convenient, we have the type aliases `Tensor0`, `Tensor1` and `Tensor2`, etc. to 
-refer to Tensors of a specific rank. For example, a `Tensor[(Batch, Feature), Float]` can be referred to as `Tensor2[Batch, Feature, Float]`, a Tensor `Tensor[Tuple1[Batch], Float]` can be referred to as `Tensor1[Batch, Float]` and a `Tensor[EmptyTuple, Float]` can be referred to as `Tensor0[Float]`.
+In DimWit, the type of a tensor is represented at the type level as `Tensor[ShapeTuple, VType]`, where `ShapeTuple` is a tuple of the labels of the axes and `DataType` is the type of the data. Hence a tensor with shape `Shape(Axis[Batch] -> 3, Axis[Feature] -> 2)` and data type `Float` has the type `Tensor[(Batch, Feature), Float32]`. To make type annotations more convenient, we have the type aliases `Tensor0`, `Tensor1` and `Tensor2`, etc. to 
+refer to Tensors of a specific rank. For example, a `Tensor[(Batch, Feature), Float32]` can be referred to as `Tensor2[Batch, Feature, Float32]`, a Tensor `Tensor[Tuple1[Batch], Float32]` can be referred to as `Tensor1[Batch, Float32]` and a `Tensor[EmptyTuple, Float32]` can be referred to as `Tensor0[Float32]`.
 
 ### Arithmetic Operations on Tensors and broadcasting
 
@@ -230,8 +230,12 @@ tensor1 + tensor3
 //           ^^^^^^^
 // error:
 // Conflicting definitions:
-// val tensor1: dimwit.tensor.Tensor[(MdocApp1.this.A, MdocApp1.this.B), Float] in class MdocApp1 at line 63 and
-// val tensor1: dimwit.tensor.Tensor[(MdocApp1.this.A, MdocApp1.this.B), Float] in class MdocApp1 at line 67
+// val tensor1:
+//   dimwit.tensor.Tensor[(MdocApp1.this.A, MdocApp1.this.B),
+//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 63 and
+// val tensor1:
+//   dimwit.tensor.Tensor[(MdocApp1.this.A, MdocApp1.this.B),
+//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 67
 // 
 // val tensor1 = Tensor(Shape(Axis[A] -> 3, Axis[B] -> 2)).fill(1.0f)
 //     ^
@@ -275,10 +279,10 @@ axis to sum over using the labels of the axes, which ensures that we are summing
 The resulting tensor has the correct shape, which is inferred from the labels of the axes:
 
 ```scala
-val sumOverB : Tensor1[A, Float] = tensor1.sum(Axis[B])
-// sumOverB: Tensor[Tuple1[A], Float] = [2. 2. 2.]
-val sumOverA : Tensor1[B, Float] = tensor1.sum(Axis[A])
-// sumOverA: Tensor[Tuple1[B], Float] = [3. 3.]
+val sumOverB : Tensor1[A, Float32] = tensor1.sum(Axis[B])
+// sumOverB: Tensor[Tuple1[A], Float32] = [2. 2. 2.]
+val sumOverA : Tensor1[B, Float32] = tensor1.sum(Axis[A])
+// sumOverA: Tensor[Tuple1[B], Float32] = [3. 3.]
 ```
 
 ### Transforming the shape of tensors
@@ -296,12 +300,12 @@ val tensor = Tensor(Shape(Axis[A] -> 3, Axis[B] -> 2, Axis[C] -> 4)).fill(1.0f)
 #### Flattening and unflattening axes
 The first operation we will discuss is `flatten` which flattens part of the tensor into a single axis. Invoked without arguments, `flatten` will flatten all axes into a single axis, resulting in a Tensor1. 
 ```scala
-val flattened : Tensor1[A |*| B |*| C, Float] = tensor.flatten
+val flattened : Tensor1[A |*| B |*| C, Float32] = tensor.flatten
 ```
 Note that the resulting axis has a label that is a combination of the labels of the original axes. When flattening, we can also specify which axes to flatten, and the resulting axis will have a label that is a combination of the labels of the flattened axes. For example, we can flatten only the last two axes as follows:
 
 ```scala
-  val partiallyFlattened: Tensor2[A, B |*| C, Float] = tensor.flatten((Axis[B], Axis[C]))
+  val partiallyFlattened: Tensor2[A, B |*| C, Float32] = tensor.flatten((Axis[B], Axis[C]))
 ```
 
 The counterpart of flatten is `unflatten`, which takes an axis that was previously flattened and restores the original axes. Since in the process of flattening we lost the information about the original shape, 
@@ -325,7 +329,7 @@ Given two tensors with the same shape except for one axis, we can concatenate th
   val part1 = Tensor(Shape(Axis[A] -> 3, Axis[B] -> 2)).fill(1.0f)
   val part2 = Tensor(Shape(Axis[A] -> 7, Axis[B] -> 2)).fill(1.0f)
 
-  val concatenated: Tensor[(A, B), Float] = concatenate(Seq(part1, part2), Axis[A])
+  val concatenated: Tensor[(A, B), Float32] = concatenate(Seq(part1, part2), Axis[A])
 ```
 
 The concatenated tensor can be split back into the original tensors using the split method
@@ -342,13 +346,13 @@ it returns a single tensor that is a slice of the original tensor. For example, 
 at index 1 along axis A as follows:
 
 ```scala
-  val sliced1 : Tensor1[B, Float]= concatenated.slice(Axis[A].at(1))
+  val sliced1 : Tensor1[B, Float32]= concatenated.slice(Axis[A].at(1))
 ```
 
 As for split, we can also provide multiple a tuple (or sequence) of indices, which will then select all slices in the tuple.
 
 ```scala
-  val slicedMultiple : Tensor2[A, B, Float] = concatenated.slice(Axis[A].at((0, 2)))
+  val slicedMultiple : Tensor2[A, B, Float32] = concatenated.slice(Axis[A].at((0, 2)))
 ```
 
 #### Squeezing, Expanding and transposing axes
@@ -358,17 +362,17 @@ method.
 
 ```scala
 val squeezableTensor = Tensor(Shape(Axis[A] -> 3, Axis[B] -> 1, Axis[C] -> 4)).fill(1.0f)
-val squeezedTensor : Tensor[(A, C), Float] = squeezableTensor.squeeze(Axis[B])
+val squeezedTensor : Tensor[(A, C), Float32] = squeezableTensor.squeeze(Axis[B])
 ```
 Similarly, we can add a new axis with extent 1 using the method `appendAxis`:
 ```scala
-val appendedTensor : Tensor[(A, C, B), Float] = squeezedTensor.appendAxis(Axis[B])
+val appendedTensor : Tensor[(A, C, B), Float32] = squeezedTensor.appendAxis(Axis[B])
 ```
 Finally, we can permute the axes of a tensor using the `transpose` method. 
 The order of the axes is the order of the labels in the tuple that we pass as an argument to the method. For example, we can reorder the above tensor to have the order of axes `A, B, C` as follows:
 
 ```scala
-val restoredTensor : Tensor[(A, B, C), Float] = appendedTensor.transpose((Axis[A], Axis[B], Axis[C]))
+val restoredTensor : Tensor[(A, B, C), Float32] = appendedTensor.transpose((Axis[A], Axis[B], Axis[C]))
 ```
 
 ### Mapping over axes
@@ -387,13 +391,13 @@ val tensor = Tensor(Shape(Axis[A] -> 3, Axis[B] -> 2, Axis[C] -> 4)).fill(1.0f)
 The simplest method is `vapply`. `vapply` applies a function from a `Tensor1` to a `Tensor1` to each slice of the tensor along the specified axis. For example, we can apply the function that multiplies each element by 2 to each slice along axis A as follows:    
 
 ```scala
-val doubled : Tensor3[A, B, C, Float] = tensor.vapply(Axis[A])((slice : Tensor1[A, Float]) => slice *! Tensor0(2.0f))
+val doubled : Tensor3[A, B, C, Float32] = tensor.vapply(Axis[A])((slice : Tensor1[A, Float32]) => slice *! Tensor0(2.0f))
 ```
 
 Similar to `vapply`is `vreduce`. `vreduce` applies a function that reduces a `Tensor1` to a `Tensor0` to each slice of the tensor along the specified axis. It effectively reduces the specified axis to a scalar. 
 
 ```scala
-val summedA : Tensor2[B, C, Float] = tensor.vreduce(Axis[A])((slice : Tensor1[A, Float]) => slice.sum)
+val summedA : Tensor2[B, C, Float32] = tensor.vreduce(Axis[A])((slice : Tensor1[A, Float32]) => slice.sum)
 ```
 
 A more general method is `vmap`, which applies a function to the slice of the tensor along the specified axis.  The function can return a tensor of any shape, not just a `Tensor1`. The resulting tensor will have the same shape as the original tensor, except that the specified axis will be replaced by the shape of the output of the function. The following example takes a Tensor2 as input and computes the 
@@ -401,7 +405,7 @@ mean of each slice along axis C
 
 
 ```scala
-  val res : Tensor[(A, B), Float] = tensor.vmap(Axis[A])((slice : Tensor2[B, C, Float]) => slice.mean(Axis[C]))
+  val res : Tensor[(A, B), Float32] = tensor.vmap(Axis[A])((slice : Tensor2[B, C, Float32]) => slice.mean(Axis[C]))
 ```
 `zipmap` is a variant of `vmap` that applies a function to the slices of multiple tensors along the specified axis. The function takes as input a tuple of slices, one from each tensor, and, as `vmap` returns a tensor of any shape. The resulting tensor will have the same shape as the original tensors, except that the specified axis will be replaced by the shape of the output of the function. For example, we can use `zipmap` to add two tensors along axis A as follows:
 
@@ -409,7 +413,7 @@ mean of each slice along axis C
 val t1 = Tensor(Shape(Axis[A] -> 3, Axis[B] -> 2, Axis[C] -> 4)).fill(1.0f)
 val t2 = Tensor(Shape(Axis[A] -> 3, Axis[C] -> 3)).fill(2.0f)
 
-val sumAlongA : Tensor1[A, Float] = zipvmap(Axis[A])(t1, t2)((s1: Tensor2[B, C, Float], s2: Tensor1[C, Float]) => s1.sum + s2.sum)
+val sumAlongA : Tensor1[A, Float32] = zipvmap(Axis[A])(t1, t2)((s1: Tensor2[B, C, Float32], s2: Tensor1[C, Float32]) => s1.sum + s2.sum)
 ``` 
 
 
@@ -426,20 +430,20 @@ import Autodiff.grad
 
 Let's take a simple quadratic function as an example. 
 ```scala
-def f(x: Tensor1[A, Float]): Tensor0[Float] = x.dot(Axis[A])(x)
+def f(x: Tensor1[A, Float32]): Tensor0[Float32] = x.dot(Axis[A])(x)
 ```
 
 To compute the gradient of this function with respect to its input, we can use the `grad` method as follows:
 
 ```scala
 val x = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f))
-val gradient : Tensor1[A, Float] => Grad[Tensor1[A, Float]] = grad(f)
+val gradient : Tensor1[A, Float32] => Grad[Tensor1[A, Float32]] = grad(f)
 ```
 
 Note that the result of `grad` is a function that takes as input a tensor and returns the gradient of the function with respect to that tensor. The gradient is a normal tensor, but wrapped in a `Grad` object, to make sure that we don't accidentally use it in a computation without realizing that it is a gradient. To get the actual tensor from the `Grad` object, we can use the `value` method as follows:
 
 ```scala
-val gradValue : Tensor1[A, Float] = gradient(x).value
+val gradValue : Tensor1[A, Float32] = gradient(x).value
 ```
 
 #### Tensor trees and gradients of multiple parameters
@@ -450,13 +454,13 @@ For larger models the most convenient representation of the parameters is usuall
 
 
 ```scala
-case class Params(w: Tensor1[Feature, Float], b: Tensor0[Float]) derives TensorTree
+case class Params(w: Tensor1[Feature, Float32], b: Tensor0[Float32]) derives TensorTree
 ```
 
 To compute the gradient of a function that takes as input a tensor tree, we can use the same `grad` method, as long as the input type of the function is a tensor tree. The resulting gradient will then be a tensor tree of the same shape as the input tensor tree, as illustrated in the following example:
 
 ```scala
-def f(params: Params): Tensor0[Float] = params.w.dot(Axis[Feature])(params.w) + params.b.pow(Tensor0(2.0f))
+def f(params: Params): Tensor0[Float32] = params.w.dot(Axis[Feature])(params.w) + params.b.pow(Tensor0(2.0f))
 
 val params = Params(
   w = Tensor1(Axis[Feature]).fromArray(Array(1.0f, 2.0f)),
@@ -499,7 +503,7 @@ val keys = key.split(5)
 
 Often we need to create a sequence of random numbers. In this case, we can use the `splitvmap` method, which splits a key into a tensor of new keys and applies a function to each of the new keys. For example, we can create a vector of random numbers drawn from the normal distribution as follows:
 ```scala
-val sampleVec: Tensor1[A, Float] = key.splitvmap(Axis[A] -> 3)((k: Key) => normalDist.sample(k))
+val sampleVec: Tensor1[A, Float32] = key.splitvmap(Axis[A] -> 3)((k: Key) => normalDist.sample(k))
 ```
 
 A more flexible, but less performant way to create a tensor of keys and to use it together with the `vmap` or `zipvmap` method. For example, we can create a tensor of keys and use it to create a tensor of random numbers as follows:

@@ -7,15 +7,15 @@ class TensorWithValueClassSuite extends DimwitTest:
 
   it("Value class support for more specific types in tensors"):
     object ValueClassScope:
-      opaque type V1 = Float
-      opaque type V2 = Float
+      opaque type V1 = Float32
+      opaque type V2 = Float32
 
       object V1:
-        def apply[T <: Tuple](t: Tensor[T, Float]): Tensor[T, V1] = t // lift
-        given IsFloating[V1] with {} // make all IsFloating ops available
+        def apply[T <: Tuple](t: Tensor[T, Float32]): Tensor[T, V1] = t // lift
+        given IsFloating[V1] = summon[IsFloating[Float32]] // make all IsFloating ops available
       object V2:
-        def apply[T <: Tuple](t: Tensor[T, Float]): Tensor[T, V2] = t // lift
-        given IsFloating[V2] with {} // make all IsFloating ops available
+        def apply[T <: Tuple](t: Tensor[T, Float32]): Tensor[T, V2] = t // lift
+        given IsFloating[V2] = summon[IsFloating[Float32]] // make all IsFloating ops available
 
     import ValueClassScope.*
     val t = Tensor(Shape(Axis[A] -> 1, Axis[B] -> 2)).fill(0f)

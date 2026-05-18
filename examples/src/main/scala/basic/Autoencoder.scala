@@ -40,7 +40,7 @@ class Encoder(p: Encoder.EncoderParams):
   val layer2 = LinearLayer(p.layer2)
   val latentLayer = LinearLayer(p.latentLayer)
 
-  def apply(v: Tensor1[Pixel, Float]): Tensor1[Latent, Float] =
+  def apply(v: Tensor1[Pixel, Float32]): Tensor1[Latent, Float32] =
     val h1 = relu(layer1(v))
     val h2 = relu(layer2(h1))
     latentLayer(h2)
@@ -58,7 +58,7 @@ class Decoder(p: Decoder.DecoderParams):
   val layer2 = LinearLayer(p.layer2)
   val outputLayer = LinearLayer(p.outputLayer)
 
-  def apply(v: Tensor1[Latent, Float]): Tensor1[ReconstructedPixel, Float] =
+  def apply(v: Tensor1[Latent, Float32]): Tensor1[ReconstructedPixel, Float32] =
     val h1 = relu(layer1(v))
     val h2 = relu(layer2(h1))
     sigmoid(outputLayer(h2))
@@ -75,12 +75,12 @@ case class Autoencoder(params: Autoencoder.Params):
   val encoder = Encoder(params.encoderParams)
   val decoder = Decoder(params.decoderParams)
 
-  def apply(v: Tensor1[Pixel, Float]): (Tensor1[ReconstructedPixel, Float], Tensor1[Latent, Float]) =
+  def apply(v: Tensor1[Pixel, Float32]): (Tensor1[ReconstructedPixel, Float32], Tensor1[Latent, Float32]) =
     val latent = encoder(v)
     val reconstructed = decoder(latent)
     (reconstructed, latent)
 
-  def loss(original: Tensor1[Pixel, Float]): Tensor0[Float] =
+  def loss(original: Tensor1[Pixel, Float32]): Tensor0[Float32] =
     val (reconstructed, _) = apply(original)
     val eps = 1e-5f
     val reconstructionLoss = -((original * (reconstructed +! eps).log) + ((Tensor0(1f) -! original) * (1f -! reconstructed +! eps).log)).sum
@@ -155,13 +155,13 @@ object AutoencoderExample:
     // TODO linear layer et al. should support custom initializers
     // or xavier initialization
     val initialParams = Autoencoder.Params(encoderParams, decoderParams)
-    val scaledInitialParams = initialParams.map([T <: Tuple] => (n: Labels[T]) ?=> (t: Tensor[T, Float]) => t *! Tensor0(0.1f))
+    val scaledInitialParams = initialParams.map([T <: Tuple] => (n: Labels[T]) ?=> (t: Tensor[T, Float32]) => t *! Tensor0(0.1f))
 
     /*
      * Training loop
      * */
 
-    def loss[S <: Sample: Label](trainData: Tensor3[S, Height, Width, Float])(params: Autoencoder.Params): Tensor0[Float] =
+    def loss[S <: Sample: Label](trainData: Tensor3[S, Height, Width, Float32])(params: Autoencoder.Params): Tensor0[Float32] =
       val ae = Autoencoder(params)
       trainData
         .vmap(Axis[S])(sample => ae.loss(sample.flatten))
@@ -171,7 +171,7 @@ object AutoencoderExample:
 
     val optimizer = GradientDescent(learningRate = Tensor0(learningRate))
 
-    def gradientStep(batch: Tensor3[TrainSample, Height, Width, Float], params: Autoencoder.Params): Autoencoder.Params =
+    def gradientStep(batch: Tensor3[TrainSample, Height, Width, Float32], params: Autoencoder.Params): Autoencoder.Params =
       val grads = grad(loss(batch))(params)
       val (newParams, _) = optimizer.update(grads, params, ())
       newParams

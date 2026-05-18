@@ -1,17 +1,15 @@
 package dimwit.autodiff
 
 import dimwit.*
-import dimwit.Conversions.given
-import dimwit.*
 
 class TensorTreeSuite extends DimwitTest:
 
   describe("map"):
     it("1-level case class"):
       case class Data(
-          val numbers: Tensor1[A, Float],
-          val counts: Tensor1[A, Int],
-          val flags: Tensor1[A, Boolean]
+          val numbers: Tensor1[A, Float32],
+          val counts: Tensor1[A, Int32],
+          val flags: Tensor1[A, Bool]
       )
       val params = Data(
         Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)),
@@ -27,8 +25,8 @@ class TensorTreeSuite extends DimwitTest:
   describe("zipmap"):
     it("1-level case class"):
       case class Params(
-          val w1: Tensor1[A, Float],
-          val b1: Tensor0[Int]
+          val w1: Tensor1[A, Float32],
+          val b1: Tensor0[Int32]
       )
       val params1 = Params(
         Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)),

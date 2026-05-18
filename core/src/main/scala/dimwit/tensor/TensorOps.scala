@@ -25,6 +25,8 @@ import dimwit.tensor.ShapeTypeHelpers.AxisIndex
 import dimwit.tensor.ShapeTypeHelpers.AxisIndices
 import dimwit.tensor.ShapeTypeHelpers.AxesMerger
 import dimwit.OnError
+import dimwit.DType.*
+import dimwit.DType.given
 
 import Tuple.:*
 import Tuple.++
@@ -35,6 +37,9 @@ import dimwit.tensor.TensorOps.Functional.ZipVmap.TensorsOf
 object TensorOps:
 
   import TensorOpsUtil.*
+
+  sealed trait HasDType[V]:
+    def dtype: DType
 
   @implicitNotFound("Operation only valid for Numeric (Int or Float) tensors.")
   sealed trait IsNumber[V]
@@ -49,19 +54,25 @@ object TensorOps:
     given [V](using ev2: IsInteger[V]): IsNumber[V] = ev2
 
   @implicitNotFound("Operation only valid for Floating tensors.")
-  trait IsFloating[V] extends IsNumber[V]
+  trait IsFloating[V] extends IsNumber[V], HasDType[V]:
+    def dtype: DType
+
   object IsFloating:
-    given IsFloating[Float] with {}
+    def apply[V](using ev: IsFloating[V]): IsFloating[V] = ev
+
+  object IsInteger:
+    def apply[V](using ev: IsInteger[V]): IsInteger[V] = ev
+
+  object IsBoolean:
+    def apply[V](using ev: IsBoolean[V]): IsBoolean[V] = ev
 
   @implicitNotFound("Operation only valid for Integer tensors.")
-  trait IsInteger[V] extends IsNumber[V]
-  object IsInteger:
-    given IsInteger[Int] with {}
+  trait IsInteger[V] extends IsNumber[V], HasDType[V]:
+    def dtype: DType
 
   @implicitNotFound("Operation only valid for Boolean tensors.")
-  sealed trait IsBoolean[V]
-  object IsBoolean:
-    given IsBoolean[Boolean] with {}
+  trait IsBoolean[V] extends HasDType[V]:
+    def dtype: DType
 
   // -----------------------------------------------------------
   // 1. Elementwise Operations (The Field)
@@ -79,19 +90,22 @@ object TensorOps:
     extension [T <: Tuple: Labels, V](t: Tensor[T, V])
 
       // --- Comparison ---
-      def <(other: Tensor[T, V]): Tensor[T, Boolean] = Tensor(Jax.jnp.less(t.jaxValue, other.jaxValue))
-      def <=(other: Tensor[T, V]): Tensor[T, Boolean] = Tensor(Jax.jnp.less_equal(t.jaxValue, other.jaxValue))
-      def >(other: Tensor[T, V]): Tensor[T, Boolean] = Tensor(Jax.jnp.greater(t.jaxValue, other.jaxValue))
-      def >=(other: Tensor[T, V]): Tensor[T, Boolean] = Tensor(Jax.jnp.greater_equal(t.jaxValue, other.jaxValue))
-      def ===(other: Tensor[T, V]): Tensor0[Boolean] = Tensor0(Jax.jnp.array_equal(t.jaxValue, other.jaxValue))
+      def <(other: Tensor[T, V]): Tensor[T, Bool] = Tensor(Jax.jnp.less(t.jaxValue, other.jaxValue))
+      def <=(other: Tensor[T, V]): Tensor[T, Bool] = Tensor(Jax.jnp.less_equal(t.jaxValue, other.jaxValue))
+      def >(other: Tensor[T, V]): Tensor[T, Bool] = Tensor(Jax.jnp.greater(t.jaxValue, other.jaxValue))
+      def >=(other: Tensor[T, V]): Tensor[T, Bool] = Tensor(Jax.jnp.greater_equal(t.jaxValue, other.jaxValue))
+      def ===(other: Tensor[T, V]): Tensor0[Bool] = Tensor0(Jax.jnp.array_equal(t.jaxValue, other.jaxValue))
 
-      def elementEquals(other: Tensor[T, V]): Tensor[T, Boolean] =
+      def elementEquals(other: Tensor[T, V]): Tensor[T, Bool] =
         require(t.shape.dimensions == other.shape.dimensions, s"Shape mismatch: ${t.shape.dimensions} vs ${other.shape.dimensions}")
         Tensor(jaxValue = Jax.jnp.equal(t.jaxValue, other.jaxValue))
 
-      def asBoolean: Tensor[T, Boolean] = t.asType(VType[Boolean])
-      def asInt: Tensor[T, Int] = t.asType(VType[Int])
-      def asFloat: Tensor[T, Float] = t.asType(VType[Float])
+      def asBool: Tensor[T, Bool] = t.asType(VType[Bool])
+      def asBoolean[NewV: IsBoolean](vtype: VType[NewV]): Tensor[T, NewV] = t.asType(vtype)
+      def asInt32: Tensor[T, Int32] = t.asType(VType[Int32])
+      def asInt[NewV: IsInteger](vtype: VType[NewV]): Tensor[T, NewV] = t.asType(vtype)
+      def asFloat32: Tensor[T, Float32] = t.asType(VType[Float32])
+      def asFloat[NewV: IsFloating](vtype: VType[NewV]): Tensor[T, NewV] = t.asType(vtype)
 
     // ---------------------------------------------------------
     // IsNumber operations (IsFloat or IsInt)
@@ -147,8 +161,8 @@ object TensorOps:
       def cos: Tensor[T, V] = Tensor(Jax.jnp.cos(t.jaxValue))
       def tanh: Tensor[T, V] = Tensor(Jax.jnp.tanh(t.jaxValue))
 
-      def approxEquals(other: Tensor[T, V], tolerance: Float = 1e-6f): Tensor0[Boolean] = approxElementEquals(other, tolerance).all
-      def approxElementEquals(other: Tensor[T, V], tolerance: Float = 1e-6f): Tensor[T, Boolean] =
+      def approxEquals(other: Tensor[T, V], tolerance: Float = 1e-6f): Tensor0[Bool] = approxElementEquals(other, tolerance).all
+      def approxElementEquals(other: Tensor[T, V], tolerance: Float = 1e-6f): Tensor[T, Bool] =
         Tensor(
           Jax.jnp.allclose(
             t.jaxValue,
@@ -164,10 +178,10 @@ object TensorOps:
 
     extension [T <: Tuple: Labels, V: IsBoolean](t: Tensor[T, V])
 
-      def all: Tensor0[Boolean] = Tensor0(Jax.jnp.all(t.jaxValue))
-      def any: Tensor0[Boolean] = Tensor0(Jax.jnp.any(t.jaxValue))
+      def all: Tensor0[V] = Tensor0(Jax.jnp.all(t.jaxValue))
+      def any: Tensor0[V] = Tensor0(Jax.jnp.any(t.jaxValue))
 
-      def unary_! : Tensor[T, Boolean] = Tensor(Jax.jnp.logical_not(t.jaxValue))
+      def unary_! : Tensor[T, V] = Tensor(Jax.jnp.logical_not(t.jaxValue))
 
   end Elementwise
 
@@ -199,19 +213,19 @@ object TensorOps:
       def min[Inputs <: Tuple, R <: Tuple](axes: Inputs)(using ev: AxesRemover[T, UnwrapAxes[Inputs], R], l: Labels[R]): Tensor[R, V] = Tensor(Jax.jnp.min(t.jaxValue, axis = ev.indices.toPythonProxy))
 
       // --- Argmax ---
-      def argmax: Tensor0[Int] = Tensor0(Jax.jnp.argmax(t.jaxValue))
-      def argmax[L: Label, R <: Tuple](axis: Axis[L])(using ev: AxisRemover[T, L, R], l: Labels[R]): Tensor[R, Int] = Tensor(Jax.jnp.argmax(t.jaxValue, axis = ev.index))
-      def argmax[Inputs <: Tuple, R <: Tuple](axes: Inputs)(using ev: AxesRemover[T, UnwrapAxes[Inputs], R], l: Labels[R]): Tensor[R, Int] = Tensor(Jax.jnp.argmax(t.jaxValue, axis = ev.indices.toPythonProxy))
+      def argmax: Tensor0[Int32] = Tensor0(Jax.jnp.argmax(t.jaxValue))
+      def argmax[L: Label, R <: Tuple](axis: Axis[L])(using ev: AxisRemover[T, L, R], l: Labels[R]): Tensor[R, Int32] = Tensor(Jax.jnp.argmax(t.jaxValue, axis = ev.index))
+      def argmax[Inputs <: Tuple, R <: Tuple](axes: Inputs)(using ev: AxesRemover[T, UnwrapAxes[Inputs], R], l: Labels[R]): Tensor[R, Int32] = Tensor(Jax.jnp.argmax(t.jaxValue, axis = ev.indices.toPythonProxy))
 
       // --- Argmin ---
-      def argmin: Tensor0[Int] = Tensor0(Jax.jnp.argmin(t.jaxValue))
-      def argmin[L: Label, R <: Tuple](axis: Axis[L])(using ev: AxisRemover[T, L, R], l: Labels[R]): Tensor[R, Int] = Tensor(Jax.jnp.argmin(t.jaxValue, axis = ev.index))
-      def argmin[Inputs <: Tuple, R <: Tuple](axes: Inputs)(using ev: AxesRemover[T, UnwrapAxes[Inputs], R], l: Labels[R]): Tensor[R, Int] = Tensor(Jax.jnp.argmin(t.jaxValue, axis = ev.indices.toPythonProxy))
+      def argmin: Tensor0[Int32] = Tensor0(Jax.jnp.argmin(t.jaxValue))
+      def argmin[L: Label, R <: Tuple](axis: Axis[L])(using ev: AxisRemover[T, L, R], l: Labels[R]): Tensor[R, Int32] = Tensor(Jax.jnp.argmin(t.jaxValue, axis = ev.index))
+      def argmin[Inputs <: Tuple, R <: Tuple](axes: Inputs)(using ev: AxesRemover[T, UnwrapAxes[Inputs], R], l: Labels[R]): Tensor[R, Int32] = Tensor(Jax.jnp.argmin(t.jaxValue, axis = ev.indices.toPythonProxy))
 
       // --- Argsort ---
-      def argsort: Tensor[T, Int] = Tensor(Jax.jnp.argsort(t.jaxValue))
-      def argsort[L: Label](axis: Axis[L])(using ev: AxisIndex[T, L]): Tensor[T, Int] = Tensor(Jax.jnp.argsort(t.jaxValue, axis = ev.index))
-      def argsort[Inputs <: Tuple](axes: Inputs)(using ev: AxisIndices[T, UnwrapAxes[Inputs]]): Tensor[T, Int] = Tensor(Jax.jnp.argsort(t.jaxValue, axis = ev.indices.toPythonProxy))
+      def argsort: Tensor[T, Int32] = Tensor(Jax.jnp.argsort(t.jaxValue))
+      def argsort[L: Label](axis: Axis[L])(using ev: AxisIndex[T, L]): Tensor[T, Int32] = Tensor(Jax.jnp.argsort(t.jaxValue, axis = ev.index))
+      def argsort[Inputs <: Tuple](axes: Inputs)(using ev: AxisIndices[T, UnwrapAxes[Inputs]]): Tensor[T, Int32] = Tensor(Jax.jnp.argsort(t.jaxValue, axis = ev.indices.toPythonProxy))
 
     // ---------------------------------------------------------
     // IsFloat operations (IsFloat or IsInt)
@@ -307,7 +321,7 @@ object TensorOps:
     extension [S1: Label, InChannel: Label, V: IsFloating](input: Tensor[S1 *: InChannel *: EmptyTuple, V])
 
       def conv1d[OutChannel: Label](
-          kernel: Tensor[S1 *: InChannel *: OutChannel *: EmptyTuple, Float],
+          kernel: Tensor[S1 *: InChannel *: OutChannel *: EmptyTuple, V],
           stride: Stride1[S1] | Int = 1,
           padding: Padding = Padding.SAME
       ): Tensor[S1 *: OutChannel *: EmptyTuple, V] =
@@ -333,7 +347,7 @@ object TensorOps:
     extension [S1: Label, OutChannel: Label, V: IsFloating](input: Tensor[S1 *: OutChannel *: EmptyTuple, V])
 
       def transposeConv1d[InChannel: Label](
-          kernel: Tensor[S1 *: InChannel *: OutChannel *: EmptyTuple, Float],
+          kernel: Tensor[S1 *: InChannel *: OutChannel *: EmptyTuple, V],
           stride: Stride1[S1] | Int = 1,
           padding: Padding = Padding.SAME
       ): Tensor[S1 *: InChannel *: EmptyTuple, V] =
@@ -365,7 +379,7 @@ object TensorOps:
     extension [S1: Label, S2: Label, InChannel: Label, V: IsFloating](input: Tensor[S1 *: S2 *: InChannel *: EmptyTuple, V])
 
       def conv2d[OutChannel: Label](
-          kernel: Tensor[S1 *: S2 *: InChannel *: OutChannel *: EmptyTuple, Float],
+          kernel: Tensor[S1 *: S2 *: InChannel *: OutChannel *: EmptyTuple, V],
           stride: Stride2[S1, S2] | Int = 1,
           padding: Padding = Padding.SAME
       ): Tensor[S1 *: S2 *: OutChannel *: EmptyTuple, V] =
@@ -391,7 +405,7 @@ object TensorOps:
     extension [S1: Label, S2: Label, OutChannel: Label, V: IsFloating](input: Tensor[S1 *: S2 *: OutChannel *: EmptyTuple, V])
 
       def transposeConv2d[InChannel: Label](
-          kernel: Tensor[S1 *: S2 *: InChannel *: OutChannel *: EmptyTuple, Float],
+          kernel: Tensor[S1 *: S2 *: InChannel *: OutChannel *: EmptyTuple, V],
           stride: Stride2[S1, S2] | Int = 1,
           padding: Padding = Padding.SAME
       ): Tensor[S1 *: S2 *: InChannel *: EmptyTuple, V] =
@@ -426,7 +440,7 @@ object TensorOps:
     extension [S1: Label, S2: Label, S3: Label, InChannel: Label, V: IsFloating](input: Tensor[S1 *: S2 *: S3 *: InChannel *: EmptyTuple, V])
 
       def conv3d[OutChannel: Label](
-          kernel: Tensor[S1 *: S2 *: S3 *: InChannel *: OutChannel *: EmptyTuple, Float],
+          kernel: Tensor[S1 *: S2 *: S3 *: InChannel *: OutChannel *: EmptyTuple, V],
           stride: Stride3[S1, S2, S3] | Int = 1,
           padding: Padding = Padding.SAME
       ): Tensor[S1 *: S2 *: S3 *: OutChannel *: EmptyTuple, V] =
@@ -454,7 +468,7 @@ object TensorOps:
     extension [S1: Label, S2: Label, S3: Label, OutChannel: Label, V: IsFloating](input: Tensor[S1 *: S2 *: S3 *: OutChannel *: EmptyTuple, V])
 
       def transposeConv3d[InChannel: Label](
-          kernel: Tensor[S1 *: S2 *: S3 *: InChannel *: OutChannel *: EmptyTuple, Float],
+          kernel: Tensor[S1 *: S2 *: S3 *: InChannel *: OutChannel *: EmptyTuple, V],
           stride: Stride3[S1, S2, S3] | Int = 1,
           padding: Padding = Padding.SAME
       ): Tensor[S1 *: S2 *: S3 *: InChannel *: EmptyTuple, V] =
@@ -564,7 +578,7 @@ object TensorOps:
         case A *: tail  => A *: B *: tail
         case h *: tail  => h *: InsertAfter[tail, A, B]
 
-      type SliceIndex = Int | List[Int] | Range | Tensor0[Int]
+      type SliceIndex = Int | List[Int] | Range | Tensor0[Int32]
       type ExtractLabel[X] = X match
         case AxisAtIndex[l]           => l
         case AxisAtRange[l]           => l
@@ -614,8 +628,8 @@ object TensorOps:
 
         given consTensor0Int[L, Tail <: Tuple, TailOut <: Tuple](using
             tailExt: SliceLabelExtractor[Tail, TailOut]
-        ): SliceLabelExtractor[(Axis[L], Tensor0[Int]) *: Tail, L *: TailOut] =
-          new SliceLabelExtractor[(Axis[L], Tensor0[Int]) *: Tail, L *: TailOut] {}
+        ): SliceLabelExtractor[(Axis[L], Tensor0[Int32]) *: Tail, L *: TailOut] =
+          new SliceLabelExtractor[(Axis[L], Tensor0[Int32]) *: Tail, L *: TailOut] {}
 
         given consSeq[L, SeqT <: Seq[Int], Tail <: Tuple, TailOut <: Tuple](using
             tailExt: SliceLabelExtractor[Tail, TailOut]
@@ -637,7 +651,7 @@ object TensorOps:
 
     object TensorWhere:
       def where[T <: Tuple: Labels, V](
-          condition: Tensor[T, Boolean],
+          condition: Tensor[T, Bool],
           x: Tensor[T, V],
           y: Tensor[T, V]
       ): Tensor[T, V] =
@@ -873,7 +887,7 @@ object TensorOps:
                   indicesBuffer(dimIndex) = PySlice(range.head, range.last + 1, range.step)
                 case idx: Int =>
                   indicesBuffer(dimIndex) = py.Any.from(idx)
-                case tensorId: Tensor0[Int] @unchecked =>
+                case tensorId: Tensor0[Int32] @unchecked =>
                   indicesBuffer(dimIndex) = tensorId.jaxValue
         }
 
@@ -1039,7 +1053,7 @@ object TensorOps:
       def take[L1, L2: Label, R <: Tuple](
           axis: Axis[L1]
       )(
-          indices: Tensor1[L2, Int]
+          indices: Tensor1[L2, Int32]
       )(using
           ev: AxisRemover[T, L1, R],
           labels: Labels[R]
@@ -1056,6 +1070,18 @@ object TensorOps:
       )(value: Tensor[R, V]): Tensor[T, V] =
         val pyIndices = tensor.calcPyIndices(inputs, ev.indices)
         val result = tensor.jaxValue.at.bracketAccess(pyIndices).set(value.jaxValue)
+        Tensor(result)
+
+      // Convenience overload for Float
+      def set[Inputs <: Tuple, LabelsToRemove <: Tuple](
+          inputs: Inputs
+      )(using
+          sliceExtractor: SliceLabelExtractor[Inputs, LabelsToRemove],
+          ev: AxesConditionalRemover[T, LabelsToRemove, ExtractLabels[Inputs], EmptyTuple],
+          labels: Labels[T]
+      )(value: Float): Tensor[T, V] =
+        val pyIndices = tensor.calcPyIndices(inputs, ev.indices)
+        val result = tensor.jaxValue.at.bracketAccess(pyIndices).set(value)
         Tensor(result)
 
       // Convenience overload for AxisAtIndex
@@ -1411,40 +1437,80 @@ object TensorOps:
 
   object Tensor0Ops:
 
-    extension [V: Reader](scalar: Tensor0[V])
+    private inline def checkTracer[V, R](scalar: Tensor0[V]): Unit =
+      require(
+        !scalar.isTracer,
+        """
+        | Cannot convert a JAX Tracer to a scalar value. Tensor0 is part of a JAX computation graph (e.g., inside vmap or a jitted function).
+        | Common mistakes leading to this error:
+        |   - calling .slice(t0.item) rather than .slice(t0); breaking the computation graph unintentionally.
+        |""".stripMargin
+      )
 
-      def item: V =
-        require(
-          !scalar.isTracer,
-          """
-          | Cannot convert a JAX Tracer to a scalar value. Tensor0 is part of a JAX computation graph (e.g., inside vmap or a jitted function).
-          | Common mistakes leading to this error:
-          |   - calling .slice(t0.item) rather than .slice(t0); breaking the computation graph unintentionally.
-          |""".stripMargin
-        )
-        scalar.jaxValue.item().as[V]
+    extension (scalar: Tensor0[Bool])
+      def item: Boolean =
+        checkTracer(scalar)
+        scalar.jaxValue.item().as[Boolean]
+
+    extension (scalar: Tensor0[Int8])
+      def item: Byte =
+        checkTracer(scalar)
+        scalar.jaxValue.item().as[Byte]
+
+    extension (scalar: Tensor0[Int16])
+      def item: Short =
+        checkTracer(scalar)
+        scalar.jaxValue.item().as[Int].toShort
+
+    extension (scalar: Tensor0[Int32])
+      def item: Int =
+        checkTracer(scalar)
+        scalar.jaxValue.item().as[Int]
+
+    extension (scalar: Tensor0[Int64])
+      def item: Long =
+        checkTracer(scalar)
+        scalar.jaxValue.item().as[Long]
+
+    extension (scalar: Tensor0[Float32])
+      def item: Float =
+        checkTracer(scalar)
+        scalar.jaxValue.item().as[Float]
+
+    extension (scalar: Tensor0[Float64])
+      def item: Double =
+        checkTracer(scalar)
+        scalar.jaxValue.item().as[Double]
 
   object ValueOps:
 
     import Elementwise.+!
 
-    extension [V: IsNumber: Writer](scalar: V)
+    extension [V: IsNumber](t: Tensor0[V])
 
-      def +![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] =
-        given ExecutionType[V] = ExecutionTypeFor[V](t.dtype)
-        Tensor0(scalar).broadcastTo(t.shape) + t
-      def -![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] =
-        given ExecutionType[V] = ExecutionTypeFor[V](t.dtype)
-        Tensor0(scalar).broadcastTo(t.shape) - t
-      def *![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] =
-        given ExecutionType[V] = ExecutionTypeFor[V](t.dtype)
-        Tensor0(scalar).broadcastTo(t.shape) * t
+      def +(t2: Tensor0[V]): Tensor0[V] = TensorOps.add(t, t2)
+      def -(t2: Tensor0[V]): Tensor0[V] = TensorOps.subtract(t, t2)
+      def *(t2: Tensor0[V]): Tensor0[V] = TensorOps.multiply(t, t2)
 
-    extension [V: IsFloating: Writer](scalar: V)
+    extension [V: IsFloating](t: Tensor0[V])
 
-      def /![T <: Tuple: Labels](t: Tensor[T, V]): Tensor[T, V] =
-        given ExecutionType[V] = ExecutionTypeFor[V](t.dtype)
-        Tensor0(scalar).broadcastTo(t.shape) / t
+      def /(scalar: Tensor0[V]): Tensor0[V] = TensorOps.divide(t, scalar)
+
+    extension (scalar: Float)
+
+      def +[V: IsNumber](t: Tensor0[V]): Tensor0[V] = add(Tensor0.likeDType(t)(scalar), t)
+      def +![T <: Tuple: Labels, V: IsNumber](t: Tensor[T, V])(using bc: Broadcast[EmptyTuple, T, V]): Tensor[bc.Out, V] = bc.applyTo(Tensor0.likeDType(t)(scalar), t)(add)
+
+      def -[V: IsNumber](t: Tensor0[V]): Tensor0[V] = subtract(Tensor0.likeDType(t)(scalar), t)
+      def -![T <: Tuple: Labels, V: IsNumber](t: Tensor[T, V])(using bc: Broadcast[EmptyTuple, T, V]): Tensor[bc.Out, V] = bc.applyTo(Tensor0.likeDType(t)(scalar), t)(subtract)
+
+      def *[V: IsNumber](t: Tensor0[V]): Tensor0[V] = multiply(Tensor0.likeDType(t)(scalar), t)
+      def *![T <: Tuple: Labels, V: IsNumber](t: Tensor[T, V])(using bc: Broadcast[EmptyTuple, T, V]): Tensor[bc.Out, V] = bc.applyTo(Tensor0.likeDType(t)(scalar), t)(multiply)
+
+    extension (scalar: Float)
+
+      def /[V: IsFloating](t: Tensor0[V]): Tensor0[V] = divide(Tensor0.likeDType(t)(scalar), t)
+      def /![T <: Tuple: Labels, V: IsFloating](t: Tensor[T, V])(using bc: Broadcast[EmptyTuple, T, V]): Tensor[bc.Out, V] = bc.applyTo(Tensor0.likeDType(t)(scalar), t)(divide)
 
   object Tensor1Ops:
 
@@ -1454,7 +1520,7 @@ object TensorOps:
 
       // TODO generalize to TensorN (like slice)
       def dynamicSlice(
-          dynamicStart: Tensor0[Int],
+          dynamicStart: Tensor0[Int32],
           staticSize: Int
       )(using
           label: Label[L]

@@ -45,11 +45,11 @@ val t = Tensor(
 )
 
 // Function to normalize a single feature vector
-def normalize(x: Tensor1[Feature, Float]) : Tensor1[Feature, Float] = 
+def normalize(x: Tensor1[Feature, Float32]) : Tensor1[Feature, Float32] = 
     (x -! x.mean) /! x.std
 
 // Apply the normalization function across the Batch dimension
-val normalized: Tensor2[Batch, Feature, Float] = 
+val normalized: Tensor2[Batch, Feature, Float32] = 
     t.vmap(Axis[Batch])(normalize)
 ```
 

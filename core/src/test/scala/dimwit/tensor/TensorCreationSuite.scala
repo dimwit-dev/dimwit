@@ -48,12 +48,21 @@ class TensorCreationSuite extends DimwitTest:
           floatTensorFromDouble.dtype shouldBe DType.Float64
 
   describe("Overwrite default setings"):
-    it("Change double default dtype from Float64 to Float32"):
-      given ExecutionType[Double] = ExecutionTypeFor[Double](DType.Float32)
+    it("Change float default dtype from Float32 to Float64"):
       // Check fill
-      val floatTensorFromDouble = Tensor(Shape3(Axis[A] -> 2, Axis[B] -> 3, Axis[C] -> 4)).fill(3.14)
+      withJaxX64Support: // Enable float64 support in JAX
+        val t64 = Tensor(Shape3(Axis[A] -> 2, Axis[B] -> 3, Axis[C] -> 4), VType[Float64]).fill(3.14f)
+        t64.dtype shouldBe DType.Float64
+      // Check fromArray
+      withJaxX64Support: // Enable float64 support in JAX
+        val t64 = Tensor(Shape2(Axis[A] -> 2, Axis[B] -> 2), VType[Float64]).fromArray(Array(1.0f, 2.0f, 3.0f, 4.0f))
+        t64.dtype shouldBe DType.Float64
+
+    it("Change double default dtype from Float64 to Float32"):
+      // Check fill
+      val floatTensorFromDouble = Tensor(Shape3(Axis[A] -> 2, Axis[B] -> 3, Axis[C] -> 4), VType[Float32]).fill(3.14)
       floatTensorFromDouble.dtype shouldBe DType.Float32
       // Check fromArray
       withJaxX64Support: // Enable float64 support in JAX
-        val floatTensorFromDouble2 = Tensor(Shape2(Axis[A] -> 2, Axis[B] -> 2)).fromArray(Array(1.0, 2.0, 3.0, 4.0))
+        val floatTensorFromDouble2 = Tensor(Shape2(Axis[A] -> 2, Axis[B] -> 2), VType[Float32]).fromArray(Array(1.0, 2.0, 3.0, 4.0))
         floatTensorFromDouble2.dtype shouldBe DType.Float32

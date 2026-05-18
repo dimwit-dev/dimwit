@@ -2,6 +2,7 @@ package dimwit.tensor
 
 import dimwit.*
 import dimwit.Conversions.given
+
 class TensorOpsElementwiseSuite extends DimwitTest:
 
   val t2 = Tensor2(Axis[A], Axis[B]).fromArray(
@@ -90,17 +91,17 @@ class TensorOpsElementwiseSuite extends DimwitTest:
   describe("Casting Ops (Tensor2)"):
 
     it("boolean casting"):
-      b2.asBoolean shouldEqual b2
-      b2.asInt shouldEqual Tensor(b2.shape).fromArray(Array(1, 0, 0, 1))
-      b2.asFloat should approxEqual(Tensor(b2.shape).fromArray(Array(1.0f, 0.0f, 0.0f, 1.0f)))
+      b2.asBool shouldEqual b2
+      b2.asInt32 shouldEqual Tensor(b2.shape).fromArray(Array(1, 0, 0, 1))
+      b2.asFloat32 should approxEqual(Tensor(b2.shape).fromArray(Array(1.0f, 0.0f, 0.0f, 1.0f)))
 
     it("int casting"):
-      i2.asBoolean shouldEqual Tensor(i2.shape).fromArray(Array(true, false, true, true))
-      i2.asInt shouldEqual i2
-      i2.asFloat should approxEqual(Tensor(i2.shape).fromArray(Array(-1.0f, 0.0f, 1.0f, 2.0f)))
+      i2.asBool shouldEqual Tensor(i2.shape).fromArray(Array(true, false, true, true))
+      i2.asInt32 shouldEqual i2
+      i2.asFloat32 should approxEqual(Tensor(i2.shape).fromArray(Array(-1.0f, 0.0f, 1.0f, 2.0f)))
 
     it("float casting"):
       val f2 = Tensor.like(t2).fromArray(Array(-1.1f, 0.0f, 0.9f, 2.5f))
-      f2.asBoolean shouldEqual Tensor(f2.shape).fromArray(Array(true, false, true, true))
-      f2.asInt shouldEqual Tensor(f2.shape).fromArray(Array(-1, 0, 0, 2))
-      f2.asFloat shouldEqual f2
+      f2.asBool shouldEqual Tensor(f2.shape).fromArray(Array(true, false, true, true))
+      f2.asInt32 shouldEqual Tensor(f2.shape).fromArray(Array(-1, 0, 0, 2))
+      f2.asFloat32 shouldEqual f2

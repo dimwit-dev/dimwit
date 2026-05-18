@@ -19,6 +19,8 @@ object JaxDType:
     try
       val dtypeStr = jaxDtype.name.as[String]
       dtypeStr match
+        case "bfloat16"   => DType.BFloat16
+        case "float16"    => DType.Float16
         case "float32"    => DType.Float32
         case "float64"    => DType.Float64
         case "int32"      => DType.Int32
@@ -43,6 +45,8 @@ object JaxDType:
     try
       val jnp = Jax.jnp
       dtype match
+        case DType.BFloat16   => jnp.bfloat16
+        case DType.Float16    => jnp.float16
         case DType.Float32    => jnp.float32
         case DType.Float64    => jnp.float64
         case DType.Int32      => jnp.int32

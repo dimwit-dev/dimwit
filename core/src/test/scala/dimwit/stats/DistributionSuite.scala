@@ -24,7 +24,7 @@ class DistributionSuite extends DimwitTest:
 
       val dist = Normal(loc, scale)
       val scalaLogProbs = dist.elementWiseLogProb(x)
-      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float])(
+      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float32])(
         jstats.norm.logpdf(x.jaxValue, loc = loc.jaxValue, scale = scale.jaxValue)
       )
       scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
@@ -48,7 +48,7 @@ class DistributionSuite extends DimwitTest:
 
       val dist = Uniform(low, high)
       val scalaLogProbs = dist.elementWiseLogProb(x)
-      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float])(
+      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float32])(
         jstats.uniform.logpdf(x.jaxValue, loc = low.jaxValue, scale = (high - low).jaxValue)
       )
       scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
@@ -71,7 +71,7 @@ class DistributionSuite extends DimwitTest:
 
       val dist = Bernoulli(Prob(probs))
       val scalaLogProbs = dist.elementWiseLogProb(x)
-      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float])(
+      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float32])(
         jstats.bernoulli.logpmf(x.jaxValue, p = probs.jaxValue)
       )
       scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
@@ -82,7 +82,7 @@ class DistributionSuite extends DimwitTest:
       )
       val key = Random.Key(42)
       val samples = key.splitvmap(Axis[Samples] -> 1000)(k => bernoulli.sample(k))
-      val sampleMeans = samples.asFloat.mean(Axis[Samples])
+      val sampleMeans = samples.asFloat32.mean(Axis[Samples])
       val expectedMeans = bernoulli.probs.asFloat
       sampleMeans should approxEqual(expectedMeans, 0.1f)
 
@@ -94,7 +94,7 @@ class DistributionSuite extends DimwitTest:
 
       val dist = Binomial(n, Prob(probs))
       val scalaLogProbs = dist.elementWiseLogProb(x)
-      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float])(
+      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float32])(
         jstats.binom.logpmf(x.jaxValue, n = n.jaxValue, p = probs.jaxValue)
       )
       scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
@@ -107,7 +107,7 @@ class DistributionSuite extends DimwitTest:
       )
       val key = Random.Key(42)
       val samples = key.splitvmap(Axis[Samples] -> 10000)(k => binomial.sample(k))
-      val sampleMeans = samples.asFloat.mean(Axis[Samples])
+      val sampleMeans = samples.asFloat32.mean(Axis[Samples])
       val expectedMeans = binomial.probs.asFloat *! n.item.toFloat
       sampleMeans should approxEqual(expectedMeans, 0.5f)
 
@@ -118,7 +118,7 @@ class DistributionSuite extends DimwitTest:
       val binomial = Binomial(n, Prob(probs))
       val key = Random.Key(123)
       val samples = key.splitvmap(Axis[Samples] -> 5000)(k => binomial.sample(k))
-      val sampleMeans = samples.asFloat.mean(Axis[Samples])
+      val sampleMeans = samples.asFloat32.mean(Axis[Samples])
       sampleMeans should approxEqual(probs, 0.1f)
 
     it("handles edge cases p=0 and p=1"):
@@ -128,7 +128,7 @@ class DistributionSuite extends DimwitTest:
       val binomial = Binomial(n, Prob(probsEdge))
       val key = Random.Key(456)
       val samples = key.splitvmap(Axis[Samples] -> 100)(k => binomial.sample(k))
-      val sampleMeans = samples.asFloat.mean(Axis[Samples])
+      val sampleMeans = samples.asFloat32.mean(Axis[Samples])
       val expectedMeans = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.0f, n.item.toFloat))
       sampleMeans should approxEqual(expectedMeans, 0.1f)
 
@@ -140,7 +140,7 @@ class DistributionSuite extends DimwitTest:
 
       val dist = Cauchy(loc, scale)
       val scalaLogProbs = dist.elementWiseLogProb(x)
-      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float])(
+      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float32])(
         jstats.cauchy.logpdf(x.jaxValue, loc = loc.jaxValue, scale = scale.jaxValue)
       )
       scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
@@ -165,7 +165,7 @@ class DistributionSuite extends DimwitTest:
       val dist = HalfNormal(loc, scale)
       val scalaLogProbs = dist.elementWiseLogProb(x)
       // Compute expected manually: log(2) + norm.logpdf for x >= loc
-      val expectedLogProbs = liftPyTensor1(Axis[A], VType[Float])(
+      val expectedLogProbs = liftPyTensor1(Axis[A], VType[Float32])(
         jstats.norm.logpdf(x.jaxValue, loc = loc.jaxValue, scale = scale.jaxValue)
       ) +! math.log(2.0).toFloat
       scalaLogProbs.asFloat should approxEqual(expectedLogProbs)
@@ -192,7 +192,7 @@ class DistributionSuite extends DimwitTest:
 
       val dist = StudentT(df, loc, scale)
       val scalaLogProbs = dist.elementWiseLogProb(x)
-      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float])(
+      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float32])(
         jstats.t.logpdf(x.jaxValue, df = df.jaxValue, loc = loc.jaxValue, scale = scale.jaxValue)
       )
       scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
@@ -223,7 +223,7 @@ class DistributionSuite extends DimwitTest:
 
       val dist = MVNormal(mean, cov)
       val scalaLogProb = dist.logProb(x)
-      val jaxLogProb = liftPyTensor0(VType[Float])(
+      val jaxLogProb = liftPyTensor0(VType[Float32])(
         jstats.multivariate_normal.logpdf(x.jaxValue, mean = mean.jaxValue, cov = cov.jaxValue)
       )
       scalaLogProb.asFloat should approxEqual(jaxLogProb)
@@ -247,7 +247,7 @@ class DistributionSuite extends DimwitTest:
 
       val dist = Dirichlet(concentration)
       val scalaLogProb = dist.logProb(x)
-      val jaxLogProb = liftPyTensor0(VType[Float])(
+      val jaxLogProb = liftPyTensor0(VType[Float32])(
         jstats.dirichlet.logpdf(x.jaxValue, alpha = concentration.jaxValue)
       )
       scalaLogProb.asFloat should approxEqual(jaxLogProb)
@@ -272,7 +272,7 @@ class DistributionSuite extends DimwitTest:
 
       val dist = Multinomial[A](n, probs)
       val scalaLogProb = dist.logProb(x)
-      val jaxLogProb = liftPyTensor0(VType[Float])(
+      val jaxLogProb = liftPyTensor0(VType[Float32])(
         jstats.multinomial.logpmf(x.jaxValue, n = n.jaxValue, p = probs.jaxValue)
       )
       scalaLogProb.asFloat should approxEqual(jaxLogProb)
@@ -284,7 +284,7 @@ class DistributionSuite extends DimwitTest:
       val multinomial = Multinomial[A](n, probs)
       val key = Random.Key(42)
       val samples = key.splitvmap(Axis[Samples] -> 10000)(k => multinomial.sample(k))
-      val sampleMean = samples.asFloat.mean(Axis[Samples])
+      val sampleMean = samples.asFloat32.mean(Axis[Samples])
       // Expected mean counts are n * probs
       val expectedMean = multinomial.probs.asFloat *! n.item.toFloat
       sampleMean should approxEqual(expectedMean, 2.0f)
@@ -305,11 +305,11 @@ class DistributionSuite extends DimwitTest:
       val key = Random.Key(42)
       val numSamples = 10000
       val samples = key.splitvmap(Axis[Samples] -> numSamples)(k => categorical.sample(k))
-      val counts = liftPyTensor1(Axis[A], VType[Float])(
+      val counts = liftPyTensor1(Axis[A], VType[Float32])(
         Jax.jnp.bincount(samples.jaxValue, minlength = 4).astype(Jax.jnp.float32)
       )
       val frequencies = counts *! (1.0f / numSamples.toFloat)
-      frequencies should approxEqual(probs.asFloat, 0.02f)
+      frequencies should approxEqual(probs.asFloat32, 0.02f)
 
   describe("Beta"):
     it("logProbs matches JAX"):
@@ -319,7 +319,7 @@ class DistributionSuite extends DimwitTest:
 
       val dist = Beta(alpha, beta)
       val scalaLogProbs = dist.elementWiseLogProb(x)
-      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float])(
+      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float32])(
         jstats.beta.logpdf(x.jaxValue, a = alpha.jaxValue, b = beta.jaxValue)
       )
       scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
