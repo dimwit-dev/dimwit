@@ -12,7 +12,7 @@ Before we start exploring the features of DimWit, let's look at a simple example
 // main imports for basic tensor operations and automatic differentiation
 import dimwit.*
 import dimwit.Autodiff.grad // TODO replace with cleaner import after PR is merged
-import nn.GradientDescent // TODO replace with cleaner import after refactoring 
+import dimwit.optimizer.GradientDescent // TODO replace with cleaner import after refactoring 
 
 // labels for tensor axes
 trait Batch derives Label

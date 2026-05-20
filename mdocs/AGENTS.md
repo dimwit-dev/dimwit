@@ -644,7 +644,7 @@ val jacFwd = Autodiff.jacFwd(linearMap)
 
 ```scala mdoc:reset:silent
 import dimwit.*
-import nn.{GradientDescent, GradientOptimizer}
+import dimwit.optimizer.{GradientDescent, GradientOptimizer}
 import dimwit.random.Random
 
 trait Feature derives Label
@@ -691,7 +691,7 @@ val trained = optimizer.iterate(initModelParams)(gradFunc)
 ### Lion Optimizer
 
 ```scala mdoc:silent
-import nn.Lion
+import dimwit.optimizer.Lion
 
 // Lion optimizer with momentum
 val lionOptimizer = Lion(learningRate = Tensor0(1e-3f), beta1 = Tensor0(0.9f), beta2 = Tensor0(0.99f), weightDecay = Tensor0(0.0f))
