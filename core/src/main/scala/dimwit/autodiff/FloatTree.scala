@@ -47,6 +47,34 @@ object FloatTree:
     def map[NewV](f: [T <: Tuple] => Labels[T] ?=> (Tensor[T, V] => Tensor[T, NewV])): P =
       tt.map(p, [T <: Tuple, V0] => (n: Labels[T]) ?=> (t: Tensor[T, V0]) => f[T](using n)(t.asInstanceOf[Tensor[T, V]]).asInstanceOf[Tensor[T, V0]])
 
+    /** Maps a function over the TensorTree along with the structural path,
+      * providing knowledge that tensors are of type V
+      */
+    def mapWithName[NewV](f: [T <: Tuple] => Labels[T] ?=> ((String, Tensor[T, V]) => Tensor[T, NewV]), path: String = ""): P =
+      tt.mapWithName(
+        p,
+        [T <: Tuple, V0] => (n: Labels[T]) ?=> (pth: String, t: Tensor[T, V0]) => f[T](using n)(pth, t.asInstanceOf[Tensor[T, V]]).asInstanceOf[Tensor[T, V0]],
+        path
+      )
+
+    /** Foreach over the TensorTree, providing knowledge that tensors are of type V
+      */
+    def foreach(f: [T <: Tuple] => Labels[T] ?=> (Tensor[T, V] => Unit)): Unit =
+      tt.foreach(
+        p,
+        [T <: Tuple, V0] => (n: Labels[T]) ?=> (t: Tensor[T, V0]) => f[T](using n)(t.asInstanceOf[Tensor[T, V]])
+      )
+
+    /** Foreach over the TensorTree along with the structural path,
+      * providing knowledge that tensors are of type V
+      */
+    def foreachWithName(f: [T <: Tuple] => Labels[T] ?=> ((String, Tensor[T, V]) => Unit), path: String = ""): Unit =
+      tt.foreachWithName(
+        p,
+        [T <: Tuple, V0] => (n: Labels[T]) ?=> (pth: String, t: Tensor[T, V0]) => f[T](using n)(pth, t.asInstanceOf[Tensor[T, V]]),
+        path
+      )
+
     /** Zipmaps a function over the TensorTree, as for tensor tree,
       * but provides knowledge that tensors are of type V
       */
