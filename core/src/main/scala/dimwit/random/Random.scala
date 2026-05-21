@@ -100,6 +100,7 @@ object Random:
       def map(p: Key, f: [T <: Tuple, V] => (Labels[T]) ?=> (Tensor[T, V] => Tensor[T, V])): Key = p
       // zipmap is also a noop, just return the first key
       def zipMap(p1: Key, p2: Key, f: [T <: Tuple, V] => (Labels[T]) ?=> ((Tensor[T, V], Tensor[T, V]) => Tensor[T, V])): Key = p1
+      def mapLeaves[A](p: Key, f: [T <: Tuple, V] => (Labels[T]) ?=> Tensor[T, V] => A): Iterator[A] = Iterator.empty
       def toPyTree(p: Key): Jax.PyAny = p.jaxKey
       def fromPyTree(pyVal: Jax.PyAny): Key = Key(pyVal.as[Jax.PyDynamic])
 

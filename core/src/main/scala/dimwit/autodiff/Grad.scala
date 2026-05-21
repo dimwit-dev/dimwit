@@ -33,6 +33,7 @@ object Grad:
       Grad(ev.map(g, f))
     def zipMap(g1: Grad[T], g2: Grad[T], f: [U <: Tuple, V] => Labels[U] ?=> (Tensor[U, V], Tensor[U, V]) => Tensor[U, V]): Grad[T] =
       Grad(ev.zipMap(g1, g2, f))
+    def mapLeaves[A](p: Grad[T], f: [T <: Tuple, V] => (x: Labels[T]) ?=> (t: Tensor[T, V]) => A): Iterator[A] = ev.mapLeaves(p, f)
     def toPyTree(g: Grad[T]): Jax.PyAny = ev.toPyTree(g)
     def fromPyTree(pyVal: Jax.PyAny): Grad[T] = Grad(ev.fromPyTree(pyVal))
 

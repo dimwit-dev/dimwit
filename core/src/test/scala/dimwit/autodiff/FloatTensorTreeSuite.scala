@@ -230,3 +230,16 @@ class FloatTensorTreeSuite extends DimwitTest:
         res.b.shape shouldBe params.b.shape
         res.w.approxElementEquals(Tensor.like(res.w).fill(99f)).all.item shouldBe true
         res.b.approxElementEquals(Tensor.like(res.b).fill(99f)).all.item shouldBe true
+
+  describe("mapLeaves"):
+
+    it("Calculate norm over tree structure"):
+      trait Norm derives Label
+      case class Params(val w: Tensor1[A, Float32], val b: Tensor0[Float32])
+      val params1 = Params(Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)), Tensor0(0))
+      val leaveNorms = stack(
+        params1.mapLeaves([T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Float32]) => x.norm).toSeq,
+        newAxis = Axis[Norm]
+      )
+      val norm = leaveNorms.norm
+      norm should approxEqual((params1.w.pow(2).sum + params1.b.pow(2).sum).sqrt)

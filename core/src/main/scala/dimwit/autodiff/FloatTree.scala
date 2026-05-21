@@ -57,6 +57,9 @@ object FloatTree:
         [T <: Tuple, V0] => (n: Labels[T]) ?=> (t1: Tensor[T, V0], t2: Tensor[T, V0]) => f[T](using n)(t1.asInstanceOf[Tensor[T, V]], t2.asInstanceOf[Tensor[T, V]]).asInstanceOf[Tensor[T, V0]]
       )
 
+    def mapLeaves[A](f: [T <: Tuple] => Labels[T] ?=> (Tensor[T, V] => A)): Iterator[A] =
+      tt.mapLeaves(p, [T <: Tuple, V0] => (n: Labels[T]) ?=> (t: Tensor[T, V0]) => f[T](using n)(t.asInstanceOf[Tensor[T, V]]))
+
   /** Arithmetic and math operations for tensor trees of floating-point types.
     */
   object ops:
