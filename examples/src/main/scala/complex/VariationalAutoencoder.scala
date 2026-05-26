@@ -1,7 +1,5 @@
 package examples.complex.vae
 
-import examples.timed
-
 import dimwit.*
 import dimwit.Conversions.given
 import dimwit.autodiff.*
@@ -9,11 +7,10 @@ import dimwit.autodiff.FloatTree.*
 import dimwit.stats.Normal
 import dimwit.random.Random
 import examples.dataset.MNISTLoader
-import nn.LinearLayer
-import nn.ActivationFunctions.relu
-import nn.GradientDescent
+import dimwit.nn.ActivationFunctions.relu
+import dimwit.optimizer.GradientDescent
 import dimwit.jax.Jax
-import nn.ActivationFunctions.sigmoid
+import dimwit.nn.ActivationFunctions.sigmoid
 import dimwit.random.Random.Key
 
 import MNISTLoader.{Sample, TrainSample, TestSample, Height, Width}
@@ -28,6 +25,33 @@ trait Latent derives Label
 
 trait DHidden1 derives Label
 trait DHidden2 derives Label
+
+def timed[A](template: String)(block: => A): A =
+  val t0 = System.currentTimeMillis()
+  val result = block
+  println(s"$template took ${System.currentTimeMillis() - t0} ms")
+  result
+
+object LinearLayer:
+
+  case class Params[In, Out](weight: Tensor2[In, Out, Float32], bias: Tensor1[Out, Float32])
+
+  object Params:
+    given [I: Label, O: Label]: TensorTree[Params[I, O]] = TensorTree.derived
+
+    def apply[In: Label, Out: Label](paramKey: Key)(
+        inputDim: AxisExtent[In],
+        outputDim: AxisExtent[Out]
+    ): Params[In, Out] =
+      Params(
+        weight = Normal.standardNormal(Shape(inputDim, outputDim)).sample(paramKey),
+        bias = Tensor(Shape(outputDim)).fill(0.0f)
+      )
+
+case class LinearLayer[In: Label, Out: Label](params: LinearLayer.Params[In, Out]) extends Function[Tensor1[In, Float32], Tensor1[Out, Float32]]:
+  override def apply(x: Tensor1[In, Float32]): Tensor1[Out, Float32] =
+    import params.{weight, bias}
+    x.dot(Axis[In])(weight) + bias
 
 class Encoder(p: Encoder.Params):
 

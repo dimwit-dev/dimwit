@@ -47,9 +47,6 @@ jobs:
       - name: Compile core module
         run: sbt "project core" compile
 
-      - name: Compile nn module
-        run: sbt "project nn" compile
-
       - name: Compile examples module
         run: sbt "project examples" compile
 
