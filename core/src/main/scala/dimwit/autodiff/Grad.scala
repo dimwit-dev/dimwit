@@ -31,9 +31,23 @@ object Grad:
   given [T](using ev: TensorTree[T]): TensorTree[Grad[T]] with
     def map(g: Grad[T], f: [U <: Tuple, V] => Labels[U] ?=> Tensor[U, V] => Tensor[U, V]): Grad[T] =
       Grad(ev.map(g, f))
+
+    def mapWithName(g: Grad[T], f: [U <: Tuple, V] => Labels[U] ?=> ((String, Tensor[U, V]) => Tensor[U, V]), path: String = ""): Grad[T] =
+      Grad(ev.mapWithName(g, f, path))
+
+    def foreach(g: Grad[T], f: [U <: Tuple, V] => Labels[U] ?=> (Tensor[U, V] => Unit)): Unit =
+      ev.foreach(g, f)
+
+    def foreachWithName(g: Grad[T], f: [U <: Tuple, V] => Labels[U] ?=> ((String, Tensor[U, V]) => Unit), path: String = ""): Unit =
+      ev.foreachWithName(g, f, path)
+
     def zipMap(g1: Grad[T], g2: Grad[T], f: [U <: Tuple, V] => Labels[U] ?=> (Tensor[U, V], Tensor[U, V]) => Tensor[U, V]): Grad[T] =
       Grad(ev.zipMap(g1, g2, f))
+
+    def mapLeaves[A](p: Grad[T], f: [T <: Tuple, V] => (x: Labels[T]) ?=> (t: Tensor[T, V]) => A): Iterator[A] = ev.mapLeaves(p, f)
+
     def toPyTree(g: Grad[T]): Jax.PyAny = ev.toPyTree(g)
+
     def fromPyTree(pyVal: Jax.PyAny): Grad[T] = Grad(ev.fromPyTree(pyVal))
 
   // FloatTree witness for gradient math (++, --, scale, etc.)

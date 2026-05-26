@@ -95,12 +95,24 @@ object Random:
       * so this instance allows them to be used
       * seamlessly with autodiff and JIT compilation.
       */
+
     given TensorTree[Key] with
       // map is really a noop as it is not a tensor
       def map(p: Key, f: [T <: Tuple, V] => (Labels[T]) ?=> (Tensor[T, V] => Tensor[T, V])): Key = p
+
+      def mapWithName(p: Key, f: [T <: Tuple, V] => Labels[T] ?=> ((String, Tensor[T, V]) => Tensor[T, V]), path: String = ""): Key = p
+
+      def foreach(p: Key, f: [T <: Tuple, V] => Labels[T] ?=> (Tensor[T, V] => Unit)): Unit = ()
+
+      def foreachWithName(p: Key, f: [T <: Tuple, V] => Labels[T] ?=> ((String, Tensor[T, V]) => Unit), path: String = ""): Unit = ()
+
       // zipmap is also a noop, just return the first key
       def zipMap(p1: Key, p2: Key, f: [T <: Tuple, V] => (Labels[T]) ?=> ((Tensor[T, V], Tensor[T, V]) => Tensor[T, V])): Key = p1
+
+      def mapLeaves[A](p: Key, f: [T <: Tuple, V] => (Labels[T]) ?=> Tensor[T, V] => A): Iterator[A] = Iterator.empty
+
       def toPyTree(p: Key): Jax.PyAny = p.jaxKey
+
       def fromPyTree(pyVal: Jax.PyAny): Key = Key(pyVal.as[Jax.PyDynamic])
 
     /** Create a random key from an integer seed */
