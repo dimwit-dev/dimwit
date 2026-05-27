@@ -988,6 +988,20 @@ object TensorOps:
         val indices = ev.indices
         Tensor(Jax.jnp.transpose(tensor.jaxValue, indices.toPythonProxy))
 
+      /** Splits the tensor along the specified axis at the given indices, returning a sequence of tensors corresponding to the splits.
+        *
+        * @param unstackAxis the axis to split, specified as an Axis (e.g. Axis[Ax1])
+        * @return a sequence of tensors resulting from the split, each with the specified axis removed
+        */
+      def unstack[L: Label, R <: Tuple](unstackAxis: Axis[L])(using
+          labels: Labels[T],
+          ev: AxisRemover[T, L, R],
+          labelR: Labels[R]
+      ): Seq[Tensor[R, V]] =
+        val axisIdx = ev.index
+        val unstacked = Jax.jnp.split(tensor.jaxValue, tensor.shape.dimensions(axisIdx), axis = axisIdx).as[Seq[Jax.PyDynamic]]
+        unstacked.map(x => Tensor[R, V](x))
+
       def chunk[splitL: Label](splitAxis: Axis[splitL], chunkSize: Int)(using
           labels: Labels[T],
           axisIndex: AxisIndex[T, splitL]
