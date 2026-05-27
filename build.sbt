@@ -6,7 +6,33 @@ ThisBuild / scalaVersion := "3.8.1"
 ThisBuild / organization := "ch.contrafactus"
 
 // Add resolver for snapshot dependencies
-ThisBuild / resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
+ThisBuild / resolvers += Resolver.sonatypeCentralSnapshots
+ThisBuild / versionScheme := Some("early-semver")
+// Publishing to Sonatype Central
+ThisBuild / sonatypeCredentialHost := "central.sonatype.com"
+ThisBuild / publishTo := {
+  if (isSnapshot.value)
+    Some("central-snapshots" at "https://central.sonatype.com/repository/maven-snapshots/")
+  else
+    sonatypePublishToBundle.value
+}
+ThisBuild / publishMavenStyle := true
+ThisBuild / homepage := Some(url("https://github.com/dimwit-dev/dimwit"))
+ThisBuild / licenses := List("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0"))
+ThisBuild / scmInfo := Some(
+  ScmInfo(
+    url("https://github.com/dimwit-dev/dimwit"),
+    "scm:git@github.com:dimwit-dev/dimwit.git"
+  )
+)
+ThisBuild / developers := List(
+  Developer(
+    id = "dimwit-dev",
+    name = "DimWit Contributors",
+    email = "",
+    url = url("https://github.com/dimwit-dev")
+  )
+)
 
 addCommandAlias("testAndCoverage", "; clean; coverage; test; coverageReport")
 
@@ -77,6 +103,7 @@ lazy val docsRoot = (project in file(".dimwit-docs-root"))
   .dependsOn(core)
   .settings(
     name := "dimwit-docs-root",
+    publish / skip := true,
     mdocIn := (ThisBuild / baseDirectory).value / "mdocs",
     mdocOut := (ThisBuild / baseDirectory).value,
     mdocExtraArguments := Seq("--no-link-hygiene"),
@@ -94,6 +121,7 @@ lazy val docs = (project in file(".dimwit-docs"))
   .dependsOn(core)
   .settings(
     name := "dimwit-docs",
+    publish / skip := true,
     mdocIn := (ThisBuild / baseDirectory).value / "mdocs/docs",
     mdocOut := (ThisBuild / baseDirectory).value / "docs",
     mdocExtraArguments := Seq("--no-link-hygiene"),
