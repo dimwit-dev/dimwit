@@ -53,51 +53,55 @@ val normalized: Tensor2[Batch, Feature, Float32] =
     t.vmap(Axis[Batch])(normalize)
 ```
 
-See [examples](examples/src/main/scala/basic/) for more examples.
-
+See our [quickstart guide](docs/quickstart.md) for a more detailed introduction to the core concepts and API and 
+check out the [examples](examples/src/main/scala). 
 
 ## Using DimWit as a Library
 
-**Note**: DimWit is currently in early development (`0.1.0-SNAPSHOT`) and not yet published to Maven Central.
+**Note**: DimWit is currently in early development (`0.1.0-SNAPSHOT`). Snapshots are published to the Sonatype Central snapshot repository.
+
+### Requirements
+
+- Scala **3.8** or newer
+- sbt **1.11** or newer
 
 ### Installation
 
-To use dimwit as a library, clone the repository and publish locally:
-
-```bash
-git clone https://github.com/dimwit-dev/dimwit.git
-cd dimwit
-sbt publishLocal
-```
-
-Then add to your `build.sbt`:
+Add to your `build.sbt` (minimal complete example):
 
 ```scala
-libraryDependencies ++= Seq(
-  "ch.contrafactus" %% "dimwit-core" % "0.1.0-SNAPSHOT",  // Core tensor library
-  "ch.contrafactus" %% "dimwit-nn" % "0.1.0-SNAPSHOT"     // Neural network components (optional)
-)
+ThisBuild / scalaVersion := "3.8.1"
 
-resolvers += Resolver.mavenLocal
+lazy val myProject = (project in file("."))
+  .settings(
+    name := "my-project",
+    libraryDependencies ++= Seq(
+      "ch.contrafactus" %% "dimwit-core" % "0.1.0-SNAPSHOT"
+    ),
+    resolvers += Resolver.sonatypeCentralSnapshots,
+    fork := true
+  )
 ```
 
 ### Python Environment Setup
 
-
 DimWit requires **Python 3.9+** and **JAX** since it uses JAX as the backend for tensor operations via ScalaPy. It also relies on **Einops** for tensor reshaping and manipulation.
 
-The easiest way to set up the Python environment is to install the [uv package manager](https://github.com/astral-sh/uv) and add a file `pyproject.toml` with the following content to your project:
+The easiest way to set up the Python environment is to install the [uv package manager](https://github.com/astral-sh/uv) and add a `pyproject.toml` to your **project root** (the directory where you run `sbt`):
 
 ```toml
 [project]
-name = "dimwit-python-env"
+name = "my-project-python-env"
 version = "0.1.0"
 requires-python = "==3.13.*"
 dependencies = [
     "einops>=0.8.1",
-    "jax[cuda12]>=0.8.2",
+    # Use jax[cpu] for CPU-only environments (e.g. development/CI without a GPU)
+    # Use jax[cuda12] for NVIDIA GPU support
+    "jax[cpu]>=0.8.2",
 ]
 ```
+
 DimWit provides the command `dimwit.initialize()` which you can call at the start of your application to automatically set up the Python environment. This will check for the required dependencies and set the necessary environment variables for ScalaPy.
 
 ```scala 
@@ -111,9 +115,11 @@ import dimwit.*
 }   
 ```
 
-Alternatively, you can set up the Python environment manually by setting 
-the environment variables `DIMWIT_PYTHON_PATH` and `DIMWIT_PYTHON_LIBRARY` to the path 
-of your Python installation and tell DimWit to bypass uv by setting `DIMWIT_SKIP_SYNC` to `true`.
+Alternatively, you can configure the Python environment manually using these environment variables:
+
+- `DIMWIT_PYTHON_PATH` — path to the Python executable (find it with `which python3` or `uv run python -c "import sys; print(sys.executable)"`)
+- `DIMWIT_PYTHON_LIBRARY` — path to the Python shared library (find it with `python3 -c "import ctypes.util; print(ctypes.util.find_library('python3'))"`)
+- `DIMWIT_SKIP_SYNC` — set to `true` to skip uv environment sync on startup
 
 ## Status 
 
