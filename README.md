@@ -117,7 +117,7 @@ of your Python installation and tell DimWit to bypass uv by setting `DIMWIT_SKIP
 
 ## Status 
 
-**Early but functional.** DimWit successfully runs complex models including GPT-2 (see [example](examples/src/main/scala/complex/GPT2.scala)). The core concepts are stable, but the API is still evolving.
+**Early but functional.** DimWit successfully runs complex models including GPT-2 (see [example](https://github.com/dimwit-dev/deepwit/tree/main/examples/src/main/scala/example/gpt)). The core concepts are stable, but the API is still evolving.
 
 **Not production-ready** - expect breaking changes.
 
