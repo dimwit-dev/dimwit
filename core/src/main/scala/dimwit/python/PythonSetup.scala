@@ -1,7 +1,7 @@
 package dimwit.python
 
 import me.shadaj.scalapy.py
-import scala.sys.process.Process
+import scala.sys.process.{Process, ProcessLogger}
 
 /** Manages Python environment setup for DimWit.
   *
@@ -21,7 +21,8 @@ object PythonSetup:
   def configureScalaPy(performUvSync: Boolean): Unit =
     val skipSync = sys.env.get("DIMWIT_SKIP_SYNC").exists(v => v == "true" || v == "1")
     if performUvSync && !skipSync then
-      if Process(Seq("uv", "sync")).! != 0 then
+      val uvLogger = ProcessLogger(_ => (), _ => ())
+      if Process(Seq("uv", "sync")).!(uvLogger) != 0 then
         throw new RuntimeException(
           """[dimwit] uv sync failed. Ensure uv is installed (https://docs.astral.sh/uv/) and
             |that a pyproject.toml with JAX dependencies exists in your project, for example:
@@ -40,10 +41,19 @@ object PythonSetup:
 
     val python = scala.sys.env.getOrElse(
       "DIMWIT_PYTHON_PATH",
-      try Process(Seq("uv", "run", "python", "-c", "import sys; print(sys.executable)")).!!.trim
+      try
+        val out = new StringBuilder
+        val logger = ProcessLogger(
+          line =>
+            out.append(line); out.append("\n")
+          ,
+          _ => ()
+        )
+        val rc = Process(Seq("uv", "run", "python", "-c", "import sys; print(sys.executable)")).!(logger)
+        if rc != 0 then throw new RuntimeException(s"uv run exited with code $rc")
+        out.toString.trim
       catch
-        case e: Exception =>
-          throw new RuntimeException(
+        case e: RuntimeException => throw new RuntimeException(
             "[dimwit] Could not resolve Python interpreter. " +
               "Set DIMWIT_PYTHON_PATH or check your uv setup.",
             e
