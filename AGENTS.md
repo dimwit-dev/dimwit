@@ -1112,17 +1112,10 @@ val t1 = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f))
 val t2 = Tensor1(Axis[B]).fromArray(Array(3.0f, 4.0f, 5.0f))
 val wrong = t1 + t2  // Different labels AND different sizes
 // error: 
-// 
-// A tuple of axis labels Tuple1[MdocApp11.this.A | MdocApp11.this.B] was given or inferred that does not have a valid Labels instance. 
-// 
-// Ensure that all of the types in the tuple have a 'derives Label' clause.
-// .
-// I found:
-// 
-//     dimwit.tensor.Labels.concat[head, tail](
-//       /* missing */summon[dimwit.tensor.Label[head]], ???)
-// 
-// But no implicit values were found that match type dimwit.tensor.Label[head].
+// Found:    (MdocApp11.this.t2 :
+//   dimwit.tensor.Tensor1[MdocApp11.this.B, dimwit.tensor.DType.Float32])
+// Required: dimwit.tensor.Tensor[Tuple1[MdocApp11.this.A],
+//   (dimwit.tensor.DType.Float32 : dimwit.tensor.DType)]
 ```
 
 ```scala

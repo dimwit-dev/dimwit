@@ -207,25 +207,12 @@ val tensor1 = Tensor(Shape(Axis[A] -> 3, Axis[B] -> 2)).fill(1.0f)
 val tensor3 = Tensor(Shape(Axis[A] -> 3, Axis[C] -> 2)).fill(2.0f)
 tensor1 + tensor3 
 // error:
-// 
-// A tuple of axis labels MdocApp1.this.A *: (MdocApp1.this.B *: EmptyTuple | MdocApp1.this.C *:
-//   EmptyTuple) was given or inferred that does not have a valid Labels instance. 
-// 
-// Ensure that all of the types in the tuple have a 'derives Label' clause.
-// .
-// I found:
-// 
-//     dimwit.tensor.Labels.given_Labels_A_B[A², B²](
-//       dimwit.tensor.Labels.lift[MdocApp1.this.A](this.A.derived$Label),
-//       dimwit.tensor.Labels.lift[B²](/* missing */summon[dimwit.tensor.Label[B²]]))
-// 
-// But no implicit values were found that match type dimwit.tensor.Label[B²]
-// 
-// where:    A  is a trait in class MdocApp1
-//           A² is a type variable
-//           B  is a trait in class MdocApp1
-//           B² is a type variable
-// .
+// Found:    (MdocApp1.this.tensor3 :
+//   dimwit.tensor.Tensor[(MdocApp1.this.A, MdocApp1.this.C),
+//     dimwit.tensor.DType.Float32]
+// )
+// Required: dimwit.tensor.Tensor[(MdocApp1.this.A, MdocApp1.this.B),
+//   (dimwit.tensor.DType.Float32 : dimwit.tensor.DType)]
 // tensor1 + tensor3 
 //           ^^^^^^^
 // error:
@@ -249,19 +236,12 @@ trait C derives Label
 val tensor3 = Tensor(Shape(Axis[A] -> 3)).fill(1.0f)
 tensor1 + tensor3
 // error:
-// 
-// A tuple of axis labels MdocApp1.this.A *: (MdocApp1.this.B *: EmptyTuple | EmptyTuple) was given or inferred that does not have a valid Labels instance. 
-// 
-// Ensure that all of the types in the tuple have a 'derives Label' clause.
-// .
-// I found:
-// 
-//     dimwit.tensor.Labels.concat[head, tail](this.A.derived$Label,
-//       dimwit.tensor.Labels.lift[tail](/* missing */summon[dimwit.tensor.Label[tail]]
-//         )
-//     )
-// 
-// But no implicit values were found that match type dimwit.tensor.Label[tail].
+// Found:    (MdocApp1.this.tensor3 :
+//   dimwit.tensor.Tensor[MdocApp1.this.A *: EmptyTuple,
+//     dimwit.tensor.DType.Float32]
+// )
+// Required: dimwit.tensor.Tensor[(MdocApp1.this.A, MdocApp1.this.B),
+//   (dimwit.tensor.DType.Float32 : dimwit.tensor.DType)]
 // tensor1 + tensor3
 //           ^^^^^^^
 ```
