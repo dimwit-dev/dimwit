@@ -4,6 +4,8 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import me.shadaj.scalapy.py
 
+/** Utility object for reading flat arrays of scalar values from JAX tensors.
+  */
 object ArrayReader:
 
   private def readBytes(jaxValue: py.Dynamic): Array[Byte] =

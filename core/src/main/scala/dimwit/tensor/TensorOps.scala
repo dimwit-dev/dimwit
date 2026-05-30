@@ -1544,6 +1544,11 @@ object TensorOps:
         Tensor(Jax.lax.dynamic_slice(t.jaxValue, Seq(dynamicStart.jaxValue).toPythonCopy, Seq(staticSize).toPythonCopy))
 
     extension [L, V, X](t: Tensor1[L, V])(using ev: HasScalar[V, X])
+      /** Converts a Tensor1 to a Scala Array.
+        * The user must ensure that the tensor is not a JAX Tracer
+        * (i.e., it is not part of a JAX computation graph) before calling this method,
+        * otherwise a runtime error will occur.
+        */
       def toArray: Array[X] =
         require(!t.isTracer, "Cannot convert a JAX Tracer to an array.")
         ev.readFlat(t.jaxValue)
@@ -1557,6 +1562,11 @@ object TensorOps:
       def transpose(axis2: Axis[L2], axis1: Axis[L1]): Tensor2[L2, L1, V] = TensorOps.Structural.transpose(t)(axis2, axis1)
 
     extension [L1, L2, V, X](t: Tensor2[L1, L2, V])(using ev: HasScalar[V, X])
+      /** Converts a Tensor2 to a nested Scala Array (Array of Arrays).
+        * The user must ensure that the tensor is not a JAX Tracer
+        * (i.e., it is not part of a JAX computation graph) before calling this method,
+        * otherwise a runtime error will occur.
+        */
       def toArray: Array[Array[X]] =
         require(!t.isTracer, "Cannot convert a JAX Tracer to an array.")
         given scala.reflect.ClassTag[X] = ev.classTag
@@ -1565,6 +1575,11 @@ object TensorOps:
   object Tensor3Ops:
 
     extension [L1, L2, L3, V, X](t: Tensor3[L1, L2, L3, V])(using ev: HasScalar[V, X])
+      /** Converts a Tensor3 to a nested Scala Array (Array of Arrays of Arrays).
+        * The user must ensure that the tensor is not a JAX Tracer
+        * (i.e., it is not part of a JAX computation graph) before calling this method,
+        * otherwise a runtime error will occur.
+        */
       def toArray: Array[Array[Array[X]]] =
         require(!t.isTracer, "Cannot convert a JAX Tracer to an array.")
         given scala.reflect.ClassTag[X] = ev.classTag
