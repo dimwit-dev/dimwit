@@ -2,7 +2,9 @@ package dimwit.tensor
 import dimwit.jax.JaxDType
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import me.shadaj.scalapy.py
 import dimwit.tensor.TensorOps.{IsFloating, IsInteger, IsBoolean}
+import dimwit.tensor.HasScalar
 
 object DType:
 
@@ -53,6 +55,34 @@ object DType:
   type Bool = Bool.type
   given boolIsBoolean: IsBoolean[Bool] with
     def dtype: DType = DType.Bool
+
+  given HasScalar[Bool, Boolean] with
+    def readFlat(jv: py.Dynamic): Array[Boolean] = ArrayReader.readBooleanArray(jv)
+    def classTag: scala.reflect.ClassTag[Boolean] = scala.reflect.ClassTag.Boolean
+
+  given HasScalar[Int8, Byte] with
+    def readFlat(jv: py.Dynamic): Array[Byte] = ArrayReader.readByteArray(jv)
+    def classTag: scala.reflect.ClassTag[Byte] = scala.reflect.ClassTag.Byte
+
+  given HasScalar[Int16, Short] with
+    def readFlat(jv: py.Dynamic): Array[Short] = ArrayReader.readShortArray(jv)
+    def classTag: scala.reflect.ClassTag[Short] = scala.reflect.ClassTag.Short
+
+  given HasScalar[Int32, Int] with
+    def readFlat(jv: py.Dynamic): Array[Int] = ArrayReader.readIntArray(jv)
+    def classTag: scala.reflect.ClassTag[Int] = scala.reflect.ClassTag.Int
+
+  given HasScalar[Int64, Long] with
+    def readFlat(jv: py.Dynamic): Array[Long] = ArrayReader.readLongArray(jv)
+    def classTag: scala.reflect.ClassTag[Long] = scala.reflect.ClassTag.Long
+
+  given HasScalar[Float32, Float] with
+    def readFlat(jv: py.Dynamic): Array[Float] = ArrayReader.readFloatArray(jv)
+    def classTag: scala.reflect.ClassTag[Float] = scala.reflect.ClassTag.Float
+
+  given HasScalar[Float64, Double] with
+    def readFlat(jv: py.Dynamic): Array[Double] = ArrayReader.readDoubleArray(jv)
+    def classTag: scala.reflect.ClassTag[Double] = scala.reflect.ClassTag.Double
 
 enum DType(val name: String, val size: Int):
   case BFloat16 extends DType("bfloat16", 2)

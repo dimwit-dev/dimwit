@@ -27,6 +27,7 @@ import dimwit.tensor.ShapeTypeHelpers.AxesMerger
 import dimwit.OnError
 import dimwit.DType.*
 import dimwit.DType.given
+import dimwit.tensor.HasScalar
 
 import Tuple.:*
 import Tuple.++
@@ -1542,6 +1543,16 @@ object TensorOps:
         // TODO understand why toPythonCopy is needed and toPythonProxy fails!
         Tensor(Jax.lax.dynamic_slice(t.jaxValue, Seq(dynamicStart.jaxValue).toPythonCopy, Seq(staticSize).toPythonCopy))
 
+    extension [L, V, X](t: Tensor1[L, V])(using ev: HasScalar[V, X])
+      /** Converts a Tensor1 to a Scala Array.
+        * The user must ensure that the tensor is not a JAX Tracer
+        * (i.e., it is not part of a JAX computation graph) before calling this method,
+        * otherwise a runtime error will occur.
+        */
+      def toArray: Array[X] =
+        require(!t.isTracer, "Cannot convert a JAX Tracer to an array.")
+        ev.readFlat(t.jaxValue)
+
   object Tensor2Ops:
 
     extension [L1: Label, L2: Label, V](t: Tensor2[L1, L2, V])
@@ -1550,10 +1561,36 @@ object TensorOps:
       def transpose: Tensor2[L2, L1, V] = t.transpose(Axis[L2], Axis[L1])
       def transpose(axis2: Axis[L2], axis1: Axis[L1]): Tensor2[L2, L1, V] = TensorOps.Structural.transpose(t)(axis2, axis1)
 
+    extension [L1, L2, V, X](t: Tensor2[L1, L2, V])(using ev: HasScalar[V, X])
+      /** Converts a Tensor2 to a nested Scala Array (Array of Arrays).
+        * The user must ensure that the tensor is not a JAX Tracer
+        * (i.e., it is not part of a JAX computation graph) before calling this method,
+        * otherwise a runtime error will occur.
+        */
+      def toArray: Array[Array[X]] =
+        require(!t.isTracer, "Cannot convert a JAX Tracer to an array.")
+        given scala.reflect.ClassTag[X] = ev.classTag
+        ev.readFlat(t.jaxValue).grouped(t.shape.dimensions(1)).toArray
+
+  object Tensor3Ops:
+
+    extension [L1, L2, L3, V, X](t: Tensor3[L1, L2, L3, V])(using ev: HasScalar[V, X])
+      /** Converts a Tensor3 to a nested Scala Array (Array of Arrays of Arrays).
+        * The user must ensure that the tensor is not a JAX Tracer
+        * (i.e., it is not part of a JAX computation graph) before calling this method,
+        * otherwise a runtime error will occur.
+        */
+      def toArray: Array[Array[Array[X]]] =
+        require(!t.isTracer, "Cannot convert a JAX Tracer to an array.")
+        given scala.reflect.ClassTag[X] = ev.classTag
+        val d1 = t.shape.dimensions(1); val d2 = t.shape.dimensions(2)
+        ev.readFlat(t.jaxValue).grouped(d1 * d2).map(_.grouped(d2).toArray).toArray
+
   export Tensor0Ops.*
   export ValueOps.*
   export Tensor1Ops.*
   export Tensor2Ops.*
+  export Tensor3Ops.*
 
 end TensorOps
 
