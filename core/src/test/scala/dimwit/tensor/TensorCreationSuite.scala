@@ -66,3 +66,29 @@ class TensorCreationSuite extends DimwitTest:
       withJaxX64Support: // Enable float64 support in JAX
         val floatTensorFromDouble2 = Tensor(Shape2(Axis[A] -> 2, Axis[B] -> 2), VType[Float32]).fromArray(Array(1.0, 2.0, 3.0, 4.0))
         floatTensorFromDouble2.dtype shouldBe DType.Float32
+
+  describe("fromFunction"):
+
+    it("2D: identity matrix from indices"):
+      val result = Tensor(Shape(Axis[A] -> 3, Axis[B] -> 3)).fromFunction { idx =>
+        if idx(Axis[A]) == idx(Axis[B]) then 1.0f else 0.0f
+      }
+      val expected = Tensor2(Axis[A], Axis[B]).fromArray(
+        Array(Array(1.0f, 0.0f, 0.0f), Array(0.0f, 1.0f, 0.0f), Array(0.0f, 0.0f, 1.0f))
+      )
+      result shouldEqual expected
+
+    it("2D: element values are row + col index"):
+      val result = Tensor(Shape(Axis[A] -> 2, Axis[B] -> 3)).fromFunction { idx =>
+        (idx(Axis[A]) + idx(Axis[B])).toFloat
+      }
+      val expected = Tensor2(Axis[A], Axis[B]).fromArray(
+        Array(Array(0.0f, 1.0f, 2.0f), Array(1.0f, 2.0f, 3.0f))
+      )
+      result shouldEqual expected
+
+    it("1D: element values are their own index"):
+      val result = Tensor(Shape1(Axis[A] -> 4)).fromFunction { idx =>
+        idx(Axis[A]).toFloat
+      }
+      result shouldEqual Tensor1(Axis[A]).fromArray(Array(0.0f, 1.0f, 2.0f, 3.0f))

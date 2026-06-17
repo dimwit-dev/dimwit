@@ -4,6 +4,7 @@ import dimwit.|*|
 import dimwit.tensor.DType.Int32
 
 import scala.compiletime.{constValue, erasedValue, summonInline}
+import ShapeTypeHelpers.AxisIndex
 
 /** Instances of this class represent an axis in a tensor with a specific label `L`.
   * Axis objects are used whenever an axis needs to be selected at the value level,
@@ -29,6 +30,12 @@ case class AxisExtent[L: Label](axis: Axis[L], size: Int):
     */
   def *[L2: Label](other: AxisExtent[L2]): AxisExtent[L |*| L2] =
     AxisExtent(Axis[L |*| L2], size * other.size)
+
+/** Provides typed access to the indices. I.e. the user can write `idx(Axis[A])` to get the index along axis A.
+  */
+class TypedIndex[T <: Tuple](private[dimwit] val coordInts: IndexedSeq[Int]):
+  def apply[L](axis: Axis[L])(using ev: AxisIndex[T, L]): Int =
+    coordInts(ev.index)
 
 /** Trait hierarchy to represent different ways to select an axis in a tensor, such as by index, range, or specific indices.
   */

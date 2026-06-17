@@ -5,6 +5,7 @@ import scala.compiletime.{erasedValue, summonFrom}
 import dimwit.jax.Jax
 import dimwit.jax.JaxDType
 import dimwit.jax.Jax.PyDynamic
+import dimwit.tensor.TypedIndex
 import dimwit.tensor.{Label, Labels, VType}
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
@@ -81,6 +82,28 @@ object Tensor:
     def fill(value: Boolean): Tensor[T, Bool] = Tensor(shape, VType[Bool]).fill(value)
     def fromArray(values: Array[Boolean]): Tensor[T, Bool] = Tensor(shape, VType[Bool]).fromArray(values)
 
+    @targetName("fromFunctionFloat")
+    def fromFunction(f: TypedIndex[T] => Float): Tensor[T, Float32] =
+      Tensor(shape, VType[Float32]).fromArray(Tensor.tabulate(shape.dimensions, f))
+    @targetName("fromFunctionDouble")
+    def fromFunction(f: TypedIndex[T] => Double): Tensor[T, Float64] =
+      Tensor(shape, VType[Float64]).fromArray(Tensor.tabulate(shape.dimensions, f))
+    @targetName("fromFunctionByte")
+    def fromFunction(f: TypedIndex[T] => Byte): Tensor[T, Int8] =
+      Tensor(shape, VType[Int8]).fromArray(Tensor.tabulate(shape.dimensions, f))
+    @targetName("fromFunctionShort")
+    def fromFunction(f: TypedIndex[T] => Short): Tensor[T, Int16] =
+      Tensor(shape, VType[Int16]).fromArray(Tensor.tabulate(shape.dimensions, f))
+    @targetName("fromFunctionInt")
+    def fromFunction(f: TypedIndex[T] => Int): Tensor[T, Int32] =
+      Tensor(shape, VType[Int32]).fromArray(Tensor.tabulate(shape.dimensions, f))
+    @targetName("fromFunctionLong")
+    def fromFunction(f: TypedIndex[T] => Long): Tensor[T, Int64] =
+      Tensor(shape, VType[Int64]).fromArray(Tensor.tabulate(shape.dimensions, f))
+    @targetName("fromFunctionBoolean")
+    def fromFunction(f: TypedIndex[T] => Boolean): Tensor[T, Bool] =
+      Tensor(shape, VType[Bool]).fromArray(Tensor.tabulate(shape.dimensions, f))
+
   case class TypedFactory[T <: Tuple: Labels, V](shape: Shape[T], vtype: VType[V]):
 
     // --- Boolean ---
@@ -121,6 +144,13 @@ object Tensor:
     def fill(value: Double): Tensor[T, V] = Tensor(Jax.jnp.full(other.shape.dimensions.toPythonProxy, value, dtype = other.dtype.jaxType))
     def fromArray(values: Array[Float])(using IsFloating[V]): Tensor[T, V] = ArrayWriter.fromArray[T, V](other.shape, values)
     def fromArray(values: Array[Double])(using IsFloating[V]): Tensor[T, V] = ArrayWriter.fromArray[T, V](other.shape, values)
+
+  /** Computes per-element values via eager Scala-side iteration. Used by [[DefaultsFactory.fromFunction]]. */
+  private[tensor] def tabulate[T <: Tuple, V: scala.reflect.ClassTag](dims: List[Int], f: TypedIndex[T] => V): Array[V] =
+    val strides = dims.scanRight(1)(_ * _).tail
+    Array.tabulate(dims.product) { flatIdx =>
+      f(TypedIndex[T](IndexedSeq.tabulate(dims.length)(d => (flatIdx / strides(d)) % dims(d))))
+    }
 
   private[dimwit] def apply[T <: Tuple: Labels, V](jaxValue: Jax.PyDynamic): Tensor[T, V] = new Tensor(jaxValue)
 

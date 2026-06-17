@@ -58,7 +58,7 @@ package object dimwit:
       val name: String = s"${labelA.name}+${labelB.name}"
 
   // Export tensor and related types
-  export dimwit.tensor.{Tensor, Tensor0, Tensor1, Tensor2, Tensor3}
+  export dimwit.tensor.{Tensor, Tensor0, Tensor1, Tensor2, Tensor3, TypedIndex}
   export dimwit.tensor.{Shape, Shape0, Shape1, Shape2, Shape3}
   export dimwit.tensor.DType
   export dimwit.tensor.DType.{BFloat16, Float16, Float32, Float64, Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, Bool}
