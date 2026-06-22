@@ -103,7 +103,7 @@ val wrong = t.sum(Axis[C])
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
 //       (repl.MdocSession.MdocApp.A, repl.MdocSession.MdocApp.B),
-//       repl.MdocSession.MdocApp.C, Tuple](
+//       repl.MdocSession.MdocApp.C, R](
 //       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[repl.MdocSession.MdocApp.A,
 //         repl.MdocSession.MdocApp.B *: EmptyTuple.type, repl.MdocSession.MdocApp.C](
 //         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[repl.MdocSession.MdocApp.B,
@@ -208,7 +208,7 @@ val summed = wrongAxis.sum(Axis[B])  // B not in shape!
 // I found:
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
-//       Tuple1[repl.MdocSession.MdocApp.A], repl.MdocSession.MdocApp.B, Tuple](
+//       Tuple1[repl.MdocSession.MdocApp.A], repl.MdocSession.MdocApp.B, R](
 //       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[repl.MdocSession.MdocApp.A,
 //         EmptyTuple.type, repl.MdocSession.MdocApp.B](
 //         dimwit.tensor.ShapeTypeHelpers.AxisIndex.concatRight[A², B², L]),
@@ -315,7 +315,7 @@ val wrong = t.sum(Axis[C])
 // I found:
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
-//       (MdocApp0.this.A, MdocApp0.this.B), MdocApp0.this.C, Tuple](
+//       (MdocApp0.this.A, MdocApp0.this.B), MdocApp0.this.C, R](
 //       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp0.this.A,
 //         MdocApp0.this.B *: EmptyTuple.type, MdocApp0.this.C](
 //         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp0.this.B,
@@ -436,7 +436,7 @@ val wrong = m1.dot(Axis[B])(m2)
 // I found:
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
-//       (MdocApp1.this.C, MdocApp1.this.D), MdocApp1.this.B, Tuple](
+//       (MdocApp1.this.C, MdocApp1.this.D), MdocApp1.this.B, R](
 //       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp1.this.C,
 //         MdocApp1.this.D *: EmptyTuple.type, MdocApp1.this.B](
 //         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp1.this.D,
@@ -455,7 +455,7 @@ val wrong = m1.dot(Axis[B])(m2)
 // I found:
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
-//       (MdocApp1.this.C, MdocApp1.this.D), MdocApp1.this.B, Tuple](
+//       (MdocApp1.this.C, MdocApp1.this.D), MdocApp1.this.B, R](
 //       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp1.this.C,
 //         MdocApp1.this.D *: EmptyTuple.type, MdocApp1.this.B](
 //         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp1.this.D,
@@ -1128,7 +1128,7 @@ val wrong = m1.dot(Axis[B])(m2)  // Axis[B] not in m2
 // I found:
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
-//       (MdocApp11.this.C, MdocApp11.this.D), MdocApp11.this.B, Tuple](
+//       (MdocApp11.this.C, MdocApp11.this.D), MdocApp11.this.B, R](
 //       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp11.this.C,
 //         MdocApp11.this.D *: EmptyTuple.type, MdocApp11.this.B](
 //         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp11.this.D,
@@ -1204,7 +1204,7 @@ val wrong = t.sum(Axis[C])  // Axis[C] not in tensor
 // I found:
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
-//       (MdocApp11.this.A, MdocApp11.this.B), MdocApp11.this.C, Tuple](
+//       (MdocApp11.this.A, MdocApp11.this.B), MdocApp11.this.C, R](
 //       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp11.this.A,
 //         MdocApp11.this.B *: EmptyTuple.type, MdocApp11.this.C](
 //         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp11.this.B,
