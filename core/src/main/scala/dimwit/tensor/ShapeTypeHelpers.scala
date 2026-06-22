@@ -88,7 +88,7 @@ object ShapeTypeHelpers:
       def index: Int = idx.index
       type NewShape = O
 
-  /** Replace Axis in given Tuple with the Axis in the AxisReplacements tuple */
+  /** Replace Axis in given Tuple with the Axes in the AxisReplacements tuple */
   trait AxisReplacerAll[TensorShape <: Tuple, Axis, AxisReplacements <: Tuple] extends AxisInTensor[TensorShape, Axis]:
     type NewShape <: Tuple
 
