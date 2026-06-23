@@ -5,15 +5,19 @@ import dimwit.DType.given
 import dimwit.OnError
 import dimwit.jax.Jax
 import dimwit.tensor.HasScalar
-import dimwit.tensor.{Label, Labels}
+import dimwit.tensor.Label
+import dimwit.tensor.Labels
 import dimwit.tensor.ShapeTypeHelpers.*
-import dimwit.tensor.TensorOps.ZipVmap.{ShapesOf, TensorsOf}
+import dimwit.tensor.TensorOps.ZipVmap.ShapesOf
+import dimwit.tensor.TensorOps.ZipVmap.TensorsOf
 import dimwit.tensor.TupleHelpers.*
-import dimwit.{`|*|`, `|+|`}
-
+import dimwit.tensor.tensorops.StructuralOps
+import dimwit.|*|
+import dimwit.|+|
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
-import me.shadaj.scalapy.readwrite.{Reader, Writer}
+import me.shadaj.scalapy.readwrite.Reader
+import me.shadaj.scalapy.readwrite.Writer
 
 import scala.annotation.implicitNotFound
 import scala.annotation.targetName
@@ -22,7 +26,6 @@ import scala.util.NotGiven
 
 import Tuple.:*
 import Tuple.++
-import dimwit.tensor.tensorops.StructuralOps
 
 object TensorOps:
 
@@ -77,7 +80,6 @@ object TensorOps:
   export tensorops.FunctionalOps.*
 
   export tensorops.Tensor0Ops.*
-  export ValueOps.*
   export tensorops.Tensor1Ops.*
   export tensorops.Tensor2Ops.*
   export tensorops.Tensor3Ops.*
