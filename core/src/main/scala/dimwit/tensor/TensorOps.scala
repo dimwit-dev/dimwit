@@ -83,5 +83,3 @@ object TensorOps:
   export tensorops.Tensor1Ops.*
   export tensorops.Tensor2Ops.*
   export tensorops.Tensor3Ops.*
-
-end TensorOps
