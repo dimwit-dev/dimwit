@@ -31,12 +31,6 @@ package object dimwit:
     System.gc()
     Jax.gc()
 
-  @targetName("On")
-  infix trait ~[A, B]
-  object `~`:
-    given [A, B](using labelA: Label[A], labelB: Label[B]): Label[A ~ B] with
-      val name: String = s"${labelA.name}_on_${labelB.name}"
-
   /** Combination of dimensions / labels
     *
     * Mentally think of this as the "product" of two dimensions.

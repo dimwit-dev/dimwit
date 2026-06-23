@@ -45,10 +45,10 @@ class TensorOpsContractionSuite extends DimwitTest:
       )
 
   describe("dot on different axis labels (A1 ~ A2)"):
-    it("Tensor2[A, B] and Tensor2[C, D] using Axis mapping (A ~ C)"):
+    it("Tensor2[A, B] and Tensor2[C, D] using Axis mapping (Axis[A] -> Axis[C])"):
       val mCD = m2.relabelAll((Axis[C], Axis[D]))
 
-      val res = m1.dot(Axis[A ~ C])(mCD)
+      val res = m1.dot(Axis[A] -> Axis[C])(mCD)
 
       res.shape.labels shouldBe List("B", "D")
       res should approxEqual(
@@ -57,10 +57,10 @@ class TensorOpsContractionSuite extends DimwitTest:
         )
       )
 
-    it("~ should respect position-aware mapping in types"):
+    it("Axis mapping should respect position-aware mapping in types"):
       val mCD = m2.relabelAll((Axis[C], Axis[D]))
-      "m1.dot(Axis[A ~ C])(mCD)" should compile
-      "m1.dot(Axis[C ~ A])(mCD)" shouldNot compile
+      "m1.dot(Axis[A] -> Axis[C])(mCD)" should compile
+      "m1.dot(Axis[C] -> Axis[A])(mCD)" shouldNot compile
 
   describe("outerProduct"):
     it("Tensor1[A] and Tensor1[B] to Tensor2[A, B]"):

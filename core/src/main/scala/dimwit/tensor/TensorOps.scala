@@ -10,7 +10,7 @@ import dimwit.tensor.{Label, Labels}
 import dimwit.tensor.ShapeTypeHelpers.*
 import dimwit.tensor.TensorOps.Functional.ZipVmap.{ShapesOf, TensorsOf}
 import dimwit.tensor.TupleHelpers.*
-import dimwit.{~, `|*|`, `|+|`}
+import dimwit.{`|*|`, `|+|`}
 
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
@@ -312,7 +312,7 @@ object TensorOps:
           ContractAxisA,
           ContractAxisB,
           OtherShape <: Tuple
-      ](axis: Axis[ContractAxisA ~ ContractAxisB])(other: Tensor[OtherShape, V])(using
+      ](axisPair: (Axis[ContractAxisA], Axis[ContractAxisB]))(other: Tensor[OtherShape, V])(using
           ev: AxisRemover[T, ContractAxisA],
           evOther: AxisRemover[OtherShape, ContractAxisB]
       )(using
