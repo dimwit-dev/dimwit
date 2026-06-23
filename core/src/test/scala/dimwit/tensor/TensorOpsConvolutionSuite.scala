@@ -1,7 +1,7 @@
 package dimwit.tensor
 
 import dimwit.*
-import dimwit.tensor.TensorOps.Convolution.Padding
+import dimwit.tensor.TensorOps.Padding
 import dimwit.stats.Normal
 
 class TensorOpsConvolutionSuite extends DimwitTest:
