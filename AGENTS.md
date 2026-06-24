@@ -1166,9 +1166,9 @@ val wrong = t1 +! t2
 // Cannot broadcast tensors of shapes Tuple1[MdocApp11.this.A] and Tuple1[MdocApp11.this.A]. If same shape no broadcasting allowed!.
 // I found:
 // 
-//     dimwit.tensor.TensorOpsUtil.Broadcast.broadcastLeft[Tuple1[MdocApp11.this.A],
-//       Tuple1[MdocApp11.this.A], (dimwit.tensor.DType.Float32 : dimwit.tensor.DType)]
-//       (
+//     dimwit.tensor.tensorops.TensorOpsUtil.Broadcast.broadcastLeft[
+//       Tuple1[MdocApp11.this.A], Tuple1[MdocApp11.this.A],
+//       (dimwit.tensor.DType.Float32 : dimwit.tensor.DType)](
 //       dimwit.tensor.Labels.concat[MdocApp11.this.A, EmptyTuple.type](
 //         this.A.derived$Label, dimwit.tensor.Labels.namesOfEmpty),
 //       dimwit.tensor.Labels.concat[MdocApp11.this.A, EmptyTuple.type](
