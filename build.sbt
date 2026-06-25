@@ -34,6 +34,15 @@ ThisBuild / developers := List(
   )
 )
 
+// Setup for Scalafix and SemanticDB
+inThisBuild(Seq(
+  semanticdbEnabled := true,
+  semanticdbVersion := scalafixSemanticdb.revision
+))
+
+ThisBuild / scalafixDependencies +=
+  "com.github.liancheng" %% "organize-imports" % "0.6.0"
+
 addCommandAlias("testAndCoverage", "; clean; coverage; test; coverageReport")
 
 lazy val root = (project in file("."))
