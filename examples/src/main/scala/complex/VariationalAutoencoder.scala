@@ -1,9 +1,9 @@
 package examples.complex.vae
 
 import dimwit.Conversions.given
-import dimwit._
-import dimwit.autodiff.FloatTree._
-import dimwit.autodiff._
+import dimwit.*
+import dimwit.autodiff.FloatTree.*
+import dimwit.autodiff.*
 import dimwit.nn.ActivationFunctions.relu
 import dimwit.nn.ActivationFunctions.sigmoid
 import dimwit.optimizer.GradientDescent

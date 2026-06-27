@@ -4,9 +4,9 @@ import dimwit.autodiff.TensorTree
 import dimwit.jax.Jax
 import dimwit.python.PyBridge.liftPyTensor
 import dimwit.tensor.DType.Int32
-import dimwit.tensor.TensorOps._
+import dimwit.tensor.TensorOps.*
 import dimwit.tensor.TupleHelpers.TupleNOf
-import dimwit.tensor._
+import dimwit.tensor.*
 
 import scala.compiletime.requireConst
 

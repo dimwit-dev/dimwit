@@ -20,7 +20,7 @@ import scala.annotation.targetName
 import scala.reflect.ClassTag
 
 import ShapeTypeHelpers.AxisIndex
-import DType._
+import DType.*
 
 /** A tensor with a fixed shape and data type.
   *

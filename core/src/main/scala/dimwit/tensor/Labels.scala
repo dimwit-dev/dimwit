@@ -1,6 +1,6 @@
 package dimwit.tensor
 
-import scala.quoted._
+import scala.quoted.*
 
 import Tuple.:*
 

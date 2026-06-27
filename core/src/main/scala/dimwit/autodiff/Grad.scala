@@ -1,6 +1,6 @@
 package dimwit.autodiff
 
-import dimwit._
+import dimwit.*
 import dimwit.jax.Jax
 
 import scala.deriving.Mirror

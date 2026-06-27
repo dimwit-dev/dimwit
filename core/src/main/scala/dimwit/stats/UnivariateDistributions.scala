@@ -2,7 +2,7 @@ package dimwit.stats
 
 import dimwit.DType.Float32
 import dimwit.DType.Int32
-import dimwit._
+import dimwit.*
 import dimwit.jax.Jax
 import dimwit.python.PyBridge.liftPyTensor
 

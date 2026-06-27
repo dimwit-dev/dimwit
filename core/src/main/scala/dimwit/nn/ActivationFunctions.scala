@@ -4,7 +4,7 @@ import dimwit.jax.Jax
 import dimwit.python.PyBridge.liftPyTensor
 import dimwit.python.PyBridge.toPyTensor
 import dimwit.tensor.TensorOps.IsFloating
-import dimwit.tensor._
+import dimwit.tensor.*
 
 object ActivationFunctions:
 

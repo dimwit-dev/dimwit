@@ -1,6 +1,6 @@
 package dimwit.tensor.tensorops
 
-import dimwit.tensor.DType._
+import dimwit.tensor.DType.*
 import dimwit.tensor.Tensor0
 
 object Tensor0Ops:

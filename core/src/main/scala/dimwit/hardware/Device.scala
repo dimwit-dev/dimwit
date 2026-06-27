@@ -1,6 +1,6 @@
 package dimwit.hardware
 
-import dimwit._
+import dimwit.*
 import me.shadaj.scalapy.py
 
 case class Device private[dimwit] (private[dimwit] val jaxDevice: py.Dynamic):

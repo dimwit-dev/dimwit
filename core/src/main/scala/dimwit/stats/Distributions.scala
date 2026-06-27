@@ -1,6 +1,6 @@
 package dimwit.stats
 
-import dimwit._
+import dimwit.*
 import dimwit.random.Random
 import dimwit.tensor.TensorOps
 

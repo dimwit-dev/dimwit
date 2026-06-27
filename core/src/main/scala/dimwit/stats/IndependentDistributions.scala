@@ -1,9 +1,9 @@
 package dimwit.stats
 
 import dimwit.DType.Float32
-import dimwit._
+import dimwit.*
 import dimwit.jax.Jax
-import dimwit.jax.Jax.{scipy_stats => jstats}
+import dimwit.jax.Jax.scipy_stats as jstats
 import dimwit.python.PyBridge.liftPyTensor
 import dimwit.random.Random
 import me.shadaj.scalapy.py

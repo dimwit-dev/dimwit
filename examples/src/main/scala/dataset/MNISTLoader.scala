@@ -1,7 +1,7 @@
 package examples.dataset
 
 import dimwit.Conversions.given
-import dimwit._
+import dimwit.*
 import me.shadaj.scalapy.py
 
 import java.io.RandomAccessFile

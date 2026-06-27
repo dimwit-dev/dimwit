@@ -3,7 +3,7 @@ package dimwit.python
 import dimwit.OnError
 import dimwit.autodiff.TensorTree
 import dimwit.jax.Jax
-import dimwit.tensor._
+import dimwit.tensor.*
 import me.shadaj.scalapy.py
 
 object PyBridge:

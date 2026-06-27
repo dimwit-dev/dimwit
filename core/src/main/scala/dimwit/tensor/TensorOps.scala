@@ -3,8 +3,8 @@ package dimwit.tensor
 import dimwit.tensor.HasScalar
 import dimwit.tensor.Label
 import dimwit.tensor.Labels
-import dimwit.tensor.ShapeTypeHelpers._
-import dimwit.tensor.TupleHelpers._
+import dimwit.tensor.ShapeTypeHelpers.*
+import dimwit.tensor.TupleHelpers.*
 
 import scala.annotation.implicitNotFound
 import scala.annotation.targetName

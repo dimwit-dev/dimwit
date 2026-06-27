@@ -2,7 +2,7 @@ package dimwit.tensor.tensorops
 
 import dimwit.jax.Jax
 import dimwit.tensor.Axis
-import dimwit.tensor.DType._
+import dimwit.tensor.DType.*
 import dimwit.tensor.HasScalar
 import dimwit.tensor.Label
 import dimwit.tensor.Labels
