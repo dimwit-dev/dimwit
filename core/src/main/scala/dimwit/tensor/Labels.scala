@@ -1,9 +1,8 @@
 package dimwit.tensor
 
-import scala.compiletime.*
-import scala.quoted.*
+import scala.quoted._
+
 import Tuple.:*
-import dimwit.tensor.ShapeTypeHelpers.MergeLabels
 
 @scala.annotation.implicitNotFound("""
 An axis label ${T} was given or inferred, which does not have a Label instance.

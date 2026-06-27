@@ -1,27 +1,6 @@
 package dimwit.tensor.tensorops
 
-import dimwit.tensor.Tensor0
-import dimwit.tensor.DType.*
-import dimwit.tensor.TensorOps
-import dimwit.tensor.TensorOps.IsNumber
-import dimwit.tensor.Labels
-import dimwit.tensor.tensorops.ElementWiseOps.add
-import dimwit.tensor.Tensor
-import dimwit.tensor.tensorops.TensorOpsUtil.Broadcast
-import dimwit.tensor.tensorops.ElementWiseOps.subtract
-import dimwit.tensor.tensorops.ElementWiseOps.multiply
-import dimwit.tensor.tensorops.ElementWiseOps.divide
-import dimwit.tensor.TensorOps.IsFloating
-import dimwit.tensor.Axis
-import dimwit.tensor.Label
-import dimwit.tensor.Tensor1
 import dimwit.tensor.HasScalar
-import dimwit.jax.Jax
-
-import me.shadaj.scalapy.py
-import me.shadaj.scalapy.py.SeqConverters
-import me.shadaj.scalapy.readwrite.{Reader, Writer}
-import dimwit.tensor.Tensor2
 import dimwit.tensor.Tensor3
 
 object Tensor3Ops:

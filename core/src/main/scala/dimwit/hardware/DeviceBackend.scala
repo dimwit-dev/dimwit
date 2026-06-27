@@ -1,7 +1,7 @@
 package dimwit.hardware
 
-import me.shadaj.scalapy.py
 import dimwit.jax.Jax
+import me.shadaj.scalapy.py
 
 enum DeviceBackend(private[dimwit] val jaxName: String):
 

@@ -1,7 +1,7 @@
 package dimwit.jax
 
-import me.shadaj.scalapy.py
 import dimwit.tensor.DType
+import me.shadaj.scalapy.py
 
 object JaxDType:
 

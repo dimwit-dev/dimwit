@@ -1,9 +1,9 @@
 package dimwit.autodiff
 
-import dimwit.tensor.*
-import dimwit.tensor.TensorOps.*
-import scala.deriving.*
-import scala.compiletime.*
+import dimwit.tensor.TensorOps._
+import dimwit.tensor._
+
+import scala.deriving._
 import scala.util.NotGiven
 
 /** A marker trait for structures that are trees of floating-point tensors.

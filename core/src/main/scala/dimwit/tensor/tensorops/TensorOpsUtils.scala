@@ -1,9 +1,10 @@
 package dimwit.tensor.tensorops
 
-import scala.annotation.implicitNotFound
 import dimwit.tensor.Labels
 import dimwit.tensor.Tensor
 import dimwit.tensor.TupleHelpers.StrictSubset
+
+import scala.annotation.implicitNotFound
 
 object TensorOpsUtil:
 

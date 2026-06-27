@@ -1,14 +1,10 @@
 package dimwit.tensor
 
-import scala.util.NotGiven
-import scala.annotation.implicitNotFound
-
-import scala.compiletime.{constValue, error}
-import scala.compiletime.ops.string.+
-import scala.quoted.Type
-import scala.quoted.Quotes
-import scala.quoted.Expr
 import scala.compiletime.ops
+import scala.quoted.Expr
+import scala.quoted.Quotes
+import scala.quoted.Type
+import scala.util.NotGiven
 
 /* Helpers for manipulating Tuple types */
 object TupleHelpers:
@@ -100,8 +96,6 @@ object TupleHelpers:
     case _ => T *: TupleNOf[ops.int.-[N, 1], T]
 
   import dimwit.Prime
-  import scala.compiletime.ops.boolean.*
-  import scala.compiletime.ops.boolean.*
 
   type Member[X, T <: Tuple] <: Boolean = T match
     case EmptyTuple => false
@@ -193,7 +187,6 @@ object TupleHelpers:
     //    If the result is MissingAxis[A], it fails with your message.
     sealed trait CheckValid[R <: ValidationResult]
 
-    import scala.compiletime.ops.any.ToString
     object CheckValid:
       // Case 1: Success. We provide an instance, so compilation proceeds.
       given ok: CheckValid[AllOk] = new CheckValid[AllOk] {}

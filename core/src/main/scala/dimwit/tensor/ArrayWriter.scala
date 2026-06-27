@@ -1,14 +1,14 @@
 package dimwit.tensor
 
-import java.nio.ByteBuffer
-import java.util.Base64
-import java.nio.ByteOrder
+import dimwit.jax.Jax
+import dimwit.tensor.TensorOps.IsBoolean
+import dimwit.tensor.TensorOps.IsFloating
+import dimwit.tensor.TensorOps.IsInteger
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
 import me.shadaj.scalapy.readwrite.Writer
-import me.shadaj.scalapy.interpreter.PyValue
-import dimwit.jax.Jax
-import dimwit.tensor.TensorOps.{IsBoolean, IsInteger, IsFloating}
+
+import java.util.Base64
 
 object ArrayWriter:
 

@@ -1,10 +1,9 @@
 package dimwit.jax
 
-import me.shadaj.scalapy.py
-import me.shadaj.scalapy.py.SeqConverters
-import me.shadaj.scalapy.py.PyQuote
-import dimwit.hardware.{Device, DeviceBackend}
+import dimwit.hardware.Device
+import dimwit.hardware.DeviceBackend
 import dimwit.python.PythonSetup
+import me.shadaj.scalapy.py
 
 object Jax:
 

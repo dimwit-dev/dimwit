@@ -1,8 +1,8 @@
 package dimwit.stats
 
-import dimwit.*
-import dimwit.DType.{Int32, Float32}
-import dimwit.random.*
+import dimwit.DType.Float32
+import dimwit.DType.Int32
+import dimwit._
 import dimwit.jax.Jax
 import dimwit.python.PyBridge.liftPyTensor
 

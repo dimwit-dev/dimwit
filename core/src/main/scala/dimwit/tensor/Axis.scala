@@ -1,9 +1,8 @@
 package dimwit.tensor
 
-import dimwit.|*|
 import dimwit.tensor.DType.Int32
+import dimwit.|*|
 
-import scala.compiletime.{constValue, erasedValue, summonInline}
 import ShapeTypeHelpers.AxisIndex
 
 /** Instances of this class represent an axis in a tensor with a specific label `L`.

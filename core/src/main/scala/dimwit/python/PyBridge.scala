@@ -1,9 +1,9 @@
 package dimwit.python
 
-import dimwit.tensor.*
-import dimwit.jax.Jax
-import dimwit.autodiff.TensorTree
 import dimwit.OnError
+import dimwit.autodiff.TensorTree
+import dimwit.jax.Jax
+import dimwit.tensor._
 import me.shadaj.scalapy.py
 
 object PyBridge:

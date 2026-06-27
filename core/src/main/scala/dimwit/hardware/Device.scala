@@ -1,12 +1,7 @@
 package dimwit.hardware
 
-import dimwit.*
-import dimwit.tensor.TupleHelpers
-import dimwit.jax.Jax
+import dimwit._
 import me.shadaj.scalapy.py
-import me.shadaj.scalapy.py.SeqConverters
-import me.shadaj.scalapy.readwrite.Writer
-import me.shadaj.scalapy.interpreter.PyValue
 
 case class Device private[dimwit] (private[dimwit] val jaxDevice: py.Dynamic):
 

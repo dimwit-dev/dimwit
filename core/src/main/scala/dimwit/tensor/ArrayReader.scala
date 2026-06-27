@@ -1,8 +1,9 @@
 package dimwit.tensor
 
+import me.shadaj.scalapy.py
+
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import me.shadaj.scalapy.py
 
 /** Utility object for reading flat arrays of scalar values from JAX tensors.
   */

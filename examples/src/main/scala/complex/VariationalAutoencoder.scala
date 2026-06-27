@@ -1,20 +1,23 @@
 package examples.complex.vae
 
-import dimwit.*
 import dimwit.Conversions.given
-import dimwit.autodiff.*
-import dimwit.autodiff.FloatTree.*
-import dimwit.stats.Normal
-import dimwit.random.Random
-import examples.dataset.MNISTLoader
+import dimwit._
+import dimwit.autodiff.FloatTree._
+import dimwit.autodiff._
 import dimwit.nn.ActivationFunctions.relu
-import dimwit.optimizer.GradientDescent
-import dimwit.jax.Jax
 import dimwit.nn.ActivationFunctions.sigmoid
-import dimwit.random.Random.Key
-
-import MNISTLoader.{Sample, TrainSample, TestSample, Height, Width}
+import dimwit.optimizer.GradientDescent
 import dimwit.python.PyBridge.toPyTensor
+import dimwit.random.Random
+import dimwit.random.Random.Key
+import dimwit.stats.Normal
+import examples.dataset.MNISTLoader
+
+import MNISTLoader.Sample
+import MNISTLoader.TrainSample
+import MNISTLoader.TestSample
+import MNISTLoader.Height
+import MNISTLoader.Width
 type Pixel = Height |*| Width
 type ReconstructedPixel = Height |*| Width
 

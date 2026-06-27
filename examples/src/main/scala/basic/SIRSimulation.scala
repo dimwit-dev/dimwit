@@ -1,8 +1,6 @@
 package src.main.scala.basic
 
-import dimwit.*
-import dimwit.Conversions.given
-import dimwit.autodiff.*
+import dimwit._
 
 /** A simple SIR (Susceptible-Infectious-Recovered) simulation.
   */
