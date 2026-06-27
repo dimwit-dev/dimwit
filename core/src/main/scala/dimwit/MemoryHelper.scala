@@ -1,15 +1,15 @@
 package dimwit
 
-import me.shadaj.scalapy.py
 import dimwit.autodiff.TensorTree
+import me.shadaj.scalapy.py
 
 private[dimwit] object MemoryHelper:
 
-  def withLocalCleanup(f: => Unit): Unit =
+  private[dimwit] def withLocalCleanupImpl(f: => Unit): Unit =
     py.local:
       f
 
-  def withLocalCleanup[A: TensorTree](f: => A): A =
+  private[dimwit] def withLocalCleanupImpl[A: TensorTree](f: => A): A =
     val lifeRaft = me.shadaj.scalapy.py.Dynamic.global.list()
     py.local:
       val res = f
