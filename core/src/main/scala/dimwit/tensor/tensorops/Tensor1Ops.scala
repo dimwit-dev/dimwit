@@ -17,6 +17,10 @@ object Tensor1Ops:
 
   extension [L, V](t: Tensor1[L, V])
 
+    /** relabels the axis of the tensor to a new label. The underlying data remains unchanged.
+      * @param newAxis the new axis label
+      * @return a new Tensor1 with the same data but with the axis relabeled to newAxis
+      */
     def relabelTo[NewL: Label](newAxis: Axis[NewL]): Tensor1[NewL, V] = Tensor[Tuple1[NewL], V](t.jaxValue)
 
     // TODO generalize to TensorN (like slice)
