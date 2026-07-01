@@ -1,8 +1,9 @@
 package dimwit.tensor
 
 import scala.annotation.implicitNotFound
+import scala.compiletime.erasedValue
+import scala.compiletime.summonInline
 import scala.util.NotGiven
-import scala.compiletime.{constValue, erasedValue, summonInline}
 
 /* Helpers for tracking Tensor Shape types across various operations */
 object ShapeTypeHelpers:

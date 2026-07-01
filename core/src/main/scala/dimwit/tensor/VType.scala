@@ -1,9 +1,5 @@
 package dimwit.tensor
 
-import dimwit.stats.Prob
-import dimwit.stats.LogProb
-import scala.compiletime.ops.double
-import java.nio.ByteBuffer
 import dimwit.tensor.TensorOps.HasDType
 
 object VType:

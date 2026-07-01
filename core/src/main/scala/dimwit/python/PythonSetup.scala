@@ -1,7 +1,9 @@
 package dimwit.python
 
 import me.shadaj.scalapy.py
-import scala.sys.process.{Process, ProcessLogger}
+
+import scala.sys.process.Process
+import scala.sys.process.ProcessLogger
 
 /** Manages Python environment setup for DimWit.
   *

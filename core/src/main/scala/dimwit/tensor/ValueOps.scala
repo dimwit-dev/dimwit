@@ -1,12 +1,12 @@
 package dimwit.tensor
 
-import dimwit.tensor.TensorOps.IsNumber
 import dimwit.tensor.TensorOps.IsFloating
+import dimwit.tensor.TensorOps.IsNumber
 import dimwit.tensor.tensorops.ElementWiseOps.add
-import dimwit.tensor.tensorops.ElementWiseOps.subtract
-import dimwit.tensor.tensorops.ElementWiseOps.multiply
-import dimwit.tensor.tensorops.TensorOpsUtil.Broadcast
 import dimwit.tensor.tensorops.ElementWiseOps.divide
+import dimwit.tensor.tensorops.ElementWiseOps.multiply
+import dimwit.tensor.tensorops.ElementWiseOps.subtract
+import dimwit.tensor.tensorops.TensorOpsUtil.Broadcast
 
 object ValueOps:
 

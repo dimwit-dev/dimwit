@@ -1,12 +1,12 @@
 package dimwit.autodiff
 
+import dimwit.jax.Jax
 import dimwit.tensor.*
-import dimwit.random.Random
-import scala.deriving.*
 import scala.compiletime.*
+import scala.deriving.*
+
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
-import dimwit.jax.Jax
 
 /** A typeclass for structures that can be represented as a tree of tensors,
   * which can be mapped over. Most often, a tensor tree is used to structure

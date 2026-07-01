@@ -1,10 +1,13 @@
 package dimwit.tensor
 import dimwit.jax.JaxDType
+import dimwit.tensor.HasScalar
+import dimwit.tensor.TensorOps.IsBoolean
+import dimwit.tensor.TensorOps.IsFloating
+import dimwit.tensor.TensorOps.IsInteger
+import me.shadaj.scalapy.py
+
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import me.shadaj.scalapy.py
-import dimwit.tensor.TensorOps.{IsFloating, IsInteger, IsBoolean}
-import dimwit.tensor.HasScalar
 
 object DType:
 

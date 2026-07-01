@@ -1,30 +1,17 @@
 package dimwit.tensor.tensorops
 
-import dimwit.tensor.Tensor
-import dimwit.tensor.Labels
 import dimwit.jax.Jax
-import dimwit.tensor.DType.Bool
-import dimwit.tensor.Tensor0
-import dimwit.tensor.TensorOps.IsBoolean
-import dimwit.tensor.VType
-import dimwit.tensor.DType.Int32
-import dimwit.tensor.DType.Float32
-import dimwit.tensor.TensorOps.IsInteger
-import dimwit.tensor.TensorOps.IsFloating
-import dimwit.tensor.TensorOps.IsNumber
-import dimwit.tensor.Label
-import dimwit.tensor.ShapeTypeHelpers.AxisRemover
-import dimwit.tensor.ShapeTypeHelpers.AxesRemover
 import dimwit.tensor.Axis
-import dimwit.tensor.ShapeTypeHelpers.UnwrapAxes
+import dimwit.tensor.AxisExtent
+import dimwit.tensor.Label
+import dimwit.tensor.Labels
 import dimwit.tensor.ShapeTypeHelpers.AxisIndex
-import dimwit.tensor.ShapeTypeHelpers.AxisIndices
-
+import dimwit.tensor.Tensor
+import dimwit.tensor.TensorOps.IsFloating
+import dimwit.tensor.TensorOps.swap
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
-import me.shadaj.scalapy.readwrite.{Reader, Writer}
-import dimwit.tensor.AxisExtent
-import dimwit.tensor.TensorOps.swap
+import me.shadaj.scalapy.readwrite.Writer
 
 object ConvolutionOps:
 

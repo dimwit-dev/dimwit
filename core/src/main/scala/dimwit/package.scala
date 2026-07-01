@@ -1,7 +1,13 @@
-import scala.annotation.targetName
-
 import dimwit.jax.Jax
-import dimwit.tensor.{Axis, AxisExtent, AxisSelector, AxisAtIndex, AxisAtRange, AxisAtIndices, AxisAtTensorIndex}
+import dimwit.tensor.Axis
+import dimwit.tensor.AxisAtIndex
+import dimwit.tensor.AxisAtIndices
+import dimwit.tensor.AxisAtRange
+import dimwit.tensor.AxisAtTensorIndex
+import dimwit.tensor.AxisExtent
+import dimwit.tensor.AxisSelector
+
+import scala.annotation.targetName
 package object dimwit:
 
   import scala.compiletime.ops.string.+
@@ -93,7 +99,16 @@ package object dimwit:
   // export some stats types
   export dimwit.stats.{Prob, LogProb}
   export dimwit.stats.{Distribution, IndependentDistribution, MultivariateDistribution, UnivariateDistribution}
-  export dimwit.MemoryHelper.withLocalCleanup
+
+  /** Memory management helpfer making sure
+    * all python objects allocated ar freed
+    * after the function is executed.
+    */
+  def withLocalCleanup(f: => Unit): Unit =
+    MemoryHelper.withLocalCleanupImpl(f)
+
+  def withLocalCleanup[A: TensorTree](f: => A): A =
+    MemoryHelper.withLocalCleanupImpl(f)
 
   /** Explicitly configures the Python environment before any ScalaPy call.
     * Call this function at the start of your program (before any `py.*` call)

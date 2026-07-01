@@ -1,7 +1,8 @@
 package dimwit.tensor
 
-import scala.annotation.implicitNotFound
 import me.shadaj.scalapy.py
+
+import scala.annotation.implicitNotFound
 
 @implicitNotFound(
   "No Scala type mapping for DType ${V}. Supported: Bool, Int8, Int16, Int32, Int64, Float32, Float64."

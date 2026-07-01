@@ -1,9 +1,10 @@
 package dimwit.nn
 
-import dimwit.tensor.*
-import dimwit.tensor.TensorOps.IsFloating
 import dimwit.jax.Jax
-import dimwit.python.PyBridge.{liftPyTensor, toPyTensor}
+import dimwit.python.PyBridge.liftPyTensor
+import dimwit.python.PyBridge.toPyTensor
+import dimwit.tensor.TensorOps.IsFloating
+import dimwit.tensor.*
 
 object ActivationFunctions:
 

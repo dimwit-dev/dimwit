@@ -1,12 +1,10 @@
 package dimwit.stats
 
 import dimwit.*
-import dimwit.random.Random
 import dimwit.jax.Jax
 import dimwit.jax.Jax.scipy_stats as jstats
-import dimwit.jax.Jax.PyDynamic
 import dimwit.python.PyBridge.liftPyTensor
-import me.shadaj.scalapy.readwrite.Reader
+import dimwit.random.Random
 
 /** Distribution over a vector of random variables.
   */

@@ -34,6 +34,22 @@ ThisBuild / developers := List(
   )
 )
 
+lazy val commonScalacOptions = Seq(
+  "-deprecation",
+  "-unchecked",
+  "-Wunused:imports",
+  "-explain-cyclic"
+)
+
+// Setup for Scalafix and SemanticDB
+inThisBuild(Seq(
+  semanticdbEnabled := true,
+  semanticdbVersion := scalafixSemanticdb.revision
+))
+
+ThisBuild / scalafixDependencies +=
+  "com.github.liancheng" %% "organize-imports" % "0.6.0"
+
 addCommandAlias("testAndCoverage", "; clean; coverage; test; coverageReport")
 
 lazy val root = (project in file("."))
@@ -66,7 +82,8 @@ lazy val core = (project in file("core"))
     coverageFailOnMinimum := false,
     coverageHighlighting := true,
     Compile / packageSrc / publishArtifact := true,
-    Compile / packageDoc / publishArtifact := true
+    Compile / packageDoc / publishArtifact := true,
+    scalacOptions ++= commonScalacOptions
   )
 
 // Examples subproject
@@ -87,6 +104,7 @@ lazy val examples = (project in file("examples"))
     // Examples source directory
     Compile / scalaSource := baseDirectory.value,
     Compile / resourceDirectory := baseDirectory.value / "src" / "main" / "resources",
+    scalacOptions ++= commonScalacOptions,
     scalafmtFailOnErrors := false,
     javaOptions ++= {
       if (sys.props("os.name").toLowerCase.contains("mac")) {

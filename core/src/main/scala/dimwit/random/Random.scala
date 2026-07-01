@@ -1,15 +1,14 @@
 package dimwit.random
 
-import dimwit.tensor.*
+import dimwit.autodiff.TensorTree
+import dimwit.jax.Jax
+import dimwit.python.PyBridge.liftPyTensor
 import dimwit.tensor.DType.Int32
 import dimwit.tensor.TensorOps.*
-import dimwit.jax.{Jax, JaxDType}
-import dimwit.autodiff.TensorTree
-import me.shadaj.scalapy.py.SeqConverters
-import dimwit.python.PyBridge.liftPyTensor
-import scala.compiletime.{requireConst, constValue, ops}
-import Tuple.Size
 import dimwit.tensor.TupleHelpers.TupleNOf
+import dimwit.tensor.*
+
+import scala.compiletime.requireConst
 
 /** JAX-based random number generation with proper key management.
   *

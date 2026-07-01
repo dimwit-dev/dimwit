@@ -1,13 +1,12 @@
 package dimwit.jax
 
-import dimwit.tensor.{Tensor, Shape, Labels}
-import dimwit.jax.{Jax, JaxDType}
+import dimwit.OnError
 import dimwit.autodiff.TensorTree
+import dimwit.jax.Jax
+import dimwit.jax.Jax.PyDynamic
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
-import dimwit.jax.Jax.PyDynamic
-import me.shadaj.scalapy.py.PythonException
-import dimwit.OnError
+
 import scala.annotation.targetName
 
 object Jit:
@@ -142,7 +141,7 @@ object JitDefault:
 
 object EagerCleanup:
 
-  import dimwit.MemoryHelper.withLocalCleanup
+  import dimwit.withLocalCleanup
 
   def eagerCleanup[T1, R: TensorTree](f: T1 => R): T1 => R = (t1) =>
     withLocalCleanup:

@@ -1,9 +1,11 @@
 package dimwit.tensor
 
-import scala.collection.View.Empty
+import dimwit.tensor.Label
+import dimwit.tensor.Labels
+
 import scala.annotation.publicInBinary
+
 import ShapeTypeHelpers.AxisIndex
-import dimwit.tensor.{Labels, Label}
 
 /** Represents the Shape of a tensor. Conceptually, a shape is an order list of AxisExtents,
   * where each AxisExtent is a label associated with a size.

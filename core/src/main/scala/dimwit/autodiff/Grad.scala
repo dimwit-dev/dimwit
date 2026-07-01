@@ -2,6 +2,7 @@ package dimwit.autodiff
 
 import dimwit.*
 import dimwit.jax.Jax
+
 import scala.deriving.Mirror
 
 /** Type-level tag marking a parameter structure as gradients.

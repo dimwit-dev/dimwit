@@ -2,7 +2,6 @@ package dimwit.jax
 
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
-import me.shadaj.scalapy.py.PyQuote
 
 object Einops:
 

@@ -2,9 +2,6 @@ package dimwit.stats
 
 import dimwit.*
 import dimwit.random.Random
-import dimwit.jax.Jax
-import dimwit.jax.Jax.scipy_stats as jstats
-import dimwit.jax.Jax.PyDynamic
 import dimwit.tensor.TensorOps
 
 opaque type LogProb = Float32

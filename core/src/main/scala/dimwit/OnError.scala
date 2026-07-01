@@ -1,7 +1,7 @@
 package dimwit
 
-import java.io.StringWriter
 import java.io.PrintWriter
+import java.io.StringWriter
 
 object OnError:
 

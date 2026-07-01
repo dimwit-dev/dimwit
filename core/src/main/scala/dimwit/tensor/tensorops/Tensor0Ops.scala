@@ -1,17 +1,7 @@
 package dimwit.tensor.tensorops
 
-import dimwit.tensor.Tensor0
 import dimwit.tensor.DType.*
-import dimwit.tensor.TensorOps
-import dimwit.tensor.TensorOps.IsNumber
-import dimwit.tensor.Labels
-import dimwit.tensor.tensorops.ElementWiseOps.add
-import dimwit.tensor.Tensor
-import dimwit.tensor.tensorops.TensorOpsUtil.Broadcast
-import dimwit.tensor.tensorops.ElementWiseOps.subtract
-import dimwit.tensor.tensorops.ElementWiseOps.multiply
-import dimwit.tensor.tensorops.ElementWiseOps.divide
-import dimwit.tensor.TensorOps.IsFloating
+import dimwit.tensor.Tensor0
 
 object Tensor0Ops:
 

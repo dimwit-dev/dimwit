@@ -1,10 +1,11 @@
 package examples.basic
 
-import dimwit.*
 import dimwit.Conversions.given
+import dimwit.*
 import dimwit.autodiff.*
+import dimwit.nn.ActivationFunctions.relu
+import dimwit.nn.ActivationFunctions.sigmoid
 import dimwit.optimizer.GradientDescent
-import dimwit.nn.ActivationFunctions.{sigmoid, relu}
 import dimwit.random.Random
 import dimwit.stats.Normal
 

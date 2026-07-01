@@ -1,24 +1,25 @@
 package dimwit.tensor
 
-import scala.annotation.targetName
-import scala.compiletime.{erasedValue, summonFrom}
+import dimwit.Prime
+import dimwit.hardware.Device
 import dimwit.jax.Jax
-import dimwit.jax.JaxDType
 import dimwit.jax.Jax.PyDynamic
+import dimwit.jax.JaxDType
+import dimwit.tensor.Label
+import dimwit.tensor.Labels
+import dimwit.tensor.TensorOps.IsBoolean
+import dimwit.tensor.TensorOps.IsFloating
+import dimwit.tensor.TensorOps.IsInteger
 import dimwit.tensor.TypedIndex
-import dimwit.tensor.{Label, Labels, VType}
+import dimwit.tensor.VType
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
-import dimwit.random.Random
-import dimwit.stats.{Normal, Uniform}
 import me.shadaj.scalapy.readwrite.Writer
+
+import scala.annotation.targetName
 import scala.reflect.ClassTag
-import scala.annotation.unchecked.uncheckedVariance
-import dimwit.Prime
+
 import ShapeTypeHelpers.AxisIndex
-import dimwit.hardware.Device
-import me.shadaj.scalapy.readwrite.Writer.stringWriter.given
-import dimwit.tensor.TensorOps.{IsBoolean, IsInteger, IsFloating}
 import DType.*
 
 /** A tensor with a fixed shape and data type.
