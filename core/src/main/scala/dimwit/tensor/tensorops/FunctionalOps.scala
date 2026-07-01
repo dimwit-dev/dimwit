@@ -18,10 +18,6 @@ import me.shadaj.scalapy.readwrite.Reader
 import me.shadaj.scalapy.readwrite.Writer
 
 object FunctionalOps:
-  // -----------------------------------------------------------
-  // 5. Functional Operations (Higher Order)
-  // Lifting functions over axes
-  // -----------------------------------------------------------
 
   object ZipVmap:
 
@@ -38,6 +34,23 @@ object FunctionalOps:
     type ShapesOf[Tensors <: Tuple] = Tuple.Map[Tensors, ExtractShape]
     type ValuesOf[Tensors <: Tuple] = Tuple.Map[Tensors, ExtractValue]
 
+    /** Zips the given given tensors along the specified axis
+      * and applies the function `f` to the zipped tensors.
+      *
+      * @param axis The axis along which to zip the tensors.
+      * @param tensors A tuple of tensors to be zipped.
+      * @param f A function that takes a tuple of tensors (with the specified axis removed) and returns a new tensor.
+      * @return A new tensor resulting from applying `f`
+      *
+      * Example usage:
+      * {{{
+      * val tensor1: Tensor[(A, B), Int] = ...
+      * val tensor2: Tensor[(A, B), Int] = ...
+      * val result: Tensor[(A, C), Int] = ZipVmap.zipvmap(Axis[A])(tensor1, tensor2) { case (t1, t2) =>
+      *   // Perform operations on t1 and t2, which are tensors with axis A removed, and return a new tensor
+      *   ...
+      * }
+      */
     def zipvmap[L: Label, Inputs <: Tuple, OutShape <: Tuple: Labels, OutV](
         axis: Axis[L]
     )(
@@ -69,6 +82,29 @@ object FunctionalOps:
 
   extension [T <: Tuple: Labels, V](t: Tensor[T, V])
 
+    /** Zips the current tensor with another tensor along the specified axis
+      * and applies the function `f` to the zipped tensors.
+      *
+      * @param axis The axis along which to zip the tensors.
+      * @param other The other tensor to be zipped with the current tensor.
+      * @param f A function that takes a tuple of tensors (with the specified axis removed) and returns a new tensor.
+      * @return A new tensor resulting from applying `f` to the zipped tensors.
+      */
+    def zipvmap[L: Label, T2 <: Tuple, OutShape <: Tuple: Labels, OutV](axis: Axis[L])(
+        other: Tensor[T2, V]
+    )(using
+        ev: SharedAxisRemover[(T, T2), L]
+    )(
+        f: TensorsOf[ev.RemainingAxes, (V, V)] => Tensor[OutShape, OutV]
+    ): Tensor[L *: OutShape, OutV] =
+      ZipVmap.zipvmap(axis)(t, other)(f)
+
+    /** Vectorized mapping over a specified axis of the tensor.
+      *
+      * @param axis The axis along which to apply the function `f`.
+      * @param f A function that takes a tensor with the specified axis removed and returns a new tensor.
+      * @return A new tensor resulting from applying `f` to each slice along the specified axis.
+      */
     def vmap[VmapAxis: Label, OuterShape <: Tuple: Labels, V2](
         axis: Axis[VmapAxis]
     )(using
@@ -86,6 +122,13 @@ object FunctionalOps:
 
       Tensor(Jax.jax_helper.vmap(fpy, ev.index)(t.jaxValue))
 
+    /** Apply a function independently to each 1D slice along a labeled axis.
+      *
+      *  @param axis The axis along which to apply the function `f`.
+      *  @param f A function f that is applied to each L-axis slice; it may rename that axis to NewL and change the element type.
+      *
+      *  @return A new tensor resulting from applying `f` to each slice along the specified axis.
+      */
     def vapply[L: Label, NewL, R <: Tuple, NewV](
         axis: Axis[L]
     )(
@@ -108,15 +151,13 @@ object FunctionalOps:
         )
       )
 
-    def zipvmap[L: Label, T2 <: Tuple, OutShape <: Tuple: Labels, OutV](axis: Axis[L])(
-        other: Tensor[T2, V]
-    )(using
-        ev: SharedAxisRemover[(T, T2), L]
-    )(
-        f: TensorsOf[ev.RemainingAxes, (V, V)] => Tensor[OutShape, OutV]
-    ): Tensor[L *: OutShape, OutV] =
-      ZipVmap.zipvmap(axis)(t, other)(f)
-
+    /** Reduce a tensor along a labeled axis by applying a function to each 1D slice.
+      *
+      * @param axis The axis along which to reduce the tensor.
+      * @param f A function f that is applied to each L-axis slice; it must return a scalar (Tensor0).
+      *
+      * @return A new tensor resulting from reducing the specified axis.
+      */
     def vreduce[L: Label](
         axis: Axis[L]
     )(

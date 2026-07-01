@@ -46,7 +46,8 @@ class Tensor[T <: Tuple: Labels, V] private[dimwit] (
   /** The device on which the tensor is stored. */
   lazy val device: Device = Device(jaxValue.device)
 
-  /** Converts the tensor to a different value type, if compatible. */
+  /** Converts the tensor to the given vtype.
+    */
   def asType[V2](vtype: VType[V2]): Tensor[T, V2] = new Tensor(Jax.jnp.astype(jaxValue, JaxDType.jaxDtype(vtype.dtype)))
 
   /** Moves the tensor to a different device. */

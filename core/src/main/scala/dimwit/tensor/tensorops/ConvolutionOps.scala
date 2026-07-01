@@ -13,8 +13,19 @@ import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
 import me.shadaj.scalapy.readwrite.Writer
 
+/** Provides extension methods for convolution operations on tensors.
+  * Convolution operations are restricted to 1D, 2D and 3D convolutions,
+  * and support both standard and transposed convolutions.
+  */
 object ConvolutionOps:
 
+  /** Padding options for convolution operations.
+    * SAME: Output size is the same as input size (with appropriate padding).
+    * VALID: No padding, output size is reduced based on kernel size.
+    *
+    * Refer to JAX documentation for more details on padding behavior.
+    * https://jax.readthedocs.io/en/latest/_autosummary/jax.lax.conv_general_dilated.html
+    */
   enum Padding:
     case SAME, VALID
 
@@ -22,8 +33,15 @@ object ConvolutionOps:
 
   extension [S1: Label, InChannel: Label, V: IsFloating](input: Tensor[S1 *: InChannel *: EmptyTuple, V])
 
+    /** Computes the 1D convolution of this tensor with the specified kernel tensor.
+      *
+      * @param kernel - The convolution kernel
+      * @param stride - Stride for the convolution.
+      * @param padding - Padding mode for the convolution.
+      * @return A new tensor representing the result of the convolution operation.
+      */
     def conv1d[OutChannel: Label](
-        kernel: Tensor[S1 *: InChannel *: OutChannel *: EmptyTuple, V],
+        kernel: Tensor[(S1, InChannel, OutChannel), V],
         stride: Stride1[S1] | Int = 1,
         padding: Padding = Padding.SAME
     ): Tensor[S1 *: OutChannel *: EmptyTuple, V] =
@@ -48,6 +66,13 @@ object ConvolutionOps:
 
   extension [S1: Label, OutChannel: Label, V: IsFloating](input: Tensor[S1 *: OutChannel *: EmptyTuple, V])
 
+    /** Computes the transposed 1D convolution of
+      * this tensor with the specified kernel tensor.
+      * @param kernel - The convolution kernel
+      * @param stride - Stride for the convolution.
+      * @param padding - Padding mode for the convolution.
+      * @return A new tensor representing the result of the transposed convolution operation.
+      */
     def transposeConv1d[InChannel: Label](
         kernel: Tensor[S1 *: InChannel *: OutChannel *: EmptyTuple, V],
         stride: Stride1[S1] | Int = 1,
@@ -80,6 +105,13 @@ object ConvolutionOps:
 
   extension [S1: Label, S2: Label, InChannel: Label, V: IsFloating](input: Tensor[S1 *: S2 *: InChannel *: EmptyTuple, V])
 
+    /** Computes the 2D convolution of this tensor with the specified kernel tensor.
+      *
+      * @param kernel - The convolution kernel tensor with shape (S1, S2, InChannel, OutChannel).
+      * @param stride - Stride for the convolution.
+      * @param padding - Padding mode for the convolution.
+      * @return A new tensor representing the result of the convolution operation.
+      */
     def conv2d[OutChannel: Label](
         kernel: Tensor[S1 *: S2 *: InChannel *: OutChannel *: EmptyTuple, V],
         stride: Stride2[S1, S2] | Int = 1,
@@ -106,6 +138,13 @@ object ConvolutionOps:
 
   extension [S1: Label, S2: Label, OutChannel: Label, V: IsFloating](input: Tensor[S1 *: S2 *: OutChannel *: EmptyTuple, V])
 
+    /** Computes the transposed 2D convolution of this tensor with the specified kernel tensor.
+      *
+      * @param kernel - The convolution kernel tensor with shape (S1, S2, InChannel, OutChannel).
+      * @param stride - Stride for the convolution.
+      * @param padding - Padding mode for the convolution.
+      * @return A new tensor representing the result of the transposed convolution operation.
+      */
     def transposeConv2d[InChannel: Label](
         kernel: Tensor[S1 *: S2 *: InChannel *: OutChannel *: EmptyTuple, V],
         stride: Stride2[S1, S2] | Int = 1,
@@ -141,6 +180,13 @@ object ConvolutionOps:
 
   extension [S1: Label, S2: Label, S3: Label, InChannel: Label, V: IsFloating](input: Tensor[S1 *: S2 *: S3 *: InChannel *: EmptyTuple, V])
 
+    /** Computes the 3D convolution of this tensor with the specified kernel tensor.
+      *
+      * @param kernel - The convolution kernel tensor
+      * @param stride - Stride for the convolution.
+      * @param padding - Padding mode for the convolution.
+      * @return A new tensor representing the result of the convolution operation.
+      */
     def conv3d[OutChannel: Label](
         kernel: Tensor[S1 *: S2 *: S3 *: InChannel *: OutChannel *: EmptyTuple, V],
         stride: Stride3[S1, S2, S3] | Int = 1,
@@ -169,6 +215,13 @@ object ConvolutionOps:
 
   extension [S1: Label, S2: Label, S3: Label, OutChannel: Label, V: IsFloating](input: Tensor[S1 *: S2 *: S3 *: OutChannel *: EmptyTuple, V])
 
+    /** Computes the transposed 3D convolution of this tensor with the specified kernel tensor.
+      *
+      * @param kernel - The convolution kernel tensor
+      * @param stride - Stride for the convolution.
+      * @param padding - Padding mode for the convolution.
+      * @return A new tensor representing the result of the transposed convolution operation.
+      */
     def transposeConv3d[InChannel: Label](
         kernel: Tensor[S1 *: S2 *: S3 *: InChannel *: OutChannel *: EmptyTuple, V],
         stride: Stride3[S1, S2, S3] | Int = 1,

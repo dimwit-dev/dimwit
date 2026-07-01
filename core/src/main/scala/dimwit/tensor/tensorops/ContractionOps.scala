@@ -12,6 +12,9 @@ import me.shadaj.scalapy.readwrite.Writer
 
 import scala.annotation.targetName
 
+/** Provides extension methods for tensor contraction operations,
+  * including outer products and dot products.
+  */
 object ContractionOps:
 
   extension [T <: Tuple: Labels, V](tensor: Tensor[T, V])
@@ -62,7 +65,7 @@ object ContractionOps:
       * {{{
       * val t1: Tensor[("A", "B", "C"), Float] = ???
       * val t2: Tensor[("D", "E, "F), Float] = ???
-      * val result = t1.dot(Axis["B" ~ "F])(t2)
+      * val result = t1.dot(Axis[A]->Axis[D])(t2)
       * }}}
       */
     @targetName("dotOn")
