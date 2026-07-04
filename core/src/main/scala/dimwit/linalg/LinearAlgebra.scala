@@ -69,12 +69,8 @@ object LinearAlgebra:
   ): Tensor[ev.RemainingAxes *: L1 *: EmptyTuple, V] =
     Tensor(Jax.jnp.diagonal(t.jaxValue, offset = offset, axis1 = ev.indices(0), axis2 = ev.indices(1)))
 
-  /** Computes the inverse of the tensor t along the last two axes.
-    * The first axes of the tensors are preserved, while the last
-    * two axes are replaced by their inverses.
-    * The tensor must be square along the last two axes.
-    *
-    * @return a new tensor with the same shape as t, but with the last two axes replaced by their inverses.
+  /** Computes the inverse of the tensor t
+    * @return a new tensor with the same shape as t
     */
   def inv[T <: Tuple: Labels, V: IsFloating](t: Tensor[T, V]): Tensor[T, V] = Tensor(Jax.jnp.linalg.inv(t.jaxValue))
 
@@ -143,34 +139,37 @@ object LinearAlgebra:
   /** Computes the QR factorization of the tensor `t`.
     *
     * @param t The input tensor to be factorized. It must be a 2D matrix.
+    * @param basisAxis An axis Label denoting the basis axis of the output Q and R matrices.
     * @param mode The mode of the QR factorization (Reduced or Complete).
     * @return A tuple containing two tensors: the orthogonal matrix Q and the upper-triangular matrix R.
     *
     * @see [[https://jax.readthedocs.io/en/latest/_autosummary/jax.numpy.linalg.qr.html#jax.numpy.linalg.qr JAX documentation]] for more details on the underlying implementation.
     */
-  def qr[L1: Label, L2: Label, V: IsFloating](t: Tensor2[L1, L2, V], mode: QRMode = QRMode.Reduced): (q: Tensor2[L1, L2, V], r: Tensor2[L1, L2, V]) =
+  def qr[L1: Label, L2: Label, LBasis: Label, V: IsFloating](t: Tensor2[L1, L2, V], basisAxis: Axis[LBasis], mode: QRMode = QRMode.Reduced): (q: Tensor2[L1, LBasis, V], r: Tensor2[LBasis, L2, V]) =
     val qr = Jax.jnp.linalg.qr(
       t.jaxValue,
       mode = mode match
         case QRMode.Reduced  => "reduced"
         case QRMode.Complete => "complete"
     )
-    (q = Tensor(qr.bracketAccess(0)), r = Tensor(qr.bracketAccess(1)))
+    (q = Tensor[(L1, LBasis), V](qr.bracketAccess(0)), r = Tensor[(LBasis, L2), V](qr.bracketAccess(1)))
 
   /** Computes the eigenvalues and eigenvectors of a symmetric matrix `t`.
     * @param t The input tensor representing a symmetric matrix.
+    * @param eigAxis An axis Label denoting the axis of the output eigenvalues tensor.
+    * @param spaceAxis An axis Label denoting the axis of the output eigenvectors tensor.
     * @param upper If true, the upper-triangular part of the matrix is used.
     * @param symmetrizeInput If true, the input matrix is symmetrized before computation to ensure numerical stability.
     * @return A tuple containing two tensors: the eigenvalues and the corresponding eigenvectors of the input matrix.
     *
     * @see [[https://jax.readthedocs.io/en/latest/_autosummary/jax.numpy.linalg.eigh.html#jax.numpy.linalg.eigh JAX documentation]] for more details on the underlying implementation.
     */
-  def eigh[L1: Label, L2: Label, V: IsFloating](t: Tensor2[L1, L2, V], upper: Boolean = false, symmetrizeInput: Boolean = true)
-      : (eigenvalues: Tensor1[L1, V], eigenvectors: Tensor2[L1, L2, V]) =
+  def eigh[L1: Label, L2: Label, LEig: Label, LSpace: Label, V: IsFloating](t: Tensor2[L1, L2, V], eigAxis: Axis[LEig], spaceAxis: Axis[LSpace], upper: Boolean = false, symmetrizeInput: Boolean = true)
+      : (eigenvalues: Tensor1[LEig, V], eigenvectors: Tensor2[LSpace, LEig, V]) =
 
     val ret = Jax.jnp.linalg.eigh(t.jaxValue, UPLO = if upper then "U" else "L", symmetrize_input = symmetrizeInput)
-    val eigenvalues: Tensor1[L1, V] = Tensor(ret.bracketAccess(0))
-    val eigenvectors: Tensor2[L1, L2, V] = Tensor(ret.bracketAccess(1))
+    val eigenvalues: Tensor1[LEig, V] = Tensor(ret.bracketAccess(0))
+    val eigenvectors: Tensor2[LSpace, LEig, V] = Tensor(ret.bracketAccess(1))
     (eigenvalues = eigenvalues, eigenvectors = eigenvectors)
 
   /** Computes the singular value decomposition (SVD) of the tensor `t`.
@@ -182,13 +181,13 @@ object LinearAlgebra:
     *
     * @see [[https://jax.readthedocs.io/en/latest/_autosummary/jax.numpy.linalg.svd.html#jax.numpy.linalg.svd JAX documentation]] for more details on the underlying implementation.
     */
-  def svd[L1: Label, L2: Label, V: IsFloating](t: Tensor2[L1, L2, V], fullMatrices: Boolean = false, hermitian: Boolean = false)
-      : (U: Tensor2[L1, L2, V], S: Tensor1[L1, V], Vh: Tensor2[L1, L2, V]) =
+  def svd[L1: Label, L2: Label, LBasis: Label, V: IsFloating](t: Tensor2[L1, L2, V], basisAxis: Axis[LBasis], fullMatrices: Boolean = false, hermitian: Boolean = false)
+      : (U: Tensor2[L1, LBasis, V], S: Tensor1[LBasis, V], Vh: Tensor2[LBasis, L2, V]) =
 
     val ret = Jax.jnp.linalg.svd(t.jaxValue, full_matrices = fullMatrices, hermitian = hermitian)
-    val u: Tensor2[L1, L2, V] = Tensor(ret.bracketAccess(0))
-    val s: Tensor1[L1, V] = Tensor(ret.bracketAccess(1))
-    val vh: Tensor2[L1, L2, V] = Tensor(ret.bracketAccess(2))
+    val u: Tensor2[L1, LBasis, V] = Tensor(ret.bracketAccess(0))
+    val s: Tensor1[LBasis, V] = Tensor(ret.bracketAccess(1))
+    val vh: Tensor2[LBasis, L2, V] = Tensor(ret.bracketAccess(2))
     (U = u, S = s, Vh = vh)
 
   /** Solves the linear equation Ax = b for x, where A is a square matrix and b is a vector.

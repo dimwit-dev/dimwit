@@ -73,39 +73,43 @@ class LinearAlgebraTests extends DimwitTest:
   val diagMat = Tensor2(Axis[A], Axis[Prime[A]]).fromArray(
     Array(Array(3.0f, 0.0f), Array(0.0f, 5.0f))
   )
-  // identity as Tensor2[A, Prime[A]] — the type produced by contracting Prime[A] from a Tensor2[A, Prime[A]] with itself
-  val identityAP = Tensor2(Axis[A], Axis[Prime[A]]).fromArray(
+
+  def identity[LRow: Label, LCol: Label] = Tensor2(Axis[LRow], Axis[LCol]).fromArray(
     Array(Array(1.0f, 0.0f), Array(0.0f, 1.0f))
   )
 
   describe("Eigendecomposition (eigh)"):
-
+    trait LEigen derives Label
+    trait LSpace derives Label
     it("eigenvalues of a diagonal matrix are its diagonal entries (ascending)"):
-      val (eigenvalues, _) = LinearAlgebra.eigh(diagMat)
+      val (eigenvalues, _) = LinearAlgebra.eigh(diagMat, Axis[LEigen], Axis[LSpace])
       eigenvalues should approxEqual(
-        Tensor1(Axis[A]).fromArray(Array(3.0f, 5.0f)),
+        Tensor1(Axis[LEigen]).fromArray(Array(3.0f, 5.0f)),
         tolerance = 1e-5f
       )
 
     it("eigenvalues sum equals trace"):
-      val (eigenvalues, _) = LinearAlgebra.eigh(diagMat)
+      val (eigenvalues, _) = LinearAlgebra.eigh(diagMat, Axis[LEigen], Axis[LSpace])
       eigenvalues.sum.item shouldBe diagMat.sum.item +- 1e-4f
 
     it("eigenvectors of a diagonal matrix are the standard basis (up to sign)"):
-      val (_, eigenvectors) = LinearAlgebra.eigh(diagMat)
+      val (_, eigenvectors) = LinearAlgebra.eigh(diagMat, Axis[LEigen], Axis[LSpace])
       // |V| should be identity (sign-agnostic)
       val absEigvecs = eigenvectors.abs
-      val expected = Tensor2(Axis[A], Axis[Prime[A]]).fromArray(
+      val expected = Tensor2(Axis[LSpace], Axis[LEigen]).fromArray(
         Array(Array(1.0f, 0.0f), Array(0.0f, 1.0f))
       )
       absEigvecs should approxEqual(expected, tolerance = 1e-5f)
 
     it("eigenvectors are orthonormal: V @ V^T = I"):
-      val (_, eigenvectors) = LinearAlgebra.eigh(diagMat)
-      val vvt = eigenvectors.dot(Axis[Prime[A]])(eigenvectors)
-      vvt should approxEqual(identityAP, tolerance = 1e-5f)
+      val (_, eigenvectors) = LinearAlgebra.eigh(diagMat, Axis[LEigen], Axis[LSpace])
+      val vvt = eigenvectors.dot(Axis[LSpace])(eigenvectors)
+      val expected = identity[LEigen, Prime[LEigen]]
+      vvt should approxEqual(expected, tolerance = 1e-5f)
 
   describe("QR factorization"):
+
+    trait LBasis derives Label
 
     // Non-trivial 2×2 matrix; expected properties are sign-agnostic
     val qrMat = Tensor2(Axis[A], Axis[Prime[A]]).fromArray(
@@ -113,49 +117,51 @@ class LinearAlgebraTests extends DimwitTest:
     )
 
     it("Q is (column-)orthonormal: Q @ Q^T = I"):
-      val (q, _) = LinearAlgebra.qr(qrMat)
-      val qqt = q.dot(Axis[Prime[A]])(q)
-      qqt should approxEqual(identityAP, tolerance = 1e-5f)
+      val (q, _) = LinearAlgebra.qr(qrMat, Axis[LBasis])
+      val qqt = q.dot(Axis[LBasis])(q)
+      val expected = identity[A, Prime[A]]
+      qqt should approxEqual(expected, tolerance = 1e-5f)
 
     it("R is upper triangular: lower-left element is zero"):
-      val (_, r) = LinearAlgebra.qr(qrMat)
-      r.slice(Axis[A].at(1)).slice(Axis[Prime[A]].at(0)).item shouldBe 0.0f +- 1e-5f
+      val (_, r) = LinearAlgebra.qr(qrMat, Axis[LBasis])
+      r.slice(Axis[LBasis].at(1)).slice(Axis[Prime[A]].at(0)).item shouldBe 0.0f +- 1e-5f
 
     it("Frobenius norm is preserved: ||A||_F = ||R||_F (since Q is orthogonal)"):
-      val (_, r) = LinearAlgebra.qr(qrMat)
+      val (_, r) = LinearAlgebra.qr(qrMat, Axis[LBasis])
       LinearAlgebra.norm(r, LinearAlgebra.MatrixNormType.Frobenius).item shouldBe
         LinearAlgebra.norm(qrMat, LinearAlgebra.MatrixNormType.Frobenius).item +- 1e-4f
 
   describe("Singular value decomposition (SVD)"):
-
+    trait LBasis derives Label
     it("singular values of a diagonal matrix are its diagonal entries (descending)"):
-      val (_, s, _) = LinearAlgebra.svd(diagMat)
+      val (_, s, _) = LinearAlgebra.svd(diagMat, Axis[LBasis])
       s should approxEqual(
-        Tensor1(Axis[A]).fromArray(Array(5.0f, 3.0f)),
+        Tensor1(Axis[LBasis]).fromArray(Array(5.0f, 3.0f)),
         tolerance = 1e-5f
       )
 
     it("singular values sum equals nuclear norm"):
-      val (_, s, _) = LinearAlgebra.svd(diagMat)
+      trait LBasis derives Label
+      val (_, s, _) = LinearAlgebra.svd(diagMat, Axis[LBasis])
       s.sum.item shouldBe
         LinearAlgebra.norm(diagMat, LinearAlgebra.MatrixNormType.Nuclear).item +- 1e-4f
 
     it("largest singular value equals spectral norm"):
-      val (_, s, _) = LinearAlgebra.svd(diagMat)
+      val (_, s, _) = LinearAlgebra.svd(diagMat, Axis[LBasis])
       s.max.item shouldBe
         LinearAlgebra.norm(diagMat, LinearAlgebra.MatrixNormType.Spectral).item +- 1e-4f
 
     it("U is orthonormal: U @ U^T = I"):
-      val (u, _, _) = LinearAlgebra.svd(diagMat)
-      // u: Tensor2[A, Prime[A]], contracting Prime[A] gives Tensor2[A, Prime[A]]
-      val uut = u.dot(Axis[Prime[A]])(u)
-      uut should approxEqual(identityAP, tolerance = 1e-5f)
+      val (u, _, _) = LinearAlgebra.svd(diagMat, Axis[LBasis])
+      val uut = u.dot(Axis[A])(u)
+      val expected = identity[LBasis, Prime[LBasis]]
+      uut should approxEqual(expected, tolerance = 1e-5f)
 
     it("Vh is orthonormal: Vh @ Vh^T = I"):
-      val (_, _, vh) = LinearAlgebra.svd(diagMat)
-      // vh: Tensor2[A, Prime[A]], contracting Prime[A] gives Tensor2[A, Prime[A]]
+      val (_, _, vh) = LinearAlgebra.svd(diagMat, Axis[LBasis])
       val vhvht = vh.dot(Axis[Prime[A]])(vh)
-      vhvht should approxEqual(identityAP, tolerance = 1e-5f)
+      val expected = identity[LBasis, Prime[LBasis]]
+      vhvht should approxEqual(expected, tolerance = 1e-5f)
 
   describe("Linear solve (Ax = b)"):
     // A = [[2, 1], [1, 3]], b = [5, 10] → exact solution x = [1, 3]
