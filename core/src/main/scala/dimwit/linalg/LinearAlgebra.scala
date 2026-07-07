@@ -4,7 +4,6 @@ import dimwit.jax.Jax
 import dimwit.tensor.Axis
 import dimwit.tensor.Label
 import dimwit.tensor.Labels
-import dimwit.tensor.ShapeTypeHelpers.AxesRemover
 import dimwit.tensor.Tensor
 import dimwit.tensor.Tensor0
 import dimwit.tensor.Tensor1
@@ -12,7 +11,6 @@ import dimwit.tensor.Tensor2
 import dimwit.tensor.TensorOps.IsFloating
 import dimwit.tensor.TensorOps.IsNumber
 import me.shadaj.scalapy.py
-import me.shadaj.scalapy.py.SeqConverters
 
 /**  Common linear algebra operations.
   */
@@ -35,59 +33,38 @@ object LinearAlgebra:
     case Reduced
     case Complete
 
-  /** Computes the determinant of the tensor `t` along the specified axes (L1, L2)
+  /** Computes the determinant of the tensor `t`
     *
     * @param t The input tensor from which to compute the determinant.
-    * @param axis1 The first axis along which to compute the determinant.
-    * @param axis2 The second axis along which to compute the determinant.
-    * @return A new tensor with the determinant computed, where the two specified axes are removed
+    * @return The determinant of the input tensor
     */
-  def det[T <: Tuple: Labels, L1: Label, L2: Label, V: IsFloating](t: Tensor[T, V], axis1: Axis[L1], axis2: Axis[L2])(using
-      ev: AxesRemover[T, (L1, L2)],
-      labels: Labels[ev.RemainingAxes]
-  ): Tensor[ev.RemainingAxes, V] =
-    // JAX det only works on the last two axes (-2, -1). We must move the user's selected axes to the end.
-    val moved = Jax.jnp.moveaxis(
-      t.jaxValue,
-      source = ev.indices.toPythonProxy,
-      destination = Seq(-2, -1).toPythonProxy
-    )
-    Tensor(Jax.jnp.linalg.det(moved))
+  def det[LRow: Label, LCol: Label, V: IsFloating](t: Tensor[(LRow, LCol), V]): Tensor0[V] =
+    Tensor(Jax.jnp.linalg.det(t.jaxValue))
 
-  /** Extracts the diagonal along the given two axes (with optional offset),
-    * replacing them by a new 1D axis labeled L1.
+  /** Extracts the diagonal, with an optional offset,
     *
     * @param t The input tensor from which to extract the diagonal.
-    * @param axis1 The first axis along which to extract the diagonal.
-    * @param axis2 The second axis along which to extract the diagonal.
+    * @param diagAxis A new axis Label, representing the axis of the output diagonal tensor.
     * @param offset The offset of the diagonal from the main diagonal. Positive values indicate diagonals above the main diagonal, while negative values indicate diagonals below it.
-    * @return A new tensor with the diagonal extracted, where the two specified axes are replaced by a new 1D axis labeled L1.
+    * @return A new tensor containing the extracted diagonal elements of the input tensor.
     */
-  def diagonal[T <: Tuple, L1: Label, L2: Label, V](t: Tensor[T, V], axis1: Axis[L1], axis2: Axis[L2], offset: Int = 0)(using
-      ev: AxesRemover[T, (L1, L2)],
-      labels: Labels[ev.RemainingAxes]
-  ): Tensor[ev.RemainingAxes *: L1 *: EmptyTuple, V] =
-    Tensor(Jax.jnp.diagonal(t.jaxValue, offset = offset, axis1 = ev.indices(0), axis2 = ev.indices(1)))
+  def diagonal[LRow: Label, LCol: Label, LDiag: Label, V](t: Tensor2[LRow, LCol, V], diagAxis: Axis[LDiag], offset: Int = 0): Tensor1[LDiag, V] =
+    Tensor(Jax.jnp.diagonal(t.jaxValue, offset = offset))
 
-  /** Computes the inverse of the tensor t
-    * @return a new tensor with the same shape as t
+  /** Computes the inverse of the rank 2 tensor t
+    * @return a new tensor, representing the inverse of t
     */
-  def inv[T <: Tuple: Labels, V: IsFloating](t: Tensor[T, V]): Tensor[T, V] = Tensor(Jax.jnp.linalg.inv(t.jaxValue))
+  def inv[LRow: Label, LCol: Label, V: IsFloating](t: Tensor2[LRow, LCol, V]): Tensor2[LCol, LRow, V] = Tensor(Jax.jnp.linalg.inv(t.jaxValue))
 
-  /** Computes the trace of the tensor `t` along the specified axes (L1, L2) with an optional offset.
-    * The resulting tensor has the two specified axes removed, and the remaining axes are preserved.
+  /** Computes the trace of the tensor `t` with an optional offset.
     *
     * @param t The input tensor from which to compute the trace.
-    * @param axis1 The first axis along which to compute the trace.
-    * @param axis2 The second axis along which to compute the trace.
     * @param offset The offset of the diagonal from the main diagonal. Positive values indicate diagonals above the main diagonal, while negative values indicate diagonals below it.
     *
-    * @return A new tensor with the trace computed, where the two specified axes are removed, and the remaining axes are preserved.
+    * @return The trace of the input tensor
     */
-  def trace[T <: Tuple, L1: Label, L2: Label, V: IsNumber](t: Tensor[T, V], axis1: Axis[L1], axis2: Axis[L2], offset: Int = 0)(using
-      ev: AxesRemover[T, (L1, L2)],
-      labels: Labels[ev.RemainingAxes]
-  ): Tensor[ev.RemainingAxes, V] = Tensor(Jax.jnp.trace(t.jaxValue, offset = offset, axis1 = ev.indices(0), axis2 = ev.indices(1)))
+  def trace[LRow: Label, LCol: Label, V: IsNumber](t: Tensor2[LRow, LCol, V], offset: Int = 0): Tensor0[V] =
+    Tensor0(Jax.jnp.trace(t.jaxValue, offset = offset))
 
   /** Computes the vector norm of the tensor `t` based on the specified `normType`.
     *
@@ -95,7 +72,7 @@ object LinearAlgebra:
     * @param normType The type of norm to compute (L1, L2, Ord(p), or Inf).
     * @return A new 0-D tensor containing the computed norm of the input tensor.
     */
-  def norm[L1: Label, V: IsFloating](t: Tensor1[L1, V], normType: VectorNormType): Tensor0[V] =
+  def norm[L: Label, V: IsFloating](t: Tensor1[L, V], normType: VectorNormType): Tensor0[V] =
     normType match
       case VectorNormType.L1     => Tensor0(Jax.jnp.linalg.norm(t.jaxValue, ord = 1))
       case VectorNormType.L2     => Tensor0(Jax.jnp.linalg.norm(t.jaxValue, ord = 2))
@@ -108,7 +85,7 @@ object LinearAlgebra:
     * @param normType The type of norm to compute (Frobenius, Nuclear, Spectral, One, or Inf).
     * @return A new 0-D tensor containing the computed norm of the input tensor.
     */
-  def norm[L1: Label, L2: Label, V: IsFloating](t: Tensor2[L1, L2, V], normType: MatrixNormType): Tensor0[V] =
+  def norm[LRow: Label, LCol: Label, V: IsFloating](t: Tensor2[LRow, LCol, V], normType: MatrixNormType): Tensor0[V] =
     normType match
       case MatrixNormType.Frobenius => Tensor0(Jax.jnp.linalg.norm(t.jaxValue, ord = "fro"))
       case MatrixNormType.Nuclear   => Tensor0(Jax.jnp.linalg.norm(t.jaxValue, ord = "nuc"))
@@ -133,7 +110,7 @@ object LinearAlgebra:
     *
     * @see [[https://jax.readthedocs.io/en/latest/_autosummary/jax.numpy.linalg.cholesky.html#jax.numpy.linalg.cholesky JAX documentation]] for more details on the underlying implementation.
     */
-  def cholesky[L1: Label, L2: Label, V: IsFloating](t: Tensor2[L1, L2, V], upper: Boolean = false, symmetrizeInput: Boolean = true): Tensor2[L1, L2, V] =
+  def cholesky[LRow: Label, LCol: Label, V: IsFloating](t: Tensor2[LRow, LCol, V], upper: Boolean = false, symmetrizeInput: Boolean = true): Tensor2[LRow, LCol, V] =
     Tensor(Jax.jnp.linalg.cholesky(t.jaxValue, upper = upper, symmetrize_input = symmetrizeInput))
 
   /** Computes the QR factorization of the tensor `t`.
@@ -145,14 +122,14 @@ object LinearAlgebra:
     *
     * @see [[https://jax.readthedocs.io/en/latest/_autosummary/jax.numpy.linalg.qr.html#jax.numpy.linalg.qr JAX documentation]] for more details on the underlying implementation.
     */
-  def qr[L1: Label, L2: Label, LBasis: Label, V: IsFloating](t: Tensor2[L1, L2, V], basisAxis: Axis[LBasis], mode: QRMode = QRMode.Reduced): (q: Tensor2[L1, LBasis, V], r: Tensor2[LBasis, L2, V]) =
+  def qr[LRow: Label, LCol: Label, LBasis: Label, V: IsFloating](t: Tensor2[LRow, LCol, V], basisAxis: Axis[LBasis], mode: QRMode = QRMode.Reduced): (q: Tensor2[LRow, LBasis, V], r: Tensor2[LBasis, LCol, V]) =
     val qr = Jax.jnp.linalg.qr(
       t.jaxValue,
       mode = mode match
         case QRMode.Reduced  => "reduced"
         case QRMode.Complete => "complete"
     )
-    (q = Tensor[(L1, LBasis), V](qr.bracketAccess(0)), r = Tensor[(LBasis, L2), V](qr.bracketAccess(1)))
+    (q = Tensor[(LRow, LBasis), V](qr.bracketAccess(0)), r = Tensor[(LBasis, LCol), V](qr.bracketAccess(1)))
 
   /** Computes the eigenvalues and eigenvectors of a symmetric matrix `t`.
     * @param t The input tensor representing a symmetric matrix.
@@ -164,7 +141,7 @@ object LinearAlgebra:
     *
     * @see [[https://jax.readthedocs.io/en/latest/_autosummary/jax.numpy.linalg.eigh.html#jax.numpy.linalg.eigh JAX documentation]] for more details on the underlying implementation.
     */
-  def eigh[L1: Label, L2: Label, LEig: Label, LSpace: Label, V: IsFloating](t: Tensor2[L1, L2, V], eigAxis: Axis[LEig], spaceAxis: Axis[LSpace], upper: Boolean = false, symmetrizeInput: Boolean = true)
+  def eigh[LRow: Label, LCol: Label, LEig: Label, LSpace: Label, V: IsFloating](t: Tensor2[LRow, LCol, V], eigAxis: Axis[LEig], spaceAxis: Axis[LSpace], upper: Boolean = false, symmetrizeInput: Boolean = true)
       : (eigenvalues: Tensor1[LEig, V], eigenvectors: Tensor2[LSpace, LEig, V]) =
 
     val ret = Jax.jnp.linalg.eigh(t.jaxValue, UPLO = if upper then "U" else "L", symmetrize_input = symmetrizeInput)
@@ -181,13 +158,13 @@ object LinearAlgebra:
     *
     * @see [[https://jax.readthedocs.io/en/latest/_autosummary/jax.numpy.linalg.svd.html#jax.numpy.linalg.svd JAX documentation]] for more details on the underlying implementation.
     */
-  def svd[L1: Label, L2: Label, LBasis: Label, V: IsFloating](t: Tensor2[L1, L2, V], basisAxis: Axis[LBasis], fullMatrices: Boolean = false, hermitian: Boolean = false)
-      : (U: Tensor2[L1, LBasis, V], S: Tensor1[LBasis, V], Vh: Tensor2[LBasis, L2, V]) =
+  def svd[LRow: Label, LCol: Label, LBasis: Label, V: IsFloating](t: Tensor2[LRow, LCol, V], basisAxis: Axis[LBasis], fullMatrices: Boolean = false, hermitian: Boolean = false)
+      : (U: Tensor2[LRow, LBasis, V], S: Tensor1[LBasis, V], Vh: Tensor2[LBasis, LCol, V]) =
 
     val ret = Jax.jnp.linalg.svd(t.jaxValue, full_matrices = fullMatrices, hermitian = hermitian)
-    val u: Tensor2[L1, LBasis, V] = Tensor(ret.bracketAccess(0))
+    val u: Tensor2[LRow, LBasis, V] = Tensor(ret.bracketAccess(0))
     val s: Tensor1[LBasis, V] = Tensor(ret.bracketAccess(1))
-    val vh: Tensor2[LBasis, L2, V] = Tensor(ret.bracketAccess(2))
+    val vh: Tensor2[LBasis, LCol, V] = Tensor(ret.bracketAccess(2))
     (U = u, S = s, Vh = vh)
 
   /** Solves the linear equation Ax = b for x, where A is a square matrix and b is a vector.
@@ -198,5 +175,5 @@ object LinearAlgebra:
     *
     * @see [[https://jax.readthedocs.io/en/latest/_autosummary/jax.numpy.linalg.solve.html#jax.numpy.linalg.solve JAX documentation]] for more details on the underlying implementation.
     */
-  def solve[L1: Label, L2: Label, V: IsFloating](a: Tensor2[L1, L2, V], b: Tensor1[L1, V]): Tensor1[L2, V] =
+  def solve[LRow: Label, LCol: Label, V: IsFloating](a: Tensor2[LRow, LCol, V], b: Tensor1[LRow, V]): Tensor1[LCol, V] =
     Tensor(Jax.jnp.linalg.solve(a.jaxValue, b.jaxValue))
