@@ -165,6 +165,27 @@ class LinearAlgebraTests extends DimwitTest:
       val expected = identity[LBasis, Prime[LBasis]]
       vhvht should approxEqual(expected, tolerance = 1e-5f)
 
+  describe("Diagonal extraction"):
+    trait LDiag derives Label
+
+    it("extracts the main diagonal of a diagonal matrix"):
+      diagMat.diagonal(Axis[LDiag]) should approxEqual(
+        Tensor1(Axis[LDiag]).fromArray(Array(3.0f, 5.0f)),
+        tolerance = 1e-5f
+      )
+
+    it("extracts the main diagonal of a non-diagonal matrix"):
+      val m = Tensor2(Axis[A], Axis[Prime[A]]).fromArray(
+        Array(Array(1.0f, 2.0f), Array(3.0f, 4.0f))
+      )
+      m.diagonal(Axis[LDiag]) should approxEqual(
+        Tensor1(Axis[LDiag]).fromArray(Array(1.0f, 4.0f)),
+        tolerance = 1e-5f
+      )
+
+    it("diagonal sums equal the trace"):
+      diagMat.diagonal(Axis[LDiag]).sum.item shouldBe diagMat.trace.item +- 1e-5f
+
   describe("Linear solve (Ax = b)"):
     // A = [[2, 1], [1, 3]], b = [5, 10] → exact solution x = [1, 3]
     val solveA = Tensor2(Axis[A], Axis[Prime[A]]).fromArray(
