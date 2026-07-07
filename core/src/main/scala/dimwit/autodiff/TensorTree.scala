@@ -2,6 +2,7 @@ package dimwit.autodiff
 
 import dimwit.jax.Jax
 import dimwit.tensor.*
+import dimwit.tensor.DType.Float32
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
 
@@ -60,6 +61,34 @@ trait TensorTree[P]:
 
 object TensorTree: // extends TensorTreeLowPriority:
   def apply[P](using pt: TensorTree[P]): TensorTree[P] = pt
+
+  /** Return a flatten function and unflatten function for a parameter structure.
+    *
+    * Takes a `reference` instance to capture the pytree structure (shapes of all
+    * leaves) for the unflatten function. The returned flatten function works on
+    * any `P` of the same structure.
+    *
+    * Delegates to JAX's `jax.flatten_util.ravel_pytree`. All parameters are cast
+    * to Float32 during flattening.
+    *
+    * Example:
+    * {{{
+    *   val (flatten, unflatten) = TensorTree.ravel(initParams, Axis[L])
+    *   val flat: Tensor1[L, Float32] = flatten(params)
+    *   val reconstructed: Params = unflatten(flat)
+    * }}}
+    */
+  def ravel[P, L: Label](reference: P, axis: Axis[L])(using
+      tt: TensorTree[P],
+      flatTree: TensorTree[Tensor1[L, Float32]]
+  ): (flatten: P => Tensor1[L, Float32], unflatten: Tensor1[L, Float32] => P) =
+    val flattenUtil = py.module("jax.flatten_util")
+    val result = flattenUtil.ravel_pytree(tt.toPyTree(reference)).as[py.Dynamic]
+    val unflattenPy = result.bracketAccess(1).as[py.Dynamic]
+    val flatten = (p: P) =>
+      flatTree.fromPyTree(flattenUtil.ravel_pytree(tt.toPyTree(p)).as[py.Dynamic].bracketAccess(0))
+    val unflatten = (v: Tensor1[L, Float32]) => tt.fromPyTree(unflattenPy(flatTree.toPyTree(v)))
+    (flatten = flatten, unflatten = unflatten)
 
   /** Generic instance for any Tensor[Q, V] with labels Q and value V
     */
