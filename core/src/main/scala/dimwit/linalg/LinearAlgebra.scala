@@ -152,18 +152,20 @@ object LinearAlgebra:
   /** Computes the singular value decomposition (SVD) of the tensor `t`.
     *
     * @param t The input tensor to be decomposed.
+    * @param basisAxis An new axis Label denoting the basis axis of the output U and Vh matrices.
+    * @param singularValuesAxis An new axis Label denoting the axis of the output singular values tensor.
     * @param fullMatrices  If true, compute the full-sized U and Vh matrices; if false, compute the reduced-sized matrices.
     * @param hermitian If true, the input is a Hermitian matrix.
     * @return A tuple containing three tensors: the left singular vectors U, the singular values S, and the right singular vectors Vh.
     *
     * @see [[https://jax.readthedocs.io/en/latest/_autosummary/jax.numpy.linalg.svd.html#jax.numpy.linalg.svd JAX documentation]] for more details on the underlying implementation.
     */
-  def svd[LRow: Label, LCol: Label, LBasis: Label, V: IsFloating](t: Tensor2[LRow, LCol, V], basisAxis: Axis[LBasis], fullMatrices: Boolean = false, hermitian: Boolean = false)
-      : (U: Tensor2[LRow, LBasis, V], S: Tensor1[LBasis, V], Vh: Tensor2[LBasis, LCol, V]) =
+  def svd[LRow: Label, LCol: Label, LBasis: Label, LSing: Label, V: IsFloating](t: Tensor2[LRow, LCol, V], basisAxis: Axis[LBasis], singularValuesAxis: Axis[LSing], fullMatrices: Boolean = false, hermitian: Boolean = false)
+      : (U: Tensor2[LRow, LBasis, V], S: Tensor1[LSing, V], Vh: Tensor2[LBasis, LCol, V]) =
 
     val ret = Jax.jnp.linalg.svd(t.jaxValue, full_matrices = fullMatrices, hermitian = hermitian)
     val u: Tensor2[LRow, LBasis, V] = Tensor(ret.bracketAccess(0))
-    val s: Tensor1[LBasis, V] = Tensor(ret.bracketAccess(1))
+    val s: Tensor1[LSing, V] = Tensor(ret.bracketAccess(1))
     val vh: Tensor2[LBasis, LCol, V] = Tensor(ret.bracketAccess(2))
     (U = u, S = s, Vh = vh)
 

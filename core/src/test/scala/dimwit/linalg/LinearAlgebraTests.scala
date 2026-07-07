@@ -133,32 +133,34 @@ class LinearAlgebraTests extends DimwitTest:
 
   describe("Singular value decomposition (SVD)"):
     trait LBasis derives Label
+    trait LSing derives Label
+
     it("singular values of a diagonal matrix are its diagonal entries (descending)"):
-      val (_, s, _) = LinearAlgebra.svd(diagMat, Axis[LBasis])
+      val (_, s, _) = LinearAlgebra.svd(diagMat, Axis[LBasis], Axis[LSing])
       s should approxEqual(
-        Tensor1(Axis[LBasis]).fromArray(Array(5.0f, 3.0f)),
+        Tensor1(Axis[LSing]).fromArray(Array(5.0f, 3.0f)),
         tolerance = 1e-5f
       )
 
     it("singular values sum equals nuclear norm"):
       trait LBasis derives Label
-      val (_, s, _) = LinearAlgebra.svd(diagMat, Axis[LBasis])
+      val (_, s, _) = LinearAlgebra.svd(diagMat, Axis[LBasis], Axis[LSing])
       s.sum.item shouldBe
         LinearAlgebra.norm(diagMat, LinearAlgebra.MatrixNormType.Nuclear).item +- 1e-4f
 
     it("largest singular value equals spectral norm"):
-      val (_, s, _) = LinearAlgebra.svd(diagMat, Axis[LBasis])
+      val (_, s, _) = LinearAlgebra.svd(diagMat, Axis[LBasis], Axis[LSing])
       s.max.item shouldBe
         LinearAlgebra.norm(diagMat, LinearAlgebra.MatrixNormType.Spectral).item +- 1e-4f
 
     it("U is orthonormal: U @ U^T = I"):
-      val (u, _, _) = LinearAlgebra.svd(diagMat, Axis[LBasis])
-      val uut = u.dot(Axis[A])(u)
-      val expected = identity[LBasis, Prime[LBasis]]
+      val (u, _, _) = LinearAlgebra.svd(diagMat, Axis[LBasis], Axis[LSing])
+      val uut = u.dot(Axis[LBasis])(u)
+      val expected = identity[A, Prime[A]]
       uut should approxEqual(expected, tolerance = 1e-5f)
 
     it("Vh is orthonormal: Vh @ Vh^T = I"):
-      val (_, _, vh) = LinearAlgebra.svd(diagMat, Axis[LBasis])
+      val (_, _, vh) = LinearAlgebra.svd(diagMat, Axis[LBasis], Axis[LSing])
       val vhvht = vh.dot(Axis[Prime[A]])(vh)
       val expected = identity[LBasis, Prime[LBasis]]
       vhvht should approxEqual(expected, tolerance = 1e-5f)
