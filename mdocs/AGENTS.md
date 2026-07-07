@@ -636,6 +636,38 @@ val jacRev = Autodiff.jacRev(linearMap)
 val jacFwd = Autodiff.jacFwd(linearMap)
 ```
 
+### Hessian Matrices
+
+```scala mdoc:reset:silent
+import dimwit.*
+import dimwit.autodiff.*
+
+trait A derives Label
+trait B derives Label
+
+// Hessian of f: R -> R, f(x) = x²
+val hScalar = Autodiff.hessian((x: Tensor0[Float32]) => x * x)
+val xScalar = Tensor0(3.0f)
+println(s"Hessian of x² at x=3: ${hScalar(xScalar)}")  // 2.0
+
+// Hessian of f: R² -> R, f(x) = sum(x²)
+def sumSquares(x: Tensor1[A, Float32]): Tensor0[Float32] = (x * x).sum
+val hVec = Autodiff.hessian(sumSquares)
+val xVec = Tensor1(Axis[A]).fromArray(Array(1.0f, 5.0f))
+println(s"Hessian of sum(x²): ${hVec(xVec)}")  // 2 * identity matrix
+
+// Block Hessian of f: R² x R² -> R, f(x1, x2) = sum(x1 * x2)
+def mixed(x1: Tensor1[A, Float32], x2: Tensor1[A, Float32]): Tensor0[Float32] =
+  (x1 * x2).sum
+val hBlock = Autodiff.hessian(mixed.tupled)
+val x1 = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f))
+val x2 = Tensor1(Axis[A]).fromArray(Array(3.0f, 4.0f))
+val ((h_x1x1, h_x1x2), (h_x2x1, h_x2x2)) = hBlock(x1, x2)
+println(s"Block Hessian shapes: ${h_x1x1.shape}, ${h_x1x2.shape}, ${h_x2x1.shape}, ${h_x2x2.shape}")
+```
+
+**Note**: `Autodiff.hessian` is only defined for scalar-output functions (`f: In => Tensor0[V]`). For vector-output functions, use `Autodiff.jacobian` instead.
+
 ---
 
 ## Training Workflows

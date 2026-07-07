@@ -829,6 +829,38 @@ val jacRev = Autodiff.jacRev(linearMap)
 val jacFwd = Autodiff.jacFwd(linearMap)
 ```
 
+### Hessian Matrices
+
+```scala
+import dimwit.*
+import dimwit.autodiff.*
+
+trait A derives Label
+trait B derives Label
+
+// Hessian of f: R -> R, f(x) = x²
+val hScalar = Autodiff.hessian((x: Tensor0[Float32]) => x * x)
+val xScalar = Tensor0(3.0f)
+println(s"Hessian of x² at x=3: ${hScalar(xScalar)}")  // 2.0
+
+// Hessian of f: R² -> R, f(x) = sum(x²)
+def sumSquares(x: Tensor1[A, Float32]): Tensor0[Float32] = (x * x).sum
+val hVec = Autodiff.hessian(sumSquares)
+val xVec = Tensor1(Axis[A]).fromArray(Array(1.0f, 5.0f))
+println(s"Hessian of sum(x²): ${hVec(xVec)}")  // 2 * identity matrix
+
+// Block Hessian of f: R² x R² -> R, f(x1, x2) = sum(x1 * x2)
+def mixed(x1: Tensor1[A, Float32], x2: Tensor1[A, Float32]): Tensor0[Float32] =
+  (x1 * x2).sum
+val hBlock = Autodiff.hessian(mixed.tupled)
+val x1 = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f))
+val x2 = Tensor1(Axis[A]).fromArray(Array(3.0f, 4.0f))
+val ((h_x1x1, h_x1x2), (h_x2x1, h_x2x2)) = hBlock(x1, x2)
+println(s"Block Hessian shapes: ${h_x1x1.shape}, ${h_x1x2.shape}, ${h_x2x1.shape}, ${h_x2x2.shape}")
+```
+
+**Note**: `Autodiff.hessian` is only defined for scalar-output functions (`f: In => Tensor0[V]`). For vector-output functions, use `Autodiff.jacobian` instead.
+
 ---
 
 ## Training Workflows
@@ -1059,12 +1091,12 @@ trait D derives Label
 val intTensor = Tensor1(Axis[A]).fromArray(Array(1, 2, 3))
 val wrong = intTensor.exp  // exp requires IsFloating constraint
 // error: 
-// value exp is not a member of dimwit.tensor.Tensor1[MdocApp11.this.A, dimwit.tensor.DType.Int32].
+// value exp is not a member of dimwit.tensor.Tensor1[MdocApp12.this.A, dimwit.tensor.DType.Int32].
 // An extension method was tried, but could not be fully constructed:
 // 
-//     dimwit.exp[Tuple1[MdocApp11.this.A],
+//     dimwit.exp[Tuple1[MdocApp12.this.A],
 //       (dimwit.tensor.DType.Int32 : dimwit.tensor.DType)](this.intTensor)(
-//       dimwit.tensor.Labels.concat[MdocApp11.this.A, EmptyTuple.type](
+//       dimwit.tensor.Labels.concat[MdocApp12.this.A, EmptyTuple.type](
 //         this.A.derived$Label, dimwit.tensor.Labels.namesOfEmpty),
 //       /* missing */
 //         summon[
@@ -1083,12 +1115,12 @@ val wrong = intTensor.exp  // exp requires IsFloating constraint
 val boolTensor = Tensor1(Axis[A]).fromArray(Array(true, false, true))
 val wrong = boolTensor.mean
 // error:
-// value mean is not a member of dimwit.tensor.Tensor1[MdocApp11.this.A, dimwit.tensor.DType.Bool].
+// value mean is not a member of dimwit.tensor.Tensor1[MdocApp12.this.A, dimwit.tensor.DType.Bool].
 // An extension method was tried, but could not be fully constructed:
 // 
-//     dimwit.mean[Tuple1[MdocApp11.this.A],
+//     dimwit.mean[Tuple1[MdocApp12.this.A],
 //       (dimwit.tensor.DType.Bool : dimwit.tensor.DType)](this.boolTensor)(
-//       dimwit.tensor.Labels.concat[MdocApp11.this.A, EmptyTuple.type](
+//       dimwit.tensor.Labels.concat[MdocApp12.this.A, EmptyTuple.type](
 //         this.A.derived$Label, dimwit.tensor.Labels.namesOfEmpty),
 //       /* missing */
 //         summon[
@@ -1112,9 +1144,9 @@ val t1 = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f))
 val t2 = Tensor1(Axis[B]).fromArray(Array(3.0f, 4.0f, 5.0f))
 val wrong = t1 + t2  // Different labels AND different sizes
 // error: 
-// Found:    (MdocApp11.this.t2 :
-//   dimwit.tensor.Tensor1[MdocApp11.this.B, dimwit.tensor.DType.Float32])
-// Required: dimwit.tensor.Tensor[Tuple1[MdocApp11.this.A],
+// Found:    (MdocApp12.this.t2 :
+//   dimwit.tensor.Tensor1[MdocApp12.this.B, dimwit.tensor.DType.Float32])
+// Required: dimwit.tensor.Tensor[Tuple1[MdocApp12.this.A],
 //   (dimwit.tensor.DType.Float32 : dimwit.tensor.DType)]
 ```
 
@@ -1124,22 +1156,22 @@ val m1 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f)))  // Shape
 val m2 = Tensor2(Axis[C], Axis[D]).fromArray(Array(Array(3.0f), Array(4.0f)))  // Shape: (2, 1)
 val wrong = m1.dot(Axis[B])(m2)  // Axis[B] not in m2
 // error: 
-// Axis[MdocApp11.this.B] not found in Tensor[(MdocApp11.this.C, MdocApp11.this.D)].
+// Axis[MdocApp12.this.B] not found in Tensor[(MdocApp12.this.C, MdocApp12.this.D)].
 // I found:
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
-//       (MdocApp11.this.C, MdocApp11.this.D), MdocApp11.this.B, R](
-//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp11.this.C,
-//         MdocApp11.this.D *: EmptyTuple.type, MdocApp11.this.B](
-//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp11.this.D,
-//           EmptyTuple.type, MdocApp11.this.B](
+//       (MdocApp12.this.C, MdocApp12.this.D), MdocApp12.this.B, R](
+//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp12.this.C,
+//         MdocApp12.this.D *: EmptyTuple.type, MdocApp12.this.B](
+//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp12.this.D,
+//           EmptyTuple.type, MdocApp12.this.B](
 //           dimwit.tensor.ShapeTypeHelpers.AxisIndex.concatRight[A, B², L])
 //       ),
 //     ???)
 // 
-// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.ShapeTypeHelpers.AxisIndex[EmptyTuple.type, MdocApp11.this.B]
+// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.ShapeTypeHelpers.AxisIndex[EmptyTuple.type, MdocApp12.this.B]
 // 
-// where:    B  is a trait in class MdocApp11
+// where:    B  is a trait in class MdocApp12
 //           B² is a type variable with constraint <: Tuple
 // .
 ```
@@ -1152,7 +1184,7 @@ val t = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f)))
 val wrong = t + 10.0f  // Should use +! for scalar broadcast
 // error: 
 // Found:    (10.0f : Float)
-// Required: dimwit.tensor.Tensor[(MdocApp11.this.A, MdocApp11.this.B),
+// Required: dimwit.tensor.Tensor[(MdocApp12.this.A, MdocApp12.this.B),
 //   (dimwit.tensor.DType.Float32 : dimwit.tensor.DType)]
 ```
 
@@ -1163,32 +1195,32 @@ val t2 = Tensor1(Axis[A]).fromArray(Array(3.0f, 4.0f))
 // This works but is semantically wrong (use + instead)
 val wrong = t1 +! t2
 // error:
-// Cannot broadcast tensors of shapes Tuple1[MdocApp11.this.A] and Tuple1[MdocApp11.this.A]. If same shape no broadcasting allowed!.
+// Cannot broadcast tensors of shapes Tuple1[MdocApp12.this.A] and Tuple1[MdocApp12.this.A]. If same shape no broadcasting allowed!.
 // I found:
 // 
 //     dimwit.tensor.tensorops.TensorOpsUtil.Broadcast.broadcastLeft[
-//       Tuple1[MdocApp11.this.A], Tuple1[MdocApp11.this.A],
+//       Tuple1[MdocApp12.this.A], Tuple1[MdocApp12.this.A],
 //       (dimwit.tensor.DType.Float32 : dimwit.tensor.DType)](
-//       dimwit.tensor.Labels.concat[MdocApp11.this.A, EmptyTuple.type](
+//       dimwit.tensor.Labels.concat[MdocApp12.this.A, EmptyTuple.type](
 //         this.A.derived$Label, dimwit.tensor.Labels.namesOfEmpty),
-//       dimwit.tensor.Labels.concat[MdocApp11.this.A, EmptyTuple.type](
+//       dimwit.tensor.Labels.concat[MdocApp12.this.A, EmptyTuple.type](
 //         this.A.derived$Label, dimwit.tensor.Labels.namesOfEmpty),
-//       dimwit.tensor.TupleHelpers.StrictSubset.derive[Tuple1[MdocApp11.this.A],
-//         Tuple1[MdocApp11.this.A]](
-//         dimwit.tensor.TupleHelpers.Subset.head[MdocApp11.this.A, EmptyTuple.type,
-//           Tuple1[MdocApp11.this.A]](
-//           dimwit.tensor.TupleHelpers.SetMember.found[MdocApp11.this.A,
+//       dimwit.tensor.TupleHelpers.StrictSubset.derive[Tuple1[MdocApp12.this.A],
+//         Tuple1[MdocApp12.this.A]](
+//         dimwit.tensor.TupleHelpers.Subset.head[MdocApp12.this.A, EmptyTuple.type,
+//           Tuple1[MdocApp12.this.A]](
+//           dimwit.tensor.TupleHelpers.SetMember.found[MdocApp12.this.A,
 //             EmptyTuple.type],
-//           dimwit.tensor.TupleHelpers.Subset.empty[Tuple1[MdocApp11.this.A]]),
+//           dimwit.tensor.TupleHelpers.Subset.empty[Tuple1[MdocApp12.this.A]]),
 //         /* missing */
 //           summon[
-//             scala.util.NotGiven[Tuple1[MdocApp11.this.A] =:=
-//               Tuple1[MdocApp11.this.A]]
+//             scala.util.NotGiven[Tuple1[MdocApp12.this.A] =:=
+//               Tuple1[MdocApp12.this.A]]
 //           ]
 //       )
 //     )
 // 
-// But no implicit values were found that match type scala.util.NotGiven[Tuple1[MdocApp11.this.A] =:= Tuple1[MdocApp11.this.A]].
+// But no implicit values were found that match type scala.util.NotGiven[Tuple1[MdocApp12.this.A] =:= Tuple1[MdocApp12.this.A]].
 // val wrong = t1 +! t2
 //                   ^^
 ```
@@ -1200,24 +1232,24 @@ val wrong = t1 +! t2
 val t = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f)))
 val wrong = t.sum(Axis[C])  // Axis[C] not in tensor
 // error: 
-// Axis[MdocApp11.this.C] not found in Tensor[(MdocApp11.this.A, MdocApp11.this.B)].
+// Axis[MdocApp12.this.C] not found in Tensor[(MdocApp12.this.A, MdocApp12.this.B)].
 // I found:
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
-//       (MdocApp11.this.A, MdocApp11.this.B), MdocApp11.this.C, R](
-//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp11.this.A,
-//         MdocApp11.this.B *: EmptyTuple.type, MdocApp11.this.C](
-//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp11.this.B,
-//           EmptyTuple.type, MdocApp11.this.C](
+//       (MdocApp12.this.A, MdocApp12.this.B), MdocApp12.this.C, R](
+//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp12.this.A,
+//         MdocApp12.this.B *: EmptyTuple.type, MdocApp12.this.C](
+//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp12.this.B,
+//           EmptyTuple.type, MdocApp12.this.C](
 //           dimwit.tensor.ShapeTypeHelpers.AxisIndex.concatRight[A², B², L])
 //       ),
 //     ???)
 // 
-// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.ShapeTypeHelpers.AxisIndex[EmptyTuple.type, MdocApp11.this.C]
+// But given instance concatRight in object AxisIndex does not match type dimwit.tensor.ShapeTypeHelpers.AxisIndex[EmptyTuple.type, MdocApp12.this.C]
 // 
-// where:    A  is a trait in class MdocApp11
+// where:    A  is a trait in class MdocApp12
 //           A² is a type variable with constraint <: Tuple
-//           B  is a trait in class MdocApp11
+//           B  is a trait in class MdocApp12
 //           B² is a type variable with constraint <: Tuple
 // .
 ```
@@ -1227,7 +1259,7 @@ val wrong = t.sum(Axis[C])  // Axis[C] not in tensor
 val t = Tensor2(Axis[A], Axis[B]).fill(1.0f)
 val wrong = t.vmap(Axis[C])(_.sum)  // Axis[C] doesn't exist
 // error: 
-// value fill is not a member of dimwit.tensor.Tensor2.DefaultsFactory[MdocApp11.this.A, MdocApp11.this.B]
+// value fill is not a member of dimwit.tensor.Tensor2.DefaultsFactory[MdocApp12.this.A, MdocApp12.this.B]
 ```
 
 ### Gradient Errors
@@ -1269,8 +1301,8 @@ val wrong = Autodiff.grad(nonScalar)  // Use jacobian instead
 //       t2Tree²: dimwit.autodiff.TensorTree[T2²], outTree³:
 //       dimwit.autodiff.TensorTree[dimwit.tensor.Tensor0[V³]]): (T1², T2²) =>
 //       dimwit.autodiff.Grad[(T1², T2²)]
-// match arguments (dimwit.tensor.Tensor1[MdocApp11.this.A, dimwit.Float32] =>
-//   dimwit.tensor.Tensor1[MdocApp11.this.A, dimwit.Float32])
+// match arguments (dimwit.tensor.Tensor1[MdocApp12.this.A, dimwit.Float32] =>
+//   dimwit.tensor.Tensor1[MdocApp12.this.A, dimwit.Float32])
 // 
 // where:    T1          is a type variable
 //           T1²         is a type variable
