@@ -175,3 +175,29 @@ object Beta:
   def apply[T <: Tuple: Labels, V: IsFloating](alpha: Tensor[T, V], beta: Tensor[T, V]): Beta[T, V] =
     require(alpha.shape.dimensions == beta.shape.dimensions, "alpha and beta must have the same dimensions")
     new Beta(alpha, beta)
+
+/** Exponential distribution */
+class Exponential[T <: Tuple: Labels, V: IsFloating](val rate: Tensor[T, V]) extends IndependentDistribution[T, V]:
+
+  lazy val scale = (Tensor0(1f).asType(VType[V]) /! rate).jaxValue
+
+  override def elementWiseLogProb(x: Tensor[T, V]): Tensor[T, LogProb] =
+    liftPyTensor(jstats.expon.logpdf(x.jaxValue, scale = scale))
+
+  override def sample(k: Random.Key): Tensor[T, V] =
+    // samples from jrandom.exponential are always with scale=1,
+    // so we need to divide by the rate to get the correct distribution
+    val stndExp = liftPyTensor[T, V](
+      Jax.jrandom.exponential(k.jaxKey, shape = rate.shape.dimensions.toPythonProxy)
+    )
+    stndExp / rate
+
+class Poisson[T <: Tuple: Labels, V: IsInteger](val rate: Tensor[T, V]) extends IndependentDistribution[T, V]:
+
+  override def elementWiseLogProb(x: Tensor[T, V]): Tensor[T, LogProb] =
+    liftPyTensor(jstats.poisson.logpmf(x.jaxValue, mu = rate.jaxValue))
+
+  override def sample(k: Random.Key): Tensor[T, V] =
+    liftPyTensor(
+      Jax.jrandom.poisson(k.jaxKey, lam = rate.jaxValue, shape = rate.shape.dimensions.toPythonProxy)
+    )
