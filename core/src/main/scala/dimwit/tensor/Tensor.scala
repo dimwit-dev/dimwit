@@ -292,6 +292,9 @@ object Tensor1:
   def apply[L: Label](axis: Axis[L]): DefaultsFactory[L] = DefaultsFactory(axis)
   def apply[L: Label, V](axis: Axis[L], vtype: VType[V]): TypedFactory[L, V] = TypedFactory(axis, vtype)
 
+  def apply[L: Label](axisExtent: AxisExtent[L]): Tensor.DefaultsFactory[Tuple1[L]] = Tensor.DefaultsFactory(Shape(axisExtent))
+  def apply[L: Label, V](axisExtent: AxisExtent[L], vtype: VType[V]): Tensor.TypedFactory[Tuple1[L], V] = Tensor.TypedFactory(Shape(axisExtent), vtype)
+
 /* Companion object for Tensors of rank 2 (matrices).
  *  Provides factory methods for creating tensors of rank 2 with various value types.
  */
@@ -323,6 +326,9 @@ object Tensor2:
 
   def apply[L1: Label, L2: Label](axis1: Axis[L1], axis2: Axis[L2]): DefaultsFactory[L1, L2] = DefaultsFactory(axis1, axis2)
   def apply[L1: Label, L2: Label, V](axis1: Axis[L1], axis2: Axis[L2], vtype: VType[V]): TypedFactory[L1, L2, V] = TypedFactory(axis1, axis2, vtype)
+
+  def apply[L1: Label, L2: Label](axisExtent1: AxisExtent[L1], axisExtent2: AxisExtent[L2]): Tensor.DefaultsFactory[Tuple2[L1, L2]] = Tensor.DefaultsFactory(Shape(axisExtent1, axisExtent2))
+  def apply[L1: Label, L2: Label, V](axisExtent1: AxisExtent[L1], axisExtent2: AxisExtent[L2], vtype: VType[V]): Tensor.TypedFactory[Tuple2[L1, L2], V] = Tensor.TypedFactory(Shape(axisExtent1, axisExtent2), vtype)
 
   private def eyeImpl[L: Label, V](dim: AxisExtent[L], vtype: VType[V]): Tensor2[L, Prime[L], V] = Tensor(Jax.jnp.eye(dim.size, dtype = vtype.dtype.jaxType))
   def eye[L: Label](dim: AxisExtent[L]): Tensor2[L, Prime[L], Float32] = eyeImpl(dim, VType[Float32])
@@ -358,5 +364,7 @@ object Tensor3:
     def fromArray(values: Array3D[Double])(using IsFloating[V]): Tensor3[L1, L2, L3, V] = Tensor(createShape(values), VType[V]).fromArray(values.flatten.flatten)
 
   def apply[L1: Label, L2: Label, L3: Label](axis1: Axis[L1], axis2: Axis[L2], axis3: Axis[L3]): DefaultsFactory[L1, L2, L3] = DefaultsFactory(axis1, axis2, axis3)
-
   def apply[L1: Label, L2: Label, L3: Label, V](axis1: Axis[L1], axis2: Axis[L2], axis3: Axis[L3], vtype: VType[V]): TypedFactory[L1, L2, L3, V] = TypedFactory(axis1, axis2, axis3, vtype)
+
+  def apply[L1: Label, L2: Label, L3: Label](axisExtent1: AxisExtent[L1], axisExtent2: AxisExtent[L2], axisExtent3: AxisExtent[L3]): Tensor.DefaultsFactory[Tuple3[L1, L2, L3]] = Tensor.DefaultsFactory(Shape(axisExtent1, axisExtent2, axisExtent3))
+  def apply[L1: Label, L2: Label, L3: Label, V](axisExtent1: AxisExtent[L1], axisExtent2: AxisExtent[L2], axisExtent3: AxisExtent[L3], vtype: VType[V]): Tensor.TypedFactory[Tuple3[L1, L2, L3], V] = Tensor.TypedFactory(Shape(axisExtent1, axisExtent2, axisExtent3), vtype)
