@@ -335,3 +335,50 @@ class DistributionSuite extends DimwitTest:
       // Mean of Beta distribution is alpha / (alpha + beta)
       val expectedMeans = betaDist.alpha / (betaDist.alpha + betaDist.beta)
       sampleMeans should approxEqual(expectedMeans, 0.02f)
+
+  describe("Exponential"):
+    it("logProbs matches JAX"):
+      val rate = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 1.0f, 2.0f))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 1.0f, 0.3f))
+
+      val dist = Exponential(rate)
+      val scalaLogProbs = dist.elementWiseLogProb(x)
+      val scale = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(2.0f, 1.0f, 0.5f))
+      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float32])(
+        jstats.expon.logpdf(x.jaxValue, scale = scale.jaxValue)
+      )
+      scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
+
+    it("sample means approximates 1/rate"):
+      val exponential = Exponential(
+        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.5f, 2.0f))
+      )
+      val key = Random.Key(42)
+      val samples = key.splitvmap(Axis[Samples] -> 10000)(k => exponential.sample(k))
+      val sampleMeans = samples.mean(Axis[Samples])
+      // Mean of Exponential(rate) is 1/rate
+      val expectedMeans = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(2.0f, 0.5f))
+      sampleMeans should approxEqual(expectedMeans, 0.1f)
+
+  describe("Poisson"):
+    it("logProbs matches JAX"):
+      val rate = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1, 3, 10))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1, 2, 8))
+
+      val dist = Poisson(rate)
+      val scalaLogProbs = dist.elementWiseLogProb(x)
+      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float32])(
+        jstats.poisson.logpmf(x.jaxValue, mu = rate.jaxValue)
+      )
+      scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
+
+    it("sample means approximates rate"):
+      val poisson = Poisson(
+        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1, 5))
+      )
+      val key = Random.Key(42)
+      val samples = key.splitvmap(Axis[Samples] -> 10000)(k => poisson.sample(k))
+      val sampleMeans = samples.asFloat32.mean(Axis[Samples])
+      // Mean of Poisson(lambda) is lambda
+      val expectedMeans = poisson.rate.asFloat32
+      sampleMeans should approxEqual(expectedMeans, 0.2f)
