@@ -21,6 +21,13 @@ object Autodiff:
     case h *: t          => GradientTensorVsInput[h, OutShape, V] *: GradientTensorVsInput[t, OutShape, V]
     case Tensor[inS, v2] => Tensor[PrimeConcatType[OutShape, inS], V]
 
+  type Hessian[In] = HessianProduct[In, In]
+
+  type HessianProduct[In, Out] = Out match
+    case EmptyTuple      => EmptyTuple
+    case h *: t          => HessianProduct[In, h] *: HessianProduct[In, t]
+    case Tensor[outS, v] => GradientTensorVsInput[In, outS, v]
+
   // TODO replace with TupledFunction when available (no longer experimental)
   def grad[T1, T2, V: IsFloating](f: (T1, T2) => Tensor0[V])(using t1Tree: TensorTree[T1], t2Tree: TensorTree[T2], outTree: TensorTree[Tensor0[V]]): (T1, T2) => Grad[(T1, T2)] = (t1, t2) => grad(f.tupled)((t1, t2))
   def grad[T1, T2, T3, V: IsFloating](f: (T1, T2, T3) => Tensor0[V])(using t1Tree: TensorTree[T1], t2Tree: TensorTree[T2], t3Tree: TensorTree[T3], outTree: TensorTree[Tensor0[V]]): (T1, T2, T3) => Grad[(T1, T2, T3)] = (t1, t2, t3) => grad(f.tupled)((t1, t2, t3))
@@ -103,3 +110,20 @@ object Autodiff:
         outTree.toPyTree(f(inTree.fromPyTree(jxpr)))
     val jpy = Jax.jax_helper.jacfwd(fpy)
     (params: In) => gradTree.fromPyTree(jpy(inTree.toPyTree(params)))
+
+  def hessian[In, V: IsFloating](f: In => Tensor0[V])(using
+      inTree: TensorTree[In],
+      outTree: TensorTree[Tensor0[V]],
+      hessTree: TensorTree[Hessian[In]]
+  ): In => Hessian[In] =
+    val fpy = (jxpr: py.Dynamic) =>
+      OnError.traceStack:
+        val x = inTree.fromPyTree(jxpr)
+        outTree.toPyTree(f(x))
+
+    val hpy = Jax.jax_helper.hessian(fpy)
+
+    (params: In) =>
+      val xpy = inTree.toPyTree(params)
+      val res = hpy(xpy)
+      hessTree.fromPyTree(res)

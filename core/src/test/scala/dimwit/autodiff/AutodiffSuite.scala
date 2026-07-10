@@ -107,6 +107,36 @@ class AutodiffSuite extends DimwitTest:
           x2_dx1 should approxEqual(Tensor2.eye(x2.extent(Axis[A]), x2.vtype) *! Tensor0(1.0f))
           x2_dx2 should approxEqual(Tensor.like(x2_dx2).fill(0f))
 
+  describe("hessian"):
+    describe("single parameter function"):
+      it("Hessian of f(x) = x^2"):
+        def f(x: Tensor0[Float32]) = x * x
+        val hf = Autodiff.hessian(f)
+
+        val x = Tensor0(3.0f)
+        hf(x) shouldEqual Tensor0(2.0f)
+
+      it("Hessian of f(x) = sum(x^2)"):
+        def f(x: Tensor1[A, Float32]) = (x * x).sum
+        val hf = Autodiff.hessian(f)
+
+        val x = Tensor1(Axis[A]).fromArray(Array(1.0f, 5.0f))
+        hf(x) should approxEqual(Tensor2.eye(x.extent(Axis[A]), x.vtype) *! 2.0f)
+
+      it("Hessian of f(x1, x2) = sum(x1 * x2)"):
+        def f(x1: Tensor1[A, Float32], x2: Tensor1[A, Float32]): Tensor0[Float32] = (x1 * x2).sum
+        val hf = Autodiff.hessian(f.tupled)
+
+        val x1 = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f))
+        val x2 = Tensor1(Axis[A]).fromArray(Array(3.0f, 4.0f))
+        val (x1Grad, x2Grad) = hf(x1, x2)
+        val (x1_dx1, x1_dx2) = x1Grad
+        val (x2_dx1, x2_dx2) = x2Grad
+        x1_dx1 should approxEqual(Tensor.like(x1_dx1).fill(0f))
+        x1_dx2 should approxEqual(Tensor2.eye(x1.extent(Axis[A]), x1.vtype) *! Tensor0(1.0f))
+        x2_dx1 should approxEqual(Tensor2.eye(x2.extent(Axis[A]), x2.vtype) *! Tensor0(1.0f))
+        x2_dx2 should approxEqual(Tensor.like(x2_dx2).fill(0f))
+
   describe("Complex application"):
     it("case class support"):
       case class Params(w: Tensor1[A, Float32], b: Tensor0[Float32])

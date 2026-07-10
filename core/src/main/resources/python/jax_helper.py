@@ -77,6 +77,9 @@ def jacrev(f):
 def jacobian(f):
     return wrap(jax.jacobian, f)
 
+def hessian(f):
+    return wrap(jax.hessian, f)
+
 def jit(f):
     return wrap(jax.jit, f)
 
