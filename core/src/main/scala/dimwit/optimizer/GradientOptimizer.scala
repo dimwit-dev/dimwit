@@ -40,17 +40,23 @@ trait GradientOptimizer:
   def iterate[Params: TensorTree: FloatTreeFor[Float32]](init: Params)(df: Params => Grad[Params]): Iterator[Params] =
     iterateWithState(init)(df).map(_._1)
 
-case class GradientDescent(learningRate: Tensor0[Float32]) extends GradientOptimizer:
+case class GradientDescent(learningRate: Double) extends GradientOptimizer:
+
+  private val lr = Tensor0(learningRate.toFloat)
 
   type State[P] = Unit // Stateless optimizer
 
   def init[Params: TensorTree: FloatTreeFor[Float32]](params: Params): Unit = ()
 
   def update[Params: TensorTree: FloatTreeFor[Float32]](gradients: Grad[Params], params: Params, state: Unit): (Params, Unit) =
-    val newParams = params -- gradients.value.scale(learningRate)
+    val newParams = params -- gradients.value.scale(lr)
     (newParams, ())
 
-case class Lion(learningRate: Tensor0[Float32], weightDecay: Tensor0[Float32] = Tensor0(0.0f), beta1: Tensor0[Float32] = Tensor0(0.9f), beta2: Tensor0[Float32] = Tensor0(0.99f)) extends GradientOptimizer:
+case class Lion(learningRate: Double, weightDecay: Double = 0.0, beta1: Double = 0.9, beta2: Double = 0.99) extends GradientOptimizer:
+
+  val beta1f = Tensor0(beta1.toFloat)
+  val beta2f = Tensor0(beta2.toFloat)
+  val lr = Tensor0(learningRate.toFloat)
 
   type State[P] = P // momentum state has same structure as params
 
@@ -62,12 +68,13 @@ case class Lion(learningRate: Tensor0[Float32], weightDecay: Tensor0[Float32] = 
     )
 
   def update[Params: TensorTree: FloatTreeFor[Float32]](gradients: Grad[Params], params: Params, momentums: Params): (Params, Params) =
+
     // the direction (1 or -1)
     // is determined by the sign of the momentum + gradient
-    val updateDirection = (momentums **! beta1 ++ gradients.value **! (1f - beta1)).sign
+    val updateDirection = (momentums **! beta1f ++ gradients.value **! (1f - beta1f)).sign
 
-    val updatedParams = params -- updateDirection.scale(learningRate) -- params.scale(weightDecay)
-    val newMomentums = momentums **! beta2 ++ gradients.value **! (1f - beta2)
+    val updatedParams = params -- updateDirection.scale(lr) -- params.scale(Tensor0(weightDecay.toFloat))
+    val newMomentums = momentums **! beta2f ++ gradients.value **! (1f - beta2f)
 
     (updatedParams, newMomentums)
 
@@ -83,20 +90,21 @@ case class AdamState[P](
   * @see [[https://arxiv.org/abs/1412.6980 Adam: A Method for Stochastic Optimization]]
   */
 case class Adam(
-    learningRate: Tensor0[Float32], // step size (learning rate)
-    b1: Tensor0[Float32] = Tensor0(0.9f), // decay rate for momentums mᵗ
-    b2: Tensor0[Float32] = Tensor0(0.999f), // decay rate for velocities vᵗ
-    epsilon: Tensor0[Float32] = Tensor0(1e-8f) // small constant to prevent division by zero
+    learningRate: Double, // step size (learning rate)
+    b1: Double = 0.9, // decay rate for momentums mᵗ
+    b2: Double = 0.999, // decay rate for velocities vᵗ
+    epsilon: Double = 1e-8 // small constant to prevent division by zero
 ) extends GradientOptimizer:
 
-  private val β1 = b1
-  private val β2 = b2
+  private val β1 = Tensor0(b1.toFloat)
+  private val β2 = Tensor0(b2.toFloat)
+  private val ε = Tensor0(epsilon.toFloat)
 
   type State[P] = AdamState[P]
 
   def init[Params: TensorTree: FloatTreeFor[Float32]](params: Params): State[Params] =
     def zeros = params.fillCopy(0f)
-    AdamState(zeros, zeros, b1 = Tensor0(1f), b2 = Tensor0(1f))
+    AdamState(zeros, zeros, b1 = Tensor0(1.0f), b2 = Tensor0(1.0f))
 
   def update[Params: TensorTree: FloatTreeFor[Float32]](
       gradients: Grad[Params],
@@ -110,8 +118,8 @@ case class Adam(
     val `β2ₜ₋₁` = state.b2
 
     // rename parameters for internal clarity
-    val α = learningRate
-    val ε = epsilon
+    val α = Tensor0(learningRate.toFloat)
+    val ε = Tensor0(epsilon.toFloat)
     val `θₜ₋₁` = params
 
     // update moments for bias correction
@@ -140,7 +148,7 @@ case class Adam(
   */
 case class AdamW(
     val adam: Adam,
-    val weightDecayFactor: Tensor0[Float32]
+    val weightDecayFactor: Double
 ) extends GradientOptimizer:
 
   type State[P] = adam.State[P]
@@ -152,9 +160,9 @@ case class AdamW(
       params: Params,
       state: State[Params]
   ): (Params, State[Params]) =
-    val α = adam.learningRate
+    val α = Tensor0(adam.learningRate.toFloat)
     val `θₜ₋₁` = params
-    val `λ'` = weightDecayFactor
+    val `λ'` = Tensor0(weightDecayFactor.toFloat)
     val λ = `λ'` * α // Tie weight decay to learning rate
     val decayedParams = `θₜ₋₁` -- λ **! `θₜ₋₁`
     val (θₜ, adamState) = adam.update(gradients, decayedParams, state)
