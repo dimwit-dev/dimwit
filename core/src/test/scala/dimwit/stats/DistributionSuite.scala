@@ -156,6 +156,45 @@ class DistributionSuite extends DimwitTest:
       val expectedMedian = cauchy.loc
       sampleMedian should approxEqual(expectedMedian, 0.5f)
 
+  describe("HalfCauchy"):
+    it("logProbs matches scipy"):
+      val scipy_stats = py.module("scipy.stats")
+      val loc = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.0f, 0.0f, 0.0f))
+      val scale = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1.0f, 0.5f, 2.0f))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 1.0f, 0.8f))
+
+      val dist = HalfCauchy(loc, scale)
+      val scalaLogProbs = dist.elementWiseLogProb(x)
+      val scipyLogProbs = liftPyTensor1(Axis[A], VType[Float32])(
+        scipy_stats.halfcauchy.logpdf(x.jaxValue, loc = loc.jaxValue, scale = scale.jaxValue)
+      )
+      scalaLogProbs.asFloat should approxEqual(scipyLogProbs)
+
+    it("logProb is -inf for x < loc"):
+      val loc = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1.0f, 1.0f, 1.0f))
+      val scale = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1.0f, 1.0f, 1.0f))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.0f, 0.5f, 0.9f))
+
+      val dist = HalfCauchy(loc, scale)
+      val logProbs = dist.elementWiseLogProb(x)
+      logProbs.asFloat.toArray.foreach(v => v should be(Float.NegativeInfinity))
+
+    it("sample medians approximates location"):
+      val halfCauchy = HalfCauchy(
+        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.0f, 0.0f)),
+        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1.0f, 2.0f))
+      )
+      val key = Random.Key(42)
+      val samples = key.splitvmap(Axis[Samples] -> 50000)(k => halfCauchy.sample(k))
+      // All samples should be >= loc
+      val minSample = samples.min(Axis[Samples])
+      minSample.toArray.zip(halfCauchy.loc.toArray).foreach { (s, l) =>
+        s should be >= l
+      }
+      // Median of HalfCauchy(0, scale) is scale
+      val sampleMedian = samples.median(Axis[Samples])
+      sampleMedian should approxEqual(halfCauchy.scale, 0.2f)
+
   describe("HalfNormal"):
     it("logProbs computed correctly"):
       val loc = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.0f, 0.0f, 0.0f))

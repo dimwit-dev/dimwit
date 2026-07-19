@@ -116,6 +116,32 @@ object Cauchy:
     require(loc.shape.dimensions == scale.shape.dimensions, "Location and scale must have the same dimensions")
     new Cauchy(loc, scale)
 
+
+/** Half-Cauchy distribution - absolute value of a Cauchy-distributed random variable */
+class HalfCauchy[T <: Tuple: Labels, V: IsFloating](val loc: Tensor[T, V], val scale: Tensor[T, V]) extends IndependentDistribution[T, V]:
+
+  override def elementWiseLogProb(x: Tensor[T, V]): Tensor[T, LogProb] =
+    // Half-Cauchy logpdf = log(2) + cauchy.logpdf for x >= loc, -inf otherwise
+    val rawLogProb = liftPyTensor(x.shape, VType[LogProb])(
+      Jax.jnp.log(2.0) + jstats.cauchy.logpdf(x.jaxValue, loc = loc.jaxValue, scale = scale.jaxValue)
+    )
+    val valid = x >= loc
+    val negInf = LogProb(Tensor.like(x).fill(Float.NegativeInfinity).asFloat32)
+    where(valid, rawLogProb, negInf)
+
+  override def sample(k: Random.Key): Tensor[T, V] =
+    // Half-Cauchy: |Cauchy(0, 1)| * scale + loc
+    val cauchy = liftPyTensor(loc.shape, VType[V])(Jax.jrandom.cauchy(k.jaxKey, shape = loc.shape.dimensions.toPythonProxy))
+    cauchy.abs * scale + loc
+
+object HalfCauchy:
+
+  /** Create a HalfCauchy distribution from location and scale tensors */
+  def apply[T <: Tuple: Labels, V: IsFloating](loc: Tensor[T, V], scale: Tensor[T, V]): HalfCauchy[T, V] =
+    require(loc.shape.dimensions == scale.shape.dimensions, "Location and scale must have the same dimensions")
+    new HalfCauchy(loc, scale)
+
+
 /** Half-normal distribution */
 class HalfNormal[T <: Tuple: Labels, V: IsFloating](val loc: Tensor[T, V], val scale: Tensor[T, V]) extends IndependentDistribution[T, V]:
 
