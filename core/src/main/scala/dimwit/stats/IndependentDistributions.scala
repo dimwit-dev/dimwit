@@ -116,7 +116,6 @@ object Cauchy:
     require(loc.shape.dimensions == scale.shape.dimensions, "Location and scale must have the same dimensions")
     new Cauchy(loc, scale)
 
-
 /** Half-Cauchy distribution - absolute value of a Cauchy-distributed random variable */
 class HalfCauchy[T <: Tuple: Labels, V: IsFloating](val loc: Tensor[T, V], val scale: Tensor[T, V]) extends IndependentDistribution[T, V]:
 
@@ -140,7 +139,6 @@ object HalfCauchy:
   def apply[T <: Tuple: Labels, V: IsFloating](loc: Tensor[T, V], scale: Tensor[T, V]): HalfCauchy[T, V] =
     require(loc.shape.dimensions == scale.shape.dimensions, "Location and scale must have the same dimensions")
     new HalfCauchy(loc, scale)
-
 
 /** Half-normal distribution */
 class HalfNormal[T <: Tuple: Labels, V: IsFloating](val loc: Tensor[T, V], val scale: Tensor[T, V]) extends IndependentDistribution[T, V]:
