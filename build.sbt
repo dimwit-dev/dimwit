@@ -101,9 +101,6 @@ lazy val examples = (project in file("examples"))
     publish := {},
     publishLocal := {},
     publishArtifact := false,
-    // Examples source directory
-    Compile / scalaSource := baseDirectory.value,
-    Compile / resourceDirectory := baseDirectory.value / "src" / "main" / "resources",
     scalacOptions ++= commonScalacOptions,
     scalafmtFailOnErrors := false,
     javaOptions ++= {
