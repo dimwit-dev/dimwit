@@ -26,11 +26,7 @@ object ContractionOps:
         primeConcat: PrimeConcat[T, OtherShape],
         labels: Labels[primeConcat.Out]
     ): Tensor[primeConcat.Out, V] = Tensor(
-      // Jax outer product flattens, reshape required
-      Jax.jnp.reshape(
-        Jax.jnp.outer(tensor.jaxValue, other.jaxValue),
-        (tensor.shape.dimensions ++ other.shape.dimensions).toPythonProxy
-      )
+      Jax.jnp.tensordot(tensor.jaxValue, other.jaxValue, axes = 0) // generalized outer product
     )
 
     /** Computes the dot product of this tensor with another tensor along the specified axis.
