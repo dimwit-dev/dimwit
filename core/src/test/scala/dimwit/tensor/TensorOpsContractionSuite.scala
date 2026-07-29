@@ -73,3 +73,25 @@ class TensorOpsContractionSuite extends DimwitTest:
           Array(10.0f, 20.0f, 20.0f, 40.0f)
         )
       )
+
+    it("Tensor2[A, B] and Tensor2[C, D] to Tensor4[A, B, C, D]"):
+      val mAB = m1
+      val mCD = m2.relabelAll((Axis[C], Axis[D]))
+
+      val res = mAB.outerProduct(mCD)
+
+      res.shape.labels shouldBe List("A", "B", "C", "D")
+      res should approxEqual(
+        Tensor.like(res).fromArray(
+          Array(
+            10.0f, 20.0f,
+            30.0f, 40.0f,
+            20.0f, 40.0f,
+            60.0f, 80.0f,
+            30.0f, 60.0f,
+            90.0f, 120.0f,
+            40.0f, 80.0f,
+            120.0f, 160.0f
+          )
+        )
+      )
