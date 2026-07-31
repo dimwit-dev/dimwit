@@ -485,6 +485,31 @@ class TensorOpsStructureSuite extends DimwitTest:
       unstacked(1) should approxEqual(Tensor1(Axis[B]).fromArray(Array(3.0f, 4.0f)))
       unstacked(2) should approxEqual(Tensor1(Axis[B]).fromArray(Array(5.0f, 6.0f)))
 
+    it("should correctly unstack a 3D tensor along the first axis"):
+      val data = Tensor3(Axis[A], Axis[B], Axis[C]).fromArray(
+        Array(
+          Array(
+            Array(1.0f, 2.0f),
+            Array(3.0f, 4.0f)
+          ),
+          Array(
+            Array(2.0f, 5.0f),
+            Array(0.0f, 3.0f)
+          ),
+          Array(
+            Array(99.0f, 13.0f),
+            Array(0.0f, 22.0f)
+          )
+        )
+      )
+
+      data.shape.dimensions shouldBe List(3, 2, 2)
+
+      val unstacked = data.unstack(Axis[A])
+      unstacked.length shouldBe 3
+      unstacked.foreach: slice =>
+        slice.shape.dimensions shouldBe List(2, 2)
+
     it("unstack ∘ stack is identity"):
       val t1 = Tensor1(Axis[B]).fromArray(Array(1.0f, 2.0f))
       val t2 = Tensor1(Axis[B]).fromArray(Array(3.0f, 4.0f))
