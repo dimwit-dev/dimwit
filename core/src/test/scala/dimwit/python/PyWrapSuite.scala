@@ -77,7 +77,7 @@ class PyWrapSuite extends DimwitTest:
       // Call through a Python lambda that just forwards to pyFn
       val caller = py.eval("lambda fn, x: fn(x)")
       val input = Tensor1(Axis[A]).fromArray(Array(2f, 3f, 4f))
-      val pyResult = caller(pyFn, dimwit.autodiff.TensorTree[Tensor1[A, Float32]].toPyTree(input))
-      val result = dimwit.autodiff.TensorTree[Tensor1[A, Float32]].fromPyTree(pyResult)
+      val pyResult = caller(pyFn, dimwit.tensortree.TensorTree[Tensor1[A, Float32]].toPyTree(input))
+      val result = dimwit.tensortree.TensorTree[Tensor1[A, Float32]].fromPyTree(pyResult)
 
       result should approxEqual(Tensor1(Axis[A]).fromArray(Array(6f, 9f, 12f)))

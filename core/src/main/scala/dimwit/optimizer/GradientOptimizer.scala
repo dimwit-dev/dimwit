@@ -1,8 +1,9 @@
 package dimwit.optimizer
 
 import dimwit.*
-import dimwit.autodiff.FloatTree.*
-import dimwit.autodiff.FloatTree.ops.*
+import dimwit.tensortree.*
+import dimwit.tensortree.FloatTree.*
+import dimwit.tensortree.FloatTree.ops.*
 import dimwit.autodiff.*
 
 /** Gradient optimizer interface with functional state management.

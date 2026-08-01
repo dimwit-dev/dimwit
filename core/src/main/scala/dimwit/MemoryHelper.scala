@@ -1,6 +1,6 @@
 package dimwit
 
-import dimwit.autodiff.TensorTree
+import dimwit.tensortree.TensorTree
 import me.shadaj.scalapy.py
 
 private[dimwit] object MemoryHelper:

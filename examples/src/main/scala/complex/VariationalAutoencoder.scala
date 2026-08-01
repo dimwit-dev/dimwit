@@ -2,7 +2,7 @@ package examples.complex.vae
 
 import dimwit.Conversions.given
 import dimwit.*
-import dimwit.autodiff.FloatTree.*
+import dimwit.tensortree.FloatTree.*
 import dimwit.autodiff.*
 import dimwit.nn.ActivationFunctions.relu
 import dimwit.nn.ActivationFunctions.sigmoid
