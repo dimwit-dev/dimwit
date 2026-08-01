@@ -142,3 +142,24 @@ object FloatTree:
         p.map([T <: Tuple] => (n: Labels[T]) ?=> (a: Tensor[T, V]) => a.asFloat(vtype)).asInstanceOf[F[NewV]]
 
 type FloatTreeFor[V] = [P] =>> FloatTree[P, V]
+
+/** A typeclass that proves P is a FloatTree, hiding the specific float type V
+  * from method signatures while keeping the evidence available.
+  */
+trait IsFloatTree[P]:
+  type V
+  given isFloating: IsFloating[V]
+  given floatTree: FloatTree[P, V]
+  given tensorTree: TensorTree[P]
+
+object IsFloatTree:
+  // The compiler automatically packages a FloatTree[P, V] into an IsFloatTree[P]
+  given pack[P, V0](using ft: FloatTree[P, V0], tt: TensorTree[P], isF: IsFloating[V0]): IsFloatTree[P] with
+    type V = V0
+    val isFloating = isF
+    val floatTree = ft
+    val tensorTree = tt
+
+  given unpackFloatTree[P](using isFT: IsFloatTree[P]): FloatTree[P, isFT.V] = isFT.floatTree
+  given unpackIsFloating[P](using isFT: IsFloatTree[P]): IsFloating[isFT.V] = isFT.isFloating
+  given unpackTensorTree[P](using isFT: IsFloatTree[P]): TensorTree[P] = isFT.tensorTree
