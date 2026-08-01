@@ -758,7 +758,8 @@ Use **case classes** to group parameters. DimWit automatically derives `TensorTr
 
 ```scala
 import dimwit.*
-import dimwit.autodiff.{TensorTree, FloatTree, Autodiff}
+import dimwit.autodiff.{Autodiff}
+import dimwit.tensortree.{TensorTree, FloatTree}
 
 trait Feature derives Label
 trait Hidden derives Label
@@ -1283,23 +1284,23 @@ val wrong = Autodiff.grad(nonScalar)  // Use jacobian instead
 //  [Input, V]
 //   (f: Input => dimwit.tensor.Tensor0[V])
 //     (using evidence$1: dimwit.tensor.TensorOps.IsFloating[V],
-//       inTree: dimwit.autodiff.TensorTree[Input], outTree:
-//       dimwit.autodiff.TensorTree[dimwit.tensor.Tensor0[V]]): Input =>
+//       inTree: dimwit.tensortree.TensorTree[Input], outTree:
+//       dimwit.tensortree.TensorTree[dimwit.tensor.Tensor0[V]]): Input =>
 //       dimwit.autodiff.Grad[Input]
 //  [T1, T2, T3, V²]
 //   (f: (T1, T2, T3) => dimwit.tensor.Tensor0[V²])
 //     (using evidence$1²: dimwit.tensor.TensorOps.IsFloating[V²],
-//       t1Tree: dimwit.autodiff.TensorTree[T1],
-//       t2Tree: dimwit.autodiff.TensorTree[T2],
-//       t3Tree: dimwit.autodiff.TensorTree[T3], outTree²:
-//       dimwit.autodiff.TensorTree[dimwit.tensor.Tensor0[V²]]): (T1, T2, T3) =>
+//       t1Tree: dimwit.tensortree.TensorTree[T1],
+//       t2Tree: dimwit.tensortree.TensorTree[T2],
+//       t3Tree: dimwit.tensortree.TensorTree[T3], outTree²:
+//       dimwit.tensortree.TensorTree[dimwit.tensor.Tensor0[V²]]): (T1, T2, T3) =>
 //       dimwit.autodiff.Grad[(T1, T2, T3)]
 //  [T1², T2², V³]
 //   (f: (T1², T2²) => dimwit.tensor.Tensor0[V³])
 //     (using evidence$1³: dimwit.tensor.TensorOps.IsFloating[V³],
-//       t1Tree²: dimwit.autodiff.TensorTree[T1²],
-//       t2Tree²: dimwit.autodiff.TensorTree[T2²], outTree³:
-//       dimwit.autodiff.TensorTree[dimwit.tensor.Tensor0[V³]]): (T1², T2²) =>
+//       t1Tree²: dimwit.tensortree.TensorTree[T1²],
+//       t2Tree²: dimwit.tensortree.TensorTree[T2²], outTree³:
+//       dimwit.tensortree.TensorTree[dimwit.tensor.Tensor0[V³]]): (T1², T2²) =>
 //       dimwit.autodiff.Grad[(T1², T2²)]
 // match arguments (dimwit.tensor.Tensor1[MdocApp12.this.A, dimwit.Float32] =>
 //   dimwit.tensor.Tensor1[MdocApp12.this.A, dimwit.Float32])

@@ -573,7 +573,8 @@ Use **case classes** to group parameters. DimWit automatically derives `TensorTr
 
 ```scala mdoc:reset:silent
 import dimwit.*
-import dimwit.autodiff.{TensorTree, FloatTree, Autodiff}
+import dimwit.autodiff.{Autodiff}
+import dimwit.tensortree.{TensorTree, FloatTree}
 
 trait Feature derives Label
 trait Hidden derives Label
