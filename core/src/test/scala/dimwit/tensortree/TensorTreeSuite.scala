@@ -22,6 +22,17 @@ class TensorTreeSuite extends DimwitTest:
       tree2.counts should equal(params.counts)
       tree2.flags should equal(params.flags)
 
+    it("named tuple"):
+      type Data = (numbers: Tensor1[A, Float32], counts: Tensor1[A, Int32])
+      val params: Data = (
+        numbers = Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)),
+        counts = Tensor1(Axis[A]).fromArray(Array(1, 2, 3))
+      )
+      val tree = TensorTree[Data]
+      val tree2 = tree.map(params, [T <: Tuple, V] => (labels: Labels[T]) ?=> (x: Tensor[T, V]) => x)
+      tree2.numbers should approxEqual(params.numbers)
+      tree2.counts should equal(params.counts)
+
   describe("zipmap"):
     it("1-level case class"):
       case class Params(
@@ -36,6 +47,15 @@ class TensorTreeSuite extends DimwitTest:
         Tensor1(Axis[A]).fromArray(Array(0.4f, 0.5f, 0.6f)),
         Tensor0(1)
       )
+      val ftTree = TensorTree[Params]
+      val res = ftTree.zipMap(params1, params2, [T <: Tuple, V] => (labels: Labels[T]) ?=> (x1: Tensor[T, V], x2: Tensor[T, V]) => maximum(x1, x2))
+      res.w1 should approxEqual(maximum(params1.w1, params2.w1))
+      res.b1 should equal(maximum(params1.b1, params2.b1))
+
+    it("named tuple"):
+      type Params = (w1: Tensor1[A, Float32], b1: Tensor0[Int32])
+      val params1: Params = (w1 = Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)), b1 = Tensor0(0))
+      val params2: Params = (w1 = Tensor1(Axis[A]).fromArray(Array(0.4f, 0.5f, 0.6f)), b1 = Tensor0(1))
       val ftTree = TensorTree[Params]
       val res = ftTree.zipMap(params1, params2, [T <: Tuple, V] => (labels: Labels[T]) ?=> (x1: Tensor[T, V], x2: Tensor[T, V]) => maximum(x1, x2))
       res.w1 should approxEqual(maximum(params1.w1, params2.w1))
@@ -76,6 +96,17 @@ class TensorTreeSuite extends DimwitTest:
       )
       val tree = TensorTree[List[Params]]
       val leavesCount = tree.mapLeaves(paramsList, [T <: Tuple, V] => (labels: Labels[T]) ?=> (x: Tensor[T, V]) => 1).sum
+      leavesCount should equal(3)
+
+    it("named tuple"):
+      type Data = (numbers: Tensor1[A, Float32], counts: Tensor1[A, Int32], flags: Tensor1[A, Bool])
+      val params: Data = (
+        numbers = Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)),
+        counts = Tensor1(Axis[A]).fromArray(Array(1, 2, 3)),
+        flags = Tensor1(Axis[A]).fromArray(Array(true, false, true))
+      )
+      val tree = TensorTree[Data]
+      val leavesCount = tree.mapLeaves(params, [T <: Tuple, V] => (labels: Labels[T]) ?=> (x: Tensor[T, V]) => 1).sum
       leavesCount should equal(3)
 
   describe("foreach"):
@@ -144,6 +175,21 @@ class TensorTreeSuite extends DimwitTest:
       )
       paths.toList should equal(List("layers[0]", "layers[1]", "extra._1", "extra._2"))
 
+    it("named tuple (paths fall back to the underlying tuple positions)"):
+      type Params = (w1: Tensor1[A, Float32], b1: Tensor0[Int32])
+      val params: Params = (w1 = Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)), b1 = Tensor0(0))
+      val tree = TensorTree[Params]
+      var paths = Vector.empty[String]
+      tree.mapWithName(
+        params,
+        [T <: Tuple, V] =>
+          (labels: Labels[T]) ?=>
+            (path: String, x: Tensor[T, V]) =>
+              paths = paths :+ path
+              x
+      )
+      paths.toList should equal(List("_1", "_2"))
+
   describe("foreachWithName"):
     it("1-level case class"):
       case class Data(
@@ -182,3 +228,89 @@ class TensorTreeSuite extends DimwitTest:
               paths = paths :+ path
       )
       paths.toList should equal(List("inner1.w", "inner2.w"))
+
+  describe("toPyTree / fromPyTree (fromPyTree(toPyTree(x)) == x)"):
+    it("1-level case class"):
+      case class Params(
+          val w: Tensor1[A, Float32],
+          val b: Tensor0[Float32]
+      )
+      val params = Params(
+        Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)),
+        Tensor0(0.5f)
+      )
+
+      val tc = TensorTree[Params]
+      val reconstructed = tc.fromPyTree(tc.toPyTree(params))
+
+      reconstructed.w should approxEqual(params.w)
+      reconstructed.b should approxEqual(params.b)
+
+    it("2-level case class"):
+      case class LayerParams(
+          val w: Tensor2[A, B, Float32],
+          val b: Tensor0[Float32]
+      )
+      case class ModelParams(
+          val layer1: LayerParams,
+          val layer2: LayerParams
+      )
+
+      val params = ModelParams(
+        LayerParams(
+          Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(0.1f, 0.2f), Array(0.3f, 0.4f))),
+          Tensor0(0.25f)
+        ),
+        LayerParams(
+          Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(0.5f, 0.6f), Array(0.7f, 0.8f))),
+          Tensor0(0.75f)
+        )
+      )
+
+      val tc = TensorTree[ModelParams]
+      val reconstructed = tc.fromPyTree(tc.toPyTree(params))
+
+      reconstructed.layer1.w should approxEqual(params.layer1.w)
+      reconstructed.layer1.b should approxEqual(params.layer1.b)
+      reconstructed.layer2.w should approxEqual(params.layer2.w)
+      reconstructed.layer2.b should approxEqual(params.layer2.b)
+
+    it("tuple"):
+      val myTuple = (
+        Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)),
+        Tensor0(0.5f)
+      )
+
+      val tc = TensorTree[(Tensor1[A, Float32], Tensor0[Float32])]
+      val reconstructed = tc.fromPyTree(tc.toPyTree(myTuple))
+
+      reconstructed._1 should approxEqual(myTuple._1)
+      reconstructed._2 should approxEqual(myTuple._2)
+
+    it("case class with list"):
+      case class Params(
+          val layerWeights: List[Tensor2[A, B, Float32]]
+      )
+      val params = Params(
+        List(
+          Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(0.1f, 0.2f), Array(0.3f, 0.4f))),
+          Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.1f, 1.2f), Array(1.3f, 1.4f)))
+        )
+      )
+
+      val tc = TensorTree[Params]
+      val reconstructed = tc.fromPyTree(tc.toPyTree(params))
+
+      reconstructed.layerWeights.size shouldBe params.layerWeights.size
+      reconstructed.layerWeights(0) should approxEqual(params.layerWeights(0))
+      reconstructed.layerWeights(1) should approxEqual(params.layerWeights(1))
+
+    it("named tuple"):
+      type Params = (w: Tensor1[A, Float32], b: Tensor0[Float32])
+      val params: Params = (w = Tensor1(Axis[A]).fromArray(Array(0.1f, 0.2f, 0.3f)), b = Tensor0(0.5f))
+
+      val tc = TensorTree[Params]
+      val reconstructed = tc.fromPyTree(tc.toPyTree(params))
+
+      reconstructed.w should approxEqual(params.w)
+      reconstructed.b should approxEqual(params.b)

@@ -3,6 +3,7 @@ package dimwit.tensortree
 import dimwit.tensor.TensorOps.*
 import dimwit.tensor.*
 
+import scala.NamedTuple.NamedTuple
 import scala.deriving.*
 import scala.util.NotGiven
 
@@ -30,6 +31,9 @@ object FloatTree:
   given listInstance[A, V](using FloatTree[A, V]): FloatTree[List[A], V] with {}
 
   given mapInstance[K, A, V](using FloatTree[A, V]): FloatTree[Map[K, A], V] with {}
+
+  // 4. Named tuples, delegating to the FloatTree instance of the underlying value tuple
+  given namedTupleInstance[N <: Tuple, V <: Tuple, Fl](using FloatTree[V, Fl]): FloatTree[NamedTuple[N, V], Fl] with {}
 
   inline given derived[P <: Product, V](using
       evNotTuple: NotGiven[P <:< Tuple],
