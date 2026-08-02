@@ -553,9 +553,9 @@ object StructuralOps:
         ev: AxisRemover[T, L],
         labelR: Labels[ev.RemainingAxes]
     ): Seq[Tensor[ev.RemainingAxes, V]] =
-      val axisIdx = ev.index
-      val unstacked = Jax.jnp.split(tensor.jaxValue, tensor.shape.dimensions(axisIdx), axis = axisIdx).as[Seq[Jax.PyDynamic]]
-      unstacked.map(x => Tensor[ev.RemainingAxes, V](x))
+      (0 until tensor.shape.dimensions(ev.index)).map: i =>
+        val slicedJax = Jax.jnp.take(tensor.jaxValue, Jax.jnp.array(i), axis = ev.index)
+        Tensor[ev.RemainingAxes, V](slicedJax)
 
     /** splits the tensor into chunks of the specified size along the given axis
       * returning a sequence of tensors corresponding to the chunks.
