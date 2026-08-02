@@ -709,7 +709,7 @@ val lossFunc = mse(trainData, trainLabels)
 val gradFunc = Autodiff.grad(lossFunc)
 
 // Create optimizer
-val optimizer = GradientDescent(learningRate = Tensor0(0.01f))
+val optimizer = GradientDescent(learningRate = 0.01f)
 
 // Training loop with iterator
 val trained = optimizer.iterate(initModelParams)(gradFunc)
@@ -726,7 +726,7 @@ val trained = optimizer.iterate(initModelParams)(gradFunc)
 import dimwit.optimizer.Lion
 
 // Lion optimizer with momentum
-val lionOptimizer = Lion(learningRate = Tensor0(1e-3f), beta1 = Tensor0(0.9f), beta2 = Tensor0(0.99f), weightDecay = Tensor0(0.0f))
+val lionOptimizer = Lion(learningRate = 1e-3f, beta1 = 0.9f, beta2 = 0.99f, weightDecay = 0.0f)
 
 // Training with Lion
 val trainedLion = lionOptimizer.iterate(initModelParams)(gradFunc)
@@ -769,7 +769,7 @@ val initRegressionParams = RegressionParams(initSlope, initIntercept)
 
 // Train
 val regressionGrad = Autodiff.grad(regressionLoss(xData, yData))
-val gdOptimizer = GradientDescent(learningRate = Tensor0(0.1f))
+val gdOptimizer = GradientDescent(learningRate = 0.1f)
 
 val finalParams = gdOptimizer.iterate(initRegressionParams)(regressionGrad)
   .take(100)
