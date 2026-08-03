@@ -6,6 +6,7 @@ import dimwit.tensor.Tensor
 import dimwit.tensor.Tensor0
 import dimwit.tensor.TensorOps.IsFloating
 import dimwit.tensor.TupleHelpers.PrimeConcatType
+import dimwit.tensortree.TensorTree
 import me.shadaj.scalapy.py
 
 object Autodiff:

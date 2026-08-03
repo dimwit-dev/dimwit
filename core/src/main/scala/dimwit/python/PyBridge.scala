@@ -1,7 +1,7 @@
 package dimwit.python
 
 import dimwit.OnError
-import dimwit.autodiff.TensorTree
+import dimwit.tensortree.TensorTree
 import dimwit.jax.Jax
 import dimwit.tensor.*
 import me.shadaj.scalapy.py

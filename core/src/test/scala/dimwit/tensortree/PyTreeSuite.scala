@@ -1,4 +1,4 @@
-package dimwit.autodiff
+package dimwit.tensortree
 
 import dimwit.*
 import dimwit.jax.Jax

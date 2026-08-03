@@ -1,9 +1,9 @@
-package dimwit.autodiff
+package dimwit.tensortree
 
 import dimwit.*
 import dimwit.Conversions.given
-import dimwit.autodiff.FloatTree.*
-import dimwit.autodiff.FloatTree.ops.*
+import dimwit.tensortree.FloatTree.*
+import dimwit.tensortree.FloatTree.ops.*
 
 class FloatTensorTreeSuite extends DimwitTest:
 
