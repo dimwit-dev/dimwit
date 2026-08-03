@@ -108,6 +108,13 @@ object FloatTree:
       def **![P](p1: P)(using TensorTree[P], FloatTree[P, V]): P = p1.map([T <: Tuple] => (n: Labels[T]) ?=> (a: Tensor[T, V]) => a *! p2)
       def `//!`[P](p1: P)(using TensorTree[P], FloatTree[P, V]): P = p1.map([T <: Tuple] => (n: Labels[T]) ?=> (a: Tensor[T, V]) => a /! p2)
 
+    // Scalar broadcast extensions (Tensor0 op Tree)
+    extension [V: IsFloating](p2: Double)
+      def ++![P](p1: P)(using TensorTree[P], FloatTree[P, V]): P = Tensor0(VType[V])(p2) ++! p1
+      def --![P](p1: P)(using TensorTree[P], FloatTree[P, V]): P = Tensor0(VType[V])(p2) --! p1
+      def **![P](p1: P)(using TensorTree[P], FloatTree[P, V]): P = Tensor0(VType[V])(p2) **! p1
+      def `//!`[P](p1: P)(using TensorTree[P], FloatTree[P, V]): P = Tensor0(VType[V])(p2) `//!` p1
+
     // Tree extensions (Tree op Tree, Tree op Scalar, and math ops)
     // Excluded for bare Tensor[T, V] to avoid conflicts with tensor's own operators
     extension [P, V](p1: P)(using tt: TensorTree[P], ft: FloatTree[P, V], isF: IsFloating[V], ev: NotGiven[IsFloatingTensor[P, V]])
