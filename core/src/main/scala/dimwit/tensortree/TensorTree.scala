@@ -6,6 +6,7 @@ import dimwit.tensor.DType.Float32
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
 
+import scala.NamedTuple.NamedTuple
 import scala.compiletime.*
 import scala.deriving.*
 
@@ -199,6 +200,31 @@ object TensorTree: // extends TensorTreeLowPriority:
       val pyList = pyVal.as[py.Dynamic]
       val len = py.Dynamic.global.len(pyList).as[Int]
       List.tabulate(len)(i => tp.fromPyTree(pyList.bracketAccess(i)))
+
+  given namedTupleInstance[N <: Tuple, V <: Tuple](using tt: TensorTree[V]): TensorTree[NamedTuple[N, V]] with
+    def map(p: NamedTuple[N, V], f: [T <: Tuple, V2] => (Labels[T]) ?=> (Tensor[T, V2] => Tensor[T, V2])): NamedTuple[N, V] =
+      tt.map(p.toTuple, f)
+
+    def mapWithName(p: NamedTuple[N, V], f: [T <: Tuple, V2] => (Labels[T]) ?=> ((String, Tensor[T, V2]) => Tensor[T, V2]), path: String = ""): NamedTuple[N, V] =
+      tt.mapWithName(p.toTuple, f, path)
+
+    def mapLeaves[A](p: NamedTuple[N, V], f: [T <: Tuple, V2] => (Labels[T]) ?=> (Tensor[T, V2] => A)): Iterator[A] =
+      tt.mapLeaves(p.toTuple, f)
+
+    def foreach(p: NamedTuple[N, V], f: [T <: Tuple, V2] => (Labels[T]) ?=> (Tensor[T, V2] => Unit)): Unit =
+      tt.foreach(p.toTuple, f)
+
+    def foreachWithName(p: NamedTuple[N, V], f: [T <: Tuple, V2] => (Labels[T]) ?=> ((String, Tensor[T, V2]) => Unit), path: String = ""): Unit =
+      tt.foreachWithName(p.toTuple, f, path)
+
+    def zipMap(p1: NamedTuple[N, V], p2: NamedTuple[N, V], f: [T <: Tuple, V2] => (Labels[T]) ?=> ((Tensor[T, V2], Tensor[T, V2]) => Tensor[T, V2])): NamedTuple[N, V] =
+      tt.zipMap(p1.toTuple, p2.toTuple, f)
+
+    def toPyTree(p: NamedTuple[N, V]): Jax.PyAny =
+      tt.toPyTree(p.toTuple)
+
+    def fromPyTree(pyVal: Jax.PyAny): NamedTuple[N, V] =
+      tt.fromPyTree(pyVal)
 
   /** automatically derive a TensorTree instance for any case class (or product type)
     * whose fields all have TensorTree instances.
