@@ -1,6 +1,6 @@
 package dimwit.random
 
-import dimwit.autodiff.TensorTree
+import dimwit.tensortree.TensorTree
 import dimwit.jax.Jax
 import dimwit.python.PyBridge.liftPyTensor
 import dimwit.tensor.DType.Int32

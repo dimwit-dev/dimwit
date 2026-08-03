@@ -1,4 +1,4 @@
-package dimwit.autodiff
+package dimwit.tensortree
 
 import dimwit.tensor.TensorOps.*
 import dimwit.tensor.*
