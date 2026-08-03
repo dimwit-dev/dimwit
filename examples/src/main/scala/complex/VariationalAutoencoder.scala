@@ -209,7 +209,7 @@ object VariationalAutoencoderExample:
       losses.sum / batchSize.toFloat
 
     val batches = trainImages.chunk(Axis[TrainSample], numSamples / batchSize)
-    val optimizer = GradientDescent(learningRate = Tensor0(learningRate))
+    val optimizer = GradientDescent(learningRate = learningRate)
     def trainBatch(trainKey: Random.Key, batch: Tensor3[TrainSample, Height, Width, Float32], params: Params): Params =
       val grads = grad(batchLoss(trainKey, batch))(params)
       val (newParams, _) = optimizer.update(grads, params, ())
