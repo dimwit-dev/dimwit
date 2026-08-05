@@ -1,4 +1,4 @@
-package examples.complex.vae
+package dimwit.examples.complex.vae
 
 import dimwit.Conversions.given
 import dimwit.*
@@ -11,7 +11,7 @@ import dimwit.python.PyBridge.toPyTensor
 import dimwit.random.Random
 import dimwit.random.Random.Key
 import dimwit.stats.Normal
-import examples.dataset.MNISTLoader
+import dimwit.examples.dataset.MNISTLoader
 
 import MNISTLoader.Sample
 import MNISTLoader.TrainSample

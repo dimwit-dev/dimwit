@@ -1,4 +1,4 @@
-package examples.basic.kmeans
+package dimwit.examples.basic.kmeans
 
 import dimwit.Conversions.given
 import dimwit.*
