@@ -114,6 +114,14 @@ object Random:
 
       def fromPyTree(pyVal: Jax.PyAny): Key = Key(pyVal.as[Jax.PyDynamic])
 
+      def toNumpyTree(p: Key): Jax.PyAny =
+        // Extract key data for numpy serialization using key_data
+        Jax.np.asarray(Jax.jax.device_get(Jax.jax.random.key_data(p.jaxKey)))
+
+      def fromNumpyTree(pyVal: Jax.PyAny): Key =
+        // Reconstruct key from numpy array using wrap_key_data
+        Key(Jax.jax.random.wrap_key_data(Jax.jnp.asarray(pyVal.as[Jax.PyDynamic])))
+
     /** Create a random key from an integer seed */
     def apply(seed: Long): Key = Key(Jax.jrandom.key(seed))
 

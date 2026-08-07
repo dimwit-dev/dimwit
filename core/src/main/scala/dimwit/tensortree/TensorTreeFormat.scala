@@ -25,8 +25,7 @@ object TensorTreeFormat:
     private lazy val builtins = py.module("builtins")
 
     def write[P](p: P, path: Path)(using tt: TensorTree[P]): Unit =
-      val toHost = (x: Jax.PyDynamic) => Jax.np.asarray(Jax.jax.device_get(x))
-      val numpyTree = Jax.jax.tree_util.tree_map(toHost, tt.toPyTree(p))
+      val numpyTree = tt.toNumpyTree(p)
       val file = builtins.open(path.toAbsolutePath().toString(), "wb").as[py.Dynamic]
       try pickle.dump(numpyTree, file)
       finally file.close()
@@ -36,5 +35,4 @@ object TensorTreeFormat:
       val numpyTree =
         try pickle.load(file).as[py.Dynamic]
         finally file.close()
-      val toDevice = (x: Jax.PyDynamic) => Jax.jnp.asarray(x)
-      tt.fromPyTree(Jax.jax.tree_util.tree_map(toDevice, numpyTree))
+      tt.fromNumpyTree(numpyTree)
