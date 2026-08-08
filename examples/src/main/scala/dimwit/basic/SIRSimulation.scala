@@ -1,4 +1,4 @@
-package src.main.scala.basic
+package dimwit.examples.basic
 
 import dimwit.*
 

@@ -1,4 +1,4 @@
-package examples.basic
+package dimwit.examples.basic
 
 import dimwit.Conversions.given
 import dimwit.*
