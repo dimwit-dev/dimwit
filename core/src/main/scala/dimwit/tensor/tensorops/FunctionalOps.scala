@@ -17,40 +17,46 @@ import me.shadaj.scalapy.py.SeqConverters
 import me.shadaj.scalapy.readwrite.Reader
 import me.shadaj.scalapy.readwrite.Writer
 
-trait ZipVmapResult[L: Label, FOut, MOut]:
+type ZipVmapOut[L, FOut] = FOut match
+  case Tensor[shape, v] => Tensor[L *: shape, v]
+  case EmptyTuple       => EmptyTuple
+  case h *: t           => ZipVmapOut[L, h] *: ZipVmapOut[L, t]
+
+trait ZipVmapResult[L: Label, FOut]:
   type MappedOut
   def toPy(out: FOut): py.Dynamic
-  def fromPy(pyOut: py.Dynamic): MOut
+  def fromPy(pyOut: py.Dynamic): ZipVmapOut[L, FOut]
 
 object ZipVmapResult:
 
   // Single Tensor case
-  given singleTensor[L: Label, Shape <: Tuple: Labels, V]: ZipVmapResult[L, Tensor[Shape, V], Tensor[L *: Shape, V]] with
+  given singleTensor[L: Label, Shape <: Tuple: Labels, V]: ZipVmapResult[L, Tensor[Shape, V]] with
     def toPy(out: Tensor[Shape, V]): py.Dynamic = out.jaxValue
     def fromPy(pyOut: py.Dynamic): Tensor[L *: Shape, V] = Tensor(pyOut)
 
   // Empty Tuple case
-  given emptyTuple[L: Label]: ZipVmapResult[L, EmptyTuple, EmptyTuple] with
+  given emptyTuple[L: Label]: ZipVmapResult[L, EmptyTuple] with
     def toPy(out: EmptyTuple): py.Dynamic = py.Dynamic.global.tuple(Seq.empty[py.Dynamic].toPythonProxy)
     def fromPy(pyOut: py.Dynamic): EmptyTuple = EmptyTuple
 
   // Inductive Tuple case (Pairs, Triples, N-tuples)
-  given consTuple[L: Label, H, HOut, T <: Tuple, TOut <: Tuple](using
-      hRes: ZipVmapResult[L, H, HOut],
-      tRes: ZipVmapResult[L, T, TOut]
-  ): ZipVmapResult[L, H *: T, HOut *: TOut] with
+  given consTuple[L: Label, H, T <: Tuple](using
+      hRes: ZipVmapResult[L, H],
+      tRes: ZipVmapResult[L, T]
+  ): ZipVmapResult[L, H *: T] with
 
     def toPy(out: H *: T): py.Dynamic =
       val headPy = hRes.toPy(out.head)
       val tailSeq = tRes.toPy(out.tail).as[Seq[py.Dynamic]]
       py.Dynamic.global.tuple((headPy +: tailSeq).toPythonProxy)
 
-    def fromPy(pyOut: py.Dynamic): HOut *: TOut =
+    def fromPy(pyOut: py.Dynamic): ZipVmapOut[L, H *: T] =
       val seq = pyOut.as[Seq[py.Dynamic]]
       val h = hRes.fromPy(seq.head)
       val tailPy = py.Dynamic.global.tuple(seq.tail.toPythonProxy)
       val t = tRes.fromPy(tailPy)
-      h *: t
+
+      (h *: t.asInstanceOf[Tuple]).asInstanceOf[ZipVmapOut[L, H *: T]]
 
 object FunctionalOps:
 
@@ -86,7 +92,7 @@ object FunctionalOps:
       *   ...
       * }
       */
-    def zipvmap[L: Label, Inputs <: Tuple, FOut, MOut](
+    def zipvmap[L: Label, Inputs <: Tuple, FOut](
         axis: Axis[L]
     )(
         tensors: Inputs
@@ -95,8 +101,8 @@ object FunctionalOps:
     )(
         f: TensorsOf[ev.RemainingAxes, ValuesOf[Inputs]] => FOut
     )(using
-        outMapper: ZipVmapResult[L, FOut, MOut]
-    ): MOut =
+        outMapper: ZipVmapResult[L, FOut]
+    ): ZipVmapOut[L, FOut] =
       val fpy = (args: py.Dynamic) =>
         OnError.traceStack:
           val tensorList = args.as[Seq[py.Dynamic]].zip(ev.shapesLabels).map: (jaxArr, labels) =>
