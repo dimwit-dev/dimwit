@@ -677,6 +677,7 @@ println(s"Block Hessian shapes: ${h_x1x1.shape}, ${h_x1x2.shape}, ${h_x2x1.shape
 
 ```scala mdoc:reset:silent
 import dimwit.*
+import dimwit.Conversions.given
 import dimwit.optimizer.{GradientDescent, GradientOptimizer}
 import dimwit.random.Random
 
@@ -710,7 +711,7 @@ val lossFunc = mse(trainData, trainLabels)
 val gradFunc = Autodiff.grad(lossFunc)
 
 // Create optimizer
-val optimizer = GradientDescent(learningRate = 0.01f)
+val optimizer = GradientDescent.of(VType[Float32])(learningRate = 0.01f)
 
 // Training loop with iterator
 val trained = optimizer.iterate(initModelParams)(gradFunc)
@@ -725,9 +726,10 @@ val trained = optimizer.iterate(initModelParams)(gradFunc)
 
 ```scala mdoc:silent
 import dimwit.optimizer.Lion
+import dimwit.Conversions.given // enables implicit conversion from Float to Tensor[V]
 
 // Lion optimizer with momentum
-val lionOptimizer = Lion(learningRate = 1e-3f, beta1 = 0.9f, beta2 = 0.99f, weightDecay = 0.0f)
+val lionOptimizer = Lion.of(VType[Float32])(learningRate = 1e-3f, beta1 = 0.9f, beta2 = 0.99f, weightDecay = 0.0f)
 
 // Training with Lion
 val trainedLion = lionOptimizer.iterate(initModelParams)(gradFunc)
@@ -739,6 +741,8 @@ val trainedLion = lionOptimizer.iterate(initModelParams)(gradFunc)
 ### Complete Training Example: Linear Regression
 
 ```scala mdoc:silent
+import dimwit.Conversions.given // enables implicit conversion from Float to Tensor[V]
+
 // Define problem dimensions
 trait Sample derives Label
 trait InputDim derives Label
@@ -770,7 +774,7 @@ val initRegressionParams = RegressionParams(initSlope, initIntercept)
 
 // Train
 val regressionGrad = Autodiff.grad(regressionLoss(xData, yData))
-val gdOptimizer = GradientDescent(learningRate = 0.1f)
+val gdOptimizer = GradientDescent.of(VType[Float32])(learningRate = 0.1f)
 
 val finalParams = gdOptimizer.iterate(initRegressionParams)(regressionGrad)
   .take(100)

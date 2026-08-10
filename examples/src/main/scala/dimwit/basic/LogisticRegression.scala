@@ -125,7 +125,7 @@ object LogisticRegression:
     val trainLoss = jit(BinaryLogisticRegression.loss(trainingData, trainLabels))
     val valLoss = jit(BinaryLogisticRegression.loss(valData, valLabels))
     val learningRate = 5e-1f
-    val gd = GradientDescent(learningRate)
+    val gd = GradientDescent.of(VType[Float32])(learningRate)
 
     // Training loop
     val numiterations = 1000

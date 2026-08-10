@@ -11,6 +11,7 @@ Before we start exploring the features of DimWit, let's look at a simple example
 ```scala mdoc:silent
 // main imports for basic tensor operations and automatic differentiation
 import dimwit.*
+import dimwit.Conversions.given
 import dimwit.Autodiff.grad // TODO replace with cleaner import after PR is merged
 import dimwit.optimizer.GradientDescent // TODO replace with cleaner import after refactoring 
 
@@ -43,7 +44,7 @@ def fit(x: Tensor2[Batch, Feature, Float32], y: Tensor1[Batch, Float32]): Iterat
   val gradFn = grad(loss(x, y))
 
   // gradient based optimization
-  val gd = GradientDescent(learningRate = 0.1f) // this is wrong, should be 0.1f not Tensor0
+  val gd = GradientDescent.of(VType[Float32])(learningRate = 0.1f) // this is wrong, should be 0.1f not Tensor0
   gd.iterate(p0)(gradFn)
 ```
 

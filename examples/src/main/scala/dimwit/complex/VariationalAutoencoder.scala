@@ -209,34 +209,35 @@ object VariationalAutoencoderExample:
       losses.sum / batchSize.toFloat
 
     val batches = trainImages.chunk(Axis[TrainSample], numSamples / batchSize)
-    val optimizer = GradientDescent(learningRate = learningRate)
-    def trainBatch(trainKey: Random.Key, batch: Tensor3[TrainSample, Height, Width, Float32], params: Params): Params =
+    val optimizer = GradientDescent.of(VType[Float32])(learningRate = learningRate)
+    def trainBatch(trainKey: Random.Key, batch: Tensor3[TrainSample, Height, Width, Float32], params: Params, state: optimizer.State[Params]): (Params, optimizer.State[Params]) =
       val grads = grad(batchLoss(trainKey, batch))(params)
-      val (newParams, _) = optimizer.update(grads, params, ())
-      newParams
+      val (newParams, newState) = optimizer.update(grads, params, state)
+      (newParams, newState)
 
     val (jitDonate, jitStep, jitReclaim) = jitDonating(trainBatch)
 
-    def trainEpoch(key: Random.Key, epoch: Int, params: Params): Params =
+    def trainEpoch(key: Random.Key, epoch: Int, params: Params, state: optimizer.State[Params]): (Params, optimizer.State[Params]) =
       val batchKeys = key.split(batches.size)
       jitReclaim(
-        batches.zip(batchKeys).foldLeft(jitDonate(params)):
-          case (batchParams, (batch, key)) =>
-            jitStep(key, batch, batchParams)
+        batches.zip(batchKeys).foldLeft(jitDonate(params, state)):
+          case ((batchParams, state), (batch, key)) =>
+            jitStep(key, batch, batchParams, state)
       )
 
     val keysForEpochs = dataKey.split(numEpochs)
 
     val initialParams = Params(encoderParams, decoderParams).map([T <: Tuple] => (n: Labels[T]) ?=> (t: Tensor[T, Float32]) => t *! 0.1f)
+    val initState = optimizer.init(initialParams)
 
-    val trainedParams = (0 until numEpochs).foldLeft(initialParams):
-      case (params, epoch) =>
+    val (trainedParams, _) = (0 until numEpochs).foldLeft(initialParams, initState):
+      case ((params, state), epoch) =>
         timed(s"Evaluation $epoch/$numEpochs"):
           val lossValue = batchLoss(keysForEpochs(epoch), testImages)(params)
           println(s"Test loss in epoch $epoch: $lossValue")
         timed(s"Training $epoch/$numEpochs"):
           dimwit.gc()
-          trainEpoch(keysForEpochs(epoch), epoch, params)
+          trainEpoch(keysForEpochs(epoch), epoch, params, state)
 
     /*
      * Evaluation

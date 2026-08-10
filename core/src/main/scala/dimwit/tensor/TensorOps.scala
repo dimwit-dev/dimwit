@@ -28,9 +28,8 @@ object TensorOps:
     given [V](using ev1: IsFloating[V]): IsNumber[V] = ev1
     given [V](using ev2: IsInteger[V]): IsNumber[V] = ev2
 
-  @implicitNotFound("Operation only valid for Floating tensors.")
-
   /** Type class marker for floating point types (Float32, Float64, etc.). */
+  @implicitNotFound("Operation only valid for Floating tensors.")
   trait IsFloating[V] extends IsNumber[V], HasDType[V]:
     def dtype: DType
 
