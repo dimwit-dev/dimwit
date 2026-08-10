@@ -24,12 +24,12 @@ class GradientOptimizerSuite extends DimwitTest:
 
       nextParams.item shouldBe 1.4f +- 1e-5f
 
-  describe("LearningRateSchedule"):
+  describe("LearningRateScheduler"):
     it("basic"):
       def learningRateSchedule(step: Tensor0[Int32]): Tensor0[Float32] =
         if step.item <= 5 then Tensor0(0.0f)
         else Tensor0(0.1f)
-      val optimizer = LearningRateSchedule.of(VType[Float32])(lr => GradientDescent(lr), learningRateSchedule)
+      val optimizer = LearningRateScheduler.of(VType[Float32])(lr => GradientDescent(lr), learningRateSchedule)
       val x1 = optimizer.iterate(Tensor0(2.0f))(x => Grad(2 * (x + 1))).drop(5).next()
       x1.item shouldBe 2.0f +- 0.1
       val x2 = optimizer.iterate(Tensor0(2.0f))(x => Grad(2 * (x + 1))).drop(1000).next()
