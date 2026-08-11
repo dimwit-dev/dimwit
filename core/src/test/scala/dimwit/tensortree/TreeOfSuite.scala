@@ -2,13 +2,34 @@ package dimwit.tensortree
 
 import dimwit.*
 import dimwit.Conversions.given
-import dimwit.tensortree.FloatTree.*
-import dimwit.tensortree.FloatTree.ops.*
+import dimwit.tensortree.TreeOf.*
+import dimwit.tensortree.TreeOf.given
+import dimwit.tensortree.TreeOf.ops.*
+import dimwit.tensor.DType.float32IsFloating
 
-class FloatTensorTreeSuite extends DimwitTest:
+class TreeOfSuite extends DimwitTest:
 
   describe("map"):
-    it("1-level case class"):
+    it("1-level case class (int32)"):
+      case class Params(
+          val w1: Tensor1[A, Int32],
+          val b1: Tensor0[Int32],
+          val w2: Tensor2[A, B, Int32],
+          val b2: Tensor0[Int32]
+      )
+      val params = Params(
+        Tensor1(Axis[A]).fromArray(Array(1, 2, 3)),
+        Tensor0(5),
+        Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1, 2), Array(3, 4), Array(5, 6))),
+        Tensor0(25)
+      )
+      val res = params.map([T <: Tuple] => (labels: Labels[T]) ?=> (x: Tensor[T, Int32]) => x +! 5)
+      res.w1 should equal(params.w1 +! 5)
+      res.b1 should equal(params.b1 + 5)
+      res.w2 should equal(params.w2 +! 5)
+      res.b2 should equal(params.b2 + 5)
+
+    it("1-level case class (float32)"):
       case class Params(
           val w1: Tensor1[A, Float32],
           val b1: Tensor0[Float32],

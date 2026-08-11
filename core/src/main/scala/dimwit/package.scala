@@ -86,7 +86,7 @@ package object dimwit:
   // Export automatic differentiation
   export dimwit.autodiff.{Autodiff, Grad}
   // Export tensor trees
-  export dimwit.tensortree.{TensorTree, TensorTreeIO, TensorTreeFormat, FloatTree}
+  export dimwit.tensortree.{TensorTree, TensorTreeIO, TensorTreeFormat, TreeOf}
   // Export Just-in-Time compilation
   export dimwit.jax.Jit.{jit, jitDonating, jitDonatingUnsafe}
   export dimwit.jax.EagerCleanup.eagerCleanup

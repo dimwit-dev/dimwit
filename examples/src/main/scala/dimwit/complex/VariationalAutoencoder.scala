@@ -2,7 +2,7 @@ package dimwit.examples.complex.vae
 
 import dimwit.Conversions.given
 import dimwit.*
-import dimwit.tensortree.FloatTree.*
+import dimwit.tensortree.TreeOf.*
 import dimwit.autodiff.*
 import dimwit.nn.ActivationFunctions.relu
 import dimwit.nn.ActivationFunctions.sigmoid
@@ -209,15 +209,15 @@ object VariationalAutoencoderExample:
       losses.sum / batchSize.toFloat
 
     val batches = trainImages.chunk(Axis[TrainSample], numSamples / batchSize)
-    val optimizer = GradientDescent.of(VType[Float32])(learningRate = learningRate)
-    def trainBatch(trainKey: Random.Key, batch: Tensor3[TrainSample, Height, Width, Float32], params: Params, state: optimizer.State[Params]): (Params, optimizer.State[Params]) =
+    val optimizer = GradientDescent(learningRate = learningRate)
+    def trainBatch(trainKey: Random.Key, batch: Tensor3[TrainSample, Height, Width, Float32], params: Params, state: Unit): (Params, Unit) =
       val grads = grad(batchLoss(trainKey, batch))(params)
       val (newParams, newState) = optimizer.update(grads, params, state)
       (newParams, newState)
 
     val (jitDonate, jitStep, jitReclaim) = jitDonating(trainBatch)
 
-    def trainEpoch(key: Random.Key, epoch: Int, params: Params, state: optimizer.State[Params]): (Params, optimizer.State[Params]) =
+    def trainEpoch(key: Random.Key, epoch: Int, params: Params, state: Unit): (Params, Unit) =
       val batchKeys = key.split(batches.size)
       jitReclaim(
         batches.zip(batchKeys).foldLeft(jitDonate(params, state)):

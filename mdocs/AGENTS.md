@@ -573,8 +573,8 @@ Use **case classes** to group parameters. DimWit automatically derives `TensorTr
 
 ```scala mdoc:reset:silent
 import dimwit.*
-import dimwit.autodiff.{Autodiff}
-import dimwit.tensortree.{TensorTree, FloatTree}
+import dimwit.autodiff.Autodiff
+import dimwit.tensortree.TensorTree
 
 trait Feature derives Label
 trait Hidden derives Label
@@ -711,7 +711,7 @@ val lossFunc = mse(trainData, trainLabels)
 val gradFunc = Autodiff.grad(lossFunc)
 
 // Create optimizer
-val optimizer = GradientDescent.of(VType[Float32])(learningRate = 0.01f)
+val optimizer = GradientDescent(learningRate = 0.01f)
 
 // Training loop with iterator
 val trained = optimizer.iterate(initModelParams)(gradFunc)
@@ -729,7 +729,7 @@ import dimwit.optimizer.Lion
 import dimwit.Conversions.given // enables implicit conversion from Float to Tensor[V]
 
 // Lion optimizer with momentum
-val lionOptimizer = Lion.of(VType[Float32])(learningRate = 1e-3f, beta1 = 0.9f, beta2 = 0.99f, weightDecay = 0.0f)
+val lionOptimizer = Lion(learningRate = 1e-3f, beta1 = 0.9f, beta2 = 0.99f, weightDecay = 0.0f)
 
 // Training with Lion
 val trainedLion = lionOptimizer.iterate(initModelParams)(gradFunc)
@@ -774,7 +774,7 @@ val initRegressionParams = RegressionParams(initSlope, initIntercept)
 
 // Train
 val regressionGrad = Autodiff.grad(regressionLoss(xData, yData))
-val gdOptimizer = GradientDescent.of(VType[Float32])(learningRate = 0.1f)
+val gdOptimizer = GradientDescent(learningRate = 0.1f)
 
 val finalParams = gdOptimizer.iterate(initRegressionParams)(regressionGrad)
   .take(100)

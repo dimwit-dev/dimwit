@@ -44,7 +44,7 @@ def fit(x: Tensor2[Batch, Feature, Float32], y: Tensor1[Batch, Float32]): Iterat
   val gradFn = grad(loss(x, y))
 
   // gradient based optimization
-  val gd = GradientDescent.of(VType[Float32])(learningRate = 0.1f) // this is wrong, should be 0.1f not Tensor0
+  val gd = GradientDescent(learningRate = 0.1f)
   gd.iterate(p0)(gradFn)
 ```
 
