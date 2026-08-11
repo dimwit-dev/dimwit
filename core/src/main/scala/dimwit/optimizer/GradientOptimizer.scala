@@ -4,8 +4,8 @@ import dimwit.*
 import dimwit.Conversions.given
 import dimwit.autodiff.*
 import dimwit.autodiff.Grad
-import dimwit.tensortree.*
-import dimwit.tensortree.FloatTree.ops.*
+import dimwit.tensortree.TreeOf
+import dimwit.tensortree.TreeOf.ops.*
 
 /** Gradient optimizer interface with functional state management.
   *
@@ -26,35 +26,33 @@ import dimwit.tensortree.FloatTree.ops.*
   *        optimizer.update(grads, params, state)
   *    }}}
   */
-trait GradientOptimizer[V: IsFloating, State0[_]]:
+trait GradientOptimizer[State0[_]]:
 
   type State[P] = State0[P]
 
   // Core API
-  def init[P](params: P)(using TensorTree[P], FloatTree[P, V]): State[P]
-  def update[P](gradients: Grad[P], params: P, state: State[P])(using TensorTree[P], FloatTree[P, V]): (P, State[P])
+  def init[P: TensorTree, V](params: P)(using TreeOf[P, V])(using IsFloating[V]): State[P]
+
+  def update[P: TensorTree, V](gradients: Grad[P], params: P, state: State[P])(using TreeOf[P, V])(using IsFloating[V]): (P, State[P])
 
   // Convenience: iterator with fixed gradient function
-  def iterateWithState[P](init: P)(df: P => Grad[P])(using TensorTree[P], FloatTree[P, V]): Iterator[(P, State[P])] =
+  def iterateWithState[P: TensorTree, V](init: P)(df: P => Grad[P])(using TreeOf[P, V])(using IsFloating[V]): Iterator[(P, State[P])] =
     Iterator.iterate((init, this.init(init))): (params, state) =>
       val grads = df(params)
       update(grads, params, state)
 
-  def iterate[P](init: P)(df: P => Grad[P])(using TensorTree[P], FloatTree[P, V]): Iterator[P] =
+  def iterate[P: TensorTree, V](init: P)(df: P => Grad[P])(using TreeOf[P, V])(using IsFloating[V]): Iterator[P] =
     iterateWithState(init)(df).map(_._1)
-
-object GradientDescent:
-
-  def of[V: IsFloating](vtype: VType[V])(learningRate: Tensor0[V]): GradientDescent[V] = new GradientDescent(learningRate)
 
 type GradientDescentState[P] = Unit // empty state
 
-class GradientDescent[V: IsFloating](val learningRate: Tensor0[V]) extends GradientOptimizer[V, GradientDescentState]:
+class GradientDescent(val learningRate: Tensor0[Float32]) extends GradientOptimizer[GradientDescentState]:
 
-  def init[P](params: P)(using TensorTree[P], FloatTree[P, V]): Unit = ()
+  def init[P: TensorTree, V](params: P)(using TreeOf[P, V])(using IsFloating[V]): Unit = ()
 
-  def update[P](gradients: Grad[P], params: P, state: Unit)(using TensorTree[P], FloatTree[P, V]): (P, Unit) =
-    val newParams = params -- gradients.value.scale(learningRate)
+  def update[P: TensorTree, V](gradients: Grad[P], params: P, state: Unit)(using ft: TreeOf[P, V])(using IsFloating[V]): (P, Unit) =
+    val α = learningRate.asFloat(VType[V])
+    val newParams = params -- gradients.value.scale(α)
     (newParams, ())
 
 case class LionState[P](
@@ -62,71 +60,64 @@ case class LionState[P](
     step: Tensor0[Int32]
 )
 
-object Lion:
+class Lion(val learningRate: Tensor0[Float32], val weightDecay: Tensor0[Float32] = Tensor0(0.0f), val beta1: Tensor0[Float32] = Tensor0(0.9f), val beta2: Tensor0[Float32] = Tensor0(0.99f)) extends GradientOptimizer[LionState]:
 
-  def of[V](vtype: VType[V])(using IsFloating[V])(learningRate: Tensor0[V], weightDecay: Tensor0[V] = Tensor0(vtype)(0.0), beta1: Tensor0[V] = Tensor0(vtype)(0.9), beta2: Tensor0[V] = Tensor0(vtype)(0.99)): Lion[V] = new Lion(learningRate, weightDecay, beta1, beta2)
-
-class Lion[V: IsFloating](val learningRate: Tensor0[V], val weightDecay: Tensor0[V] = Tensor0(0.0), val beta1: Tensor0[V] = Tensor0(0.9), val beta2: Tensor0[V] = Tensor0(0.99)) extends GradientOptimizer[V, LionState]:
-
-  def init[P](params: P)(using TensorTree[P], FloatTree[P, V]): LionState[P] =
+  def init[P: TensorTree, V](params: P)(using TreeOf[P, V])(using IsFloating[V]): LionState[P] =
     LionState(params.fillCopy(0f), step = 1)
 
-  def update[P](gradients: Grad[P], params: P, state: LionState[P])(using TensorTree[P], FloatTree[P, V]): (P, LionState[P]) =
+  def update[P: TensorTree, V](gradients: Grad[P], params: P, state: LionState[P])(using TreeOf[P, V])(using IsFloating[V]): (P, LionState[P]) =
+    val α = learningRate.asFloat(VType[V])
+    val β1 = beta1.asFloat(VType[V])
+    val β2 = beta2.asFloat(VType[V])
+    val λ = weightDecay.asFloat(VType[V])
+
     // the direction (1 or -1)
     // is determined by the sign of the momentum + gradient
-    val updateDirection = (state.momentums **! beta1 ++ gradients.value **! (1f - beta1)).sign
+    val updateDirection = (state.momentums **! β1 ++ gradients.value **! (1f - β1)).sign
 
-    val updatedParams = params -- updateDirection.scale(learningRate) -- params.scale(weightDecay)
-    val newMomentums = state.momentums **! beta2 ++ gradients.value **! (1f - beta2)
+    val updatedParams = params -- updateDirection.scale(α) -- params.scale(λ)
+    val newMomentums = state.momentums **! β2 ++ gradients.value **! (1f - β2)
 
     (updatedParams, LionState(newMomentums, state.step + 1))
 
 case class AdamState[P](
     momentums: P,
     velocities: P,
-    b1: Tensor0[Float32], // decay rate for momentums mᵗ, hard-coded precision to make State independent of V, making persisting and restoring easier
-    b2: Tensor0[Float32] // decay rate for velocities vᵗ, hard-coded precision to make State independent of V, making persisting and restoring easier
+    beta1t: Tensor0[Float32], // decay rate for momentums mᵗ, hard-coded precision to make State independent of V, making persisting and restoring easier
+    beta2t: Tensor0[Float32] // decay rate for velocities vᵗ, hard-coded precision to make State independent of V, making persisting and restoring easier
 )
-
-object Adam:
-
-  def of[V](vtype: VType[V])(using IsFloating[V])(learningRate: Tensor0[V], b1: Tensor0[V] = 0.9, b2: Tensor0[V] = 0.999, epsilon: Tensor0[V] = 1e-8): Adam[V] = new Adam(learningRate, b1, b2, epsilon)
-  def apply[V: IsFloating](learningRate: Tensor0[V], b1: Double = 0.9, b2: Double = 0.999, epsilon: Double = 1e-8): Adam[V] = new Adam(learningRate, b1, b2, epsilon)
 
 /** Implements the Adam optimization algorithm.
   *
   * @see [[https://arxiv.org/abs/1412.6980 Adam: A Method for Stochastic Optimization]]
   */
-class Adam[V: IsFloating](
-    val learningRate: Tensor0[V],
-    b1: Tensor0[V], // decay rate for momentums mᵗ
-    b2: Tensor0[V], // decay rate for velocities vᵗ
-    epsilon: Tensor0[V] // small constant to prevent division by zero
-) extends GradientOptimizer[V, AdamState]:
+class Adam(
+    val learningRate: Tensor0[Float32],
+    val beta1: Tensor0[Float32] = Tensor0(0.9f), // decay rate for momentums mᵗ
+    val beta2: Tensor0[Float32] = Tensor0(0.999f), // decay rate for velocities vᵗ
+    val epsilon: Tensor0[Float32] = Tensor0(1e-8f) // small constant to prevent division by zero
+) extends GradientOptimizer[AdamState]:
 
-  private val vtype = VType[V]
-
-  private val β1 = b1
-  private val β2 = b2
-  private val ε = epsilon
-
-  def init[P](params: P)(using TensorTree[P], FloatTree[P, V]): AdamState[P] =
+  def init[P: TensorTree, V](params: P)(using TreeOf[P, V])(using IsFloating[V]): AdamState[P] =
     def zeros = params.fillCopy(0f)
-    AdamState(zeros, zeros, b1 = Tensor0(1f), b2 = Tensor0(1f))
+    AdamState(zeros, zeros, beta1t = Tensor0(1f), beta2t = Tensor0(1f))
 
-  def update[P](
+  def update[P: TensorTree, V](
       gradients: Grad[P],
       params: P,
       state: AdamState[P]
-  )(using TensorTree[P], FloatTree[P, V]): (P, AdamState[P]) =
+  )(using TreeOf[P, V])(using IsFloating[V]): (P, AdamState[P]) =
+    // rename parameters for internal clarity
+    val α = learningRate.asFloat(VType[V])
+    val β1 = beta1.asFloat(VType[V])
+    val β2 = beta2.asFloat(VType[V])
+    val ε = epsilon.asFloat(VType[V])
+
     // rename state variables to last time step for clarity
     val `mₜ₋₁` = state.momentums
     val `vₜ₋₁` = state.velocities
-    val `β1ₜ₋₁` = state.b1.asFloat(vtype)
-    val `β2ₜ₋₁` = state.b2.asFloat(vtype)
-
-    // rename parameters for internal clarity
-    val α = learningRate
+    val `β1ₜ₋₁` = state.beta1t.asFloat(VType[V])
+    val `β2ₜ₋₁` = state.beta2t.asFloat(VType[V])
 
     val `θₜ₋₁` = params
 
@@ -152,52 +143,23 @@ class Adam[V: IsFloating](
   * @param learningRate The step size.
   * @param weightDecayFactor The coefficient for weight decay (lambda).
   */
-class AdamW[V: IsFloating](
-    val adam: Adam[V],
-    val weightDecayFactor: Tensor0[V]
-) extends GradientOptimizer[V, [P] =>> AdamState[P]]:
+class AdamW(
+    val adam: Adam,
+    val weightDecayFactor: Tensor0[Float32]
+) extends GradientOptimizer[AdamState]:
 
-  def init[P](params: P)(using TensorTree[P], FloatTree[P, V]): AdamState[P] = adam.init(params)
+  def init[P: TensorTree, V](params: P)(using TreeOf[P, V])(using IsFloating[V]): AdamState[P] = adam.init(params)
 
-  def update[P](
+  def update[P: TensorTree, V](
       gradients: Grad[P],
       params: P,
       state: AdamState[P]
-  )(using TensorTree[P], FloatTree[P, V]): (P, AdamState[P]) =
-    val α = adam.learningRate
+  )(using TreeOf[P, V])(using IsFloating[V]): (P, AdamState[P]) =
+    val α = adam.learningRate.asFloat(VType[V])
+    val `λ'` = weightDecayFactor.asFloat(VType[V])
+
     val `θₜ₋₁` = params
-    val `λ'` = weightDecayFactor
     val λ = `λ'` * α // Tie weight decay to learning rate
     val decayedParams = `θₜ₋₁` -- λ **! `θₜ₋₁`
     val (θₜ, adamState) = adam.update(gradients, decayedParams, state)
     (θₜ, adamState)
-
-case class LearningRateSchedulerState[P, State[_]](
-    step: Tensor0[Int32],
-    optState: State[P]
-)
-type LearningRateSchedulerStateFor[State[_]] = [P] =>> LearningRateSchedulerState[P, State]
-
-object LearningRateScheduler:
-
-  def of[V: IsFloating, State[_]](
-      vtype: VType[V]
-  )(
-      optF: Tensor0[V] => GradientOptimizer[V, State],
-      schedule: Tensor0[Int32] => Tensor0[V]
-  ): LearningRateScheduler[V, State] =
-    new LearningRateScheduler(optF, schedule)
-
-class LearningRateScheduler[V: IsFloating, State[_]](val optF: Tensor0[V] => GradientOptimizer[V, State], schedule: Tensor0[Int32] => Tensor0[V]) extends GradientOptimizer[V, LearningRateSchedulerStateFor[State]]:
-
-  def init[P](params: P)(using TensorTree[P], FloatTree[P, V]): LearningRateSchedulerState[P, State] =
-    val step = Tensor0(1)
-    val opt = optF(schedule(step))
-    LearningRateSchedulerState(step, opt.init(params))
-
-  def update[P](gradients: Grad[P], params: P, state: LearningRateSchedulerState[P, State])(using TensorTree[P], FloatTree[P, V]): (P, LearningRateSchedulerState[P, State]) =
-    val step = state.step
-    val optState = state.optState
-    val opt = optF(schedule(step))
-    val (newParams, newOptState) = opt.update(gradients, params, optState)
-    (newParams, LearningRateSchedulerState(step + 1, newOptState))

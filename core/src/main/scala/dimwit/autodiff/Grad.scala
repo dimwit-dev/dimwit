@@ -51,14 +51,10 @@ object Grad:
 
     def fromPyTree(pyVal: Jax.PyAny): Grad[T] = Grad(ev.fromPyTree(pyVal))
 
-  // FloatTree witness for gradient math (++, --, scale, etc.)
-  // given [T, V: IsFloating](using FloatTree[T, V]): FloatTree[Grad[T], V] with {}
+  // TreeOf witness for gradient math (++, --, scale, etc.)
+  // given [T, V: IsFloating](using TreeOf[T, V]): TreeOf[Grad[T], V] with {}
 
   // Bridge extension so we can call .asFloats directly on Grad[Params[V]]
-  extension [F[_], V](g: Grad[F[V]])(using
-      tt: TensorTree[F[V]],
-      ft: FloatTree[F[V], V],
-      isF: IsFloating[V]
-  )
+  extension [F[_], V: IsFloating](g: Grad[F[V]])(using TensorTree[F[V]], TreeOf[F[V], V])
     def asFloats[NewV: IsFloating](vtype: VType[NewV])(using m: Mirror.ProductOf[F[NewV]]): Grad[F[NewV]] =
-      Grad(dimwit.FloatTree.ops.asFloats(g.value)(vtype))
+      Grad(TreeOf.ops.asFloats(g.value)(vtype))
