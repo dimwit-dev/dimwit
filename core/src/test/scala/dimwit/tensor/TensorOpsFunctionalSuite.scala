@@ -22,6 +22,13 @@ class TensorOpsFunctionalSuite extends DimwitTest:
       val res = t2.vmap(Axis[A])(_.sum)
       res shouldEqual Tensor1(Axis[A]).fromArray(Array(3.0f, 7.0f))
 
+    it("vmap return tuple"):
+      val t = Tensor(Shape(Axis[A] -> 2, Axis[B] -> 3)).fill(0f)
+      val (y1, y2) = t.vmap(Axis[A]): x =>
+        (x +! 5f, x -! 5f)
+      y1 shouldEqual (t +! 5f)
+      y2 shouldEqual (t -! 5f)
+
     it("vmap over Axis B (columns)"):
       val res = t2.vmap(Axis[B])(_.sum)
       res shouldEqual Tensor1(Axis[B]).fromArray(Array(4.0f, 6.0f))

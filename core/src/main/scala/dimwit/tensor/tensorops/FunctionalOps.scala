@@ -16,49 +16,20 @@ import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
 import me.shadaj.scalapy.readwrite.Reader
 import me.shadaj.scalapy.readwrite.Writer
-
-type ZipVmapOut[L, FOut] = FOut match
-  case Tensor[shape, v] => Tensor[L *: shape, v]
-  case EmptyTuple       => EmptyTuple
-  case h *: t           => ZipVmapOut[L, h] *: ZipVmapOut[L, t]
-
-trait ZipVmapResult[L: Label, FOut]:
-  type MappedOut
-  def toPy(out: FOut): py.Dynamic
-  def fromPy(pyOut: py.Dynamic): ZipVmapOut[L, FOut]
-
-object ZipVmapResult:
-
-  // Single Tensor case
-  given singleTensor[L: Label, Shape <: Tuple: Labels, V]: ZipVmapResult[L, Tensor[Shape, V]] with
-    def toPy(out: Tensor[Shape, V]): py.Dynamic = out.jaxValue
-    def fromPy(pyOut: py.Dynamic): Tensor[L *: Shape, V] = Tensor(pyOut)
-
-  // Empty Tuple case
-  given emptyTuple[L: Label]: ZipVmapResult[L, EmptyTuple] with
-    def toPy(out: EmptyTuple): py.Dynamic = py.Dynamic.global.tuple(Seq.empty[py.Dynamic].toPythonProxy)
-    def fromPy(pyOut: py.Dynamic): EmptyTuple = EmptyTuple
-
-  // Inductive Tuple case (Pairs, Triples, N-tuples)
-  given consTuple[L: Label, H, T <: Tuple](using
-      hRes: ZipVmapResult[L, H],
-      tRes: ZipVmapResult[L, T]
-  ): ZipVmapResult[L, H *: T] with
-
-    def toPy(out: H *: T): py.Dynamic =
-      val headPy = hRes.toPy(out.head)
-      val tailSeq = tRes.toPy(out.tail).as[Seq[py.Dynamic]]
-      py.Dynamic.global.tuple((headPy +: tailSeq).toPythonProxy)
-
-    def fromPy(pyOut: py.Dynamic): ZipVmapOut[L, H *: T] =
-      val seq = pyOut.as[Seq[py.Dynamic]]
-      val h = hRes.fromPy(seq.head)
-      val tailPy = py.Dynamic.global.tuple(seq.tail.toPythonProxy)
-      val t = tRes.fromPy(tailPy)
-
-      (h *: t.asInstanceOf[Tuple]).asInstanceOf[ZipVmapOut[L, H *: T]]
+import dimwit.tensortree.TensorTree
+import dimwit.tensor.ShapeTypeHelpers.UnwrapAxes
+import dimwit.tensor.ShapeTypeHelpers.AxesRemover
 
 object FunctionalOps:
+
+  type PrependAxes[Axes <: Tuple, FOut] = Axes match
+    case EmptyTuple => FOut
+    case h *: t     => PrependAxis[h, PrependAxes[t, FOut]]
+
+  type PrependAxis[L, FOut] = FOut match
+    case Tensor[shape, v] => Tensor[L *: shape, v]
+    case EmptyTuple       => EmptyTuple
+    case h *: t           => PrependAxis[L, h] *: PrependAxis[L, t]
 
   object ZipVmap:
 
@@ -101,8 +72,9 @@ object FunctionalOps:
     )(
         f: TensorsOf[ev.RemainingAxes, ValuesOf[Inputs]] => FOut
     )(using
-        outMapper: ZipVmapResult[L, FOut]
-    ): ZipVmapOut[L, FOut] =
+        toPyTree: TensorTree[FOut],
+        fromPyTree: TensorTree[PrependAxis[L, FOut]]
+    ): PrependAxis[L, FOut] =
       val fpy = (args: py.Dynamic) =>
         OnError.traceStack:
           val tensorList = args.as[Seq[py.Dynamic]].zip(ev.shapesLabels).map: (jaxArr, labels) =>
@@ -110,7 +82,7 @@ object FunctionalOps:
 
           val inputTuple = Tuple.fromArray(tensorList.toArray)
           val result = f(inputTuple.asInstanceOf[TensorsOf[ev.RemainingAxes, ValuesOf[Inputs]]])
-          outMapper.toPy(result)
+          toPyTree.toPyTree(result)
 
       val jaxInputs = py.Dynamic.global.tuple(tensors.toArray.map(_.asInstanceOf[Tensor[?, ?]].jaxValue).toPythonProxy)
       val indicesAsTuple = py.Dynamic.global.tuple(ev.indices.toPythonProxy)
@@ -120,7 +92,7 @@ object FunctionalOps:
         indicesAsTuple
       )(jaxInputs)
 
-      outMapper.fromPy(jaxResult)
+      fromPyTree.fromPyTree(jaxResult)
   export ZipVmap.zipvmap
 
   extension [T <: Tuple: Labels, V](t: Tensor[T, V])
@@ -133,13 +105,16 @@ object FunctionalOps:
       * @param f A function that takes a tuple of tensors (with the specified axis removed) and returns a new tensor.
       * @return A new tensor resulting from applying `f` to the zipped tensors.
       */
-    def zipvmap[L: Label, T2 <: Tuple, OutShape <: Tuple: Labels, OutV](axis: Axis[L])(
+    def zipvmap[L: Label, T2 <: Tuple, FOut](axis: Axis[L])(
         other: Tensor[T2, V]
     )(using
         ev: SharedAxisRemover[(T, T2), L]
     )(
-        f: TensorsOf[ev.RemainingAxes, (V, V)] => Tensor[OutShape, OutV]
-    ): Tensor[L *: OutShape, OutV] =
+        f: TensorsOf[ev.RemainingAxes, (V, V)] => FOut
+    )(using
+        toPyTree: TensorTree[FOut],
+        fromPyTree: TensorTree[PrependAxis[L, FOut]]
+    ): PrependAxis[L, FOut] =
       ZipVmap.zipvmap(axis)(t, other)(f)
 
     /** Vectorized mapping over a specified axis of the tensor.
@@ -148,22 +123,23 @@ object FunctionalOps:
       * @param f A function that takes a tensor with the specified axis removed and returns a new tensor.
       * @return A new tensor resulting from applying `f` to each slice along the specified axis.
       */
-    def vmap[VmapAxis: Label, OuterShape <: Tuple: Labels, V2](
+    def vmap[VmapAxis: Label, FOut](
         axis: Axis[VmapAxis]
     )(using
         ev: AxisRemover[T, VmapAxis]
     )(
-        f: Tensor[ev.RemainingAxes, V] => Tensor[OuterShape, V2]
+        f: Tensor[ev.RemainingAxes, V] => FOut
     )(using
+        toPyTree: TensorTree[FOut],
+        fromPyTree: TensorTree[PrependAxis[VmapAxis, FOut]],
         labels: Labels[ev.RemainingAxes]
-    ): Tensor[VmapAxis *: OuterShape, V2] =
+    ): PrependAxis[VmapAxis, FOut] =
       val fpy = (jxpr: Jax.PyDynamic) =>
         OnError.traceStack:
           val innerTensor = Tensor[ev.RemainingAxes, V](jxpr)
           val result = f(innerTensor)
-          result.jaxValue
-
-      Tensor(Jax.jax_helper.vmap(fpy, ev.index)(t.jaxValue))
+          toPyTree.toPyTree(result)
+      fromPyTree.fromPyTree(Jax.jax_helper.vmap(fpy, ev.index)(t.jaxValue))
 
     /** Apply a function independently to each 1D slice along a labeled axis.
       *
