@@ -16,8 +16,20 @@ import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
 import me.shadaj.scalapy.readwrite.Reader
 import me.shadaj.scalapy.readwrite.Writer
+import dimwit.tensortree.TensorTree
+import dimwit.tensor.ShapeTypeHelpers.UnwrapAxes
+import dimwit.tensor.ShapeTypeHelpers.AxesRemover
 
 object FunctionalOps:
+
+  type PrependAxes[Axes <: Tuple, FOut] = Axes match
+    case EmptyTuple => FOut
+    case h *: t     => PrependAxis[h, PrependAxes[t, FOut]]
+
+  type PrependAxis[L, FOut] = FOut match
+    case Tensor[shape, v] => Tensor[L *: shape, v]
+    case EmptyTuple       => EmptyTuple
+    case h *: t           => PrependAxis[L, h] *: PrependAxis[L, t]
 
   object ZipVmap:
 
@@ -51,15 +63,18 @@ object FunctionalOps:
       *   ...
       * }
       */
-    def zipvmap[L: Label, Inputs <: Tuple, OutShape <: Tuple: Labels, OutV](
+    def zipvmap[L: Label, Inputs <: Tuple, FOut](
         axis: Axis[L]
     )(
-        tensors: Inputs // This is a Tuple of Tensors
+        tensors: Inputs
     )(using
         ev: SharedAxisRemover[ShapesOf[Inputs], L]
     )(
-        f: TensorsOf[ev.RemainingAxes, ValuesOf[Inputs]] => Tensor[OutShape, OutV]
-    ): Tensor[L *: OutShape, OutV] =
+        f: TensorsOf[ev.RemainingAxes, ValuesOf[Inputs]] => FOut
+    )(using
+        toPyTree: TensorTree[FOut],
+        fromPyTree: TensorTree[PrependAxis[L, FOut]]
+    ): PrependAxis[L, FOut] =
       val fpy = (args: py.Dynamic) =>
         OnError.traceStack:
           val tensorList = args.as[Seq[py.Dynamic]].zip(ev.shapesLabels).map: (jaxArr, labels) =>
@@ -67,17 +82,17 @@ object FunctionalOps:
 
           val inputTuple = Tuple.fromArray(tensorList.toArray)
           val result = f(inputTuple.asInstanceOf[TensorsOf[ev.RemainingAxes, ValuesOf[Inputs]]])
-          result.jaxValue
+          toPyTree.toPyTree(result)
 
       val jaxInputs = py.Dynamic.global.tuple(tensors.toArray.map(_.asInstanceOf[Tensor[?, ?]].jaxValue).toPythonProxy)
       val indicesAsTuple = py.Dynamic.global.tuple(ev.indices.toPythonProxy)
+
       val jaxResult = Jax.jax_helper.zipvmap(
         fpy,
         indicesAsTuple
       )(jaxInputs)
 
-      Tensor(jaxResult)
-
+      fromPyTree.fromPyTree(jaxResult)
   export ZipVmap.zipvmap
 
   extension [T <: Tuple: Labels, V](t: Tensor[T, V])
@@ -90,13 +105,16 @@ object FunctionalOps:
       * @param f A function that takes a tuple of tensors (with the specified axis removed) and returns a new tensor.
       * @return A new tensor resulting from applying `f` to the zipped tensors.
       */
-    def zipvmap[L: Label, T2 <: Tuple, OutShape <: Tuple: Labels, OutV](axis: Axis[L])(
+    def zipvmap[L: Label, T2 <: Tuple, FOut](axis: Axis[L])(
         other: Tensor[T2, V]
     )(using
         ev: SharedAxisRemover[(T, T2), L]
     )(
-        f: TensorsOf[ev.RemainingAxes, (V, V)] => Tensor[OutShape, OutV]
-    ): Tensor[L *: OutShape, OutV] =
+        f: TensorsOf[ev.RemainingAxes, (V, V)] => FOut
+    )(using
+        toPyTree: TensorTree[FOut],
+        fromPyTree: TensorTree[PrependAxis[L, FOut]]
+    ): PrependAxis[L, FOut] =
       ZipVmap.zipvmap(axis)(t, other)(f)
 
     /** Vectorized mapping over a specified axis of the tensor.
@@ -105,22 +123,23 @@ object FunctionalOps:
       * @param f A function that takes a tensor with the specified axis removed and returns a new tensor.
       * @return A new tensor resulting from applying `f` to each slice along the specified axis.
       */
-    def vmap[VmapAxis: Label, OuterShape <: Tuple: Labels, V2](
+    def vmap[VmapAxis: Label, FOut](
         axis: Axis[VmapAxis]
     )(using
         ev: AxisRemover[T, VmapAxis]
     )(
-        f: Tensor[ev.RemainingAxes, V] => Tensor[OuterShape, V2]
+        f: Tensor[ev.RemainingAxes, V] => FOut
     )(using
+        toPyTree: TensorTree[FOut],
+        fromPyTree: TensorTree[PrependAxis[VmapAxis, FOut]],
         labels: Labels[ev.RemainingAxes]
-    ): Tensor[VmapAxis *: OuterShape, V2] =
+    ): PrependAxis[VmapAxis, FOut] =
       val fpy = (jxpr: Jax.PyDynamic) =>
         OnError.traceStack:
           val innerTensor = Tensor[ev.RemainingAxes, V](jxpr)
           val result = f(innerTensor)
-          result.jaxValue
-
-      Tensor(Jax.jax_helper.vmap(fpy, ev.index)(t.jaxValue))
+          toPyTree.toPyTree(result)
+      fromPyTree.fromPyTree(Jax.jax_helper.vmap(fpy, ev.index)(t.jaxValue))
 
     /** Apply a function independently to each 1D slice along a labeled axis.
       *

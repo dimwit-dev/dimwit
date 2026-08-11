@@ -22,6 +22,13 @@ class TensorOpsFunctionalSuite extends DimwitTest:
       val res = t2.vmap(Axis[A])(_.sum)
       res shouldEqual Tensor1(Axis[A]).fromArray(Array(3.0f, 7.0f))
 
+    it("vmap return tuple"):
+      val t = Tensor(Shape(Axis[A] -> 2, Axis[B] -> 3)).fill(0f)
+      val (y1, y2) = t.vmap(Axis[A]): x =>
+        (x +! 5f, x -! 5f)
+      y1 shouldEqual (t +! 5f)
+      y2 shouldEqual (t -! 5f)
+
     it("vmap over Axis B (columns)"):
       val res = t2.vmap(Axis[B])(_.sum)
       res shouldEqual Tensor1(Axis[B]).fromArray(Array(4.0f, 6.0f))
@@ -58,6 +65,15 @@ class TensorOpsFunctionalSuite extends DimwitTest:
       }
       // Each row of ta sums to 3.0, each row of tc sums to 8.0 => 11.0 per row
       res.shouldEqual(Tensor1(Axis[A]).fromArray(Array(11.0f, 11.0f)))
+
+    it("zipvmap2 return tuple"):
+      val t1 = Tensor(Shape(Axis[A] -> 2, Axis[B] -> 3)).fill(0f)
+      val t2 = Tensor(Shape(Axis[A] -> 2, Axis[B] -> 3)).fill(1f)
+      val (y1, y2) = zipvmap(Axis[A])(t1, t2):
+        case (x1, x2) =>
+          (x1 + x2, x1 - x2)
+      y1 shouldEqual (t1 + t2)
+      y2 shouldEqual (t1 - t2)
 
   describe("vapply (Axis-wise application)"):
 
