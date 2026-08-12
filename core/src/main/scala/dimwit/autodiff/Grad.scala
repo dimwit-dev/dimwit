@@ -51,6 +51,10 @@ object Grad:
 
     def fromPyTree(pyVal: Jax.PyAny): Grad[T] = Grad(ev.fromPyTree(pyVal))
 
+    def toNumpyTree(g: Grad[T]): Jax.PyAny = ev.toNumpyTree(g)
+
+    def fromNumpyTree(pyVal: Jax.PyAny): Grad[T] = Grad(ev.fromNumpyTree(pyVal))
+
   // TreeOf witness for gradient math (++, --, scale, etc.)
   // given [T, V: IsFloating](using TreeOf[T, V]): TreeOf[Grad[T], V] with {}
 

@@ -60,6 +60,16 @@ trait TensorTree[P]:
     */
   def fromPyTree(py: Jax.PyAny): P
 
+  /** Convert the structure p to a tree representation of numpy arrays.
+    * While toPyTree is for in-memory representation, toNumpyTree is for saving to disk or sending over the network.
+    */
+  def toNumpyTree(p: P): Jax.PyAny
+
+  /** Convert a tree representation of numpy arrays back to the structure P.
+    * While fromPyTree is for in-memory representation, fromNumpyTree is for loading from disk or receiving over the network.
+    */
+  def fromNumpyTree(pyVal: Jax.PyAny): P
+
 object TensorTree: // extends TensorTreeLowPriority:
   def apply[P](using pt: TensorTree[P]): TensorTree[P] = pt
 
@@ -121,6 +131,9 @@ object TensorTree: // extends TensorTreeLowPriority:
     def toPyTree(p: Tensor[Q, V]): Jax.PyAny = p.jaxValue
     def fromPyTree(pyVal: Jax.PyAny): Tensor[Q, V] = Tensor(pyVal.as[Jax.PyDynamic])
 
+    def toNumpyTree(p: Tensor[Q, V]): Jax.PyAny = Jax.np.asarray(Jax.jax.device_get(p.jaxValue))
+    def fromNumpyTree(pyVal: Jax.PyAny): Tensor[Q, V] = Tensor(Jax.jnp.asarray(pyVal))
+
   /** Tensor tree instance for an empty tree. This can be useful
     * for example for optimizers that don't have internal state
     */
@@ -133,6 +146,8 @@ object TensorTree: // extends TensorTreeLowPriority:
     def zipMap(p1: Unit, p2: Unit, f: [T <: Tuple, V] => (Labels[T]) ?=> ((Tensor[T, V], Tensor[T, V]) => Tensor[T, V])): Unit = ()
     def toPyTree(p: Unit): Jax.PyAny = py.Dynamic.global.None
     def fromPyTree(pyVal: Jax.PyAny): Unit = ()
+    def toNumpyTree(p: Unit): Jax.PyAny = py.Dynamic.global.None
+    def fromNumpyTree(pyVal: Jax.PyAny): Unit = ()
 
   /** Instance for a tuple of two tensors */
   given tupleInstance[P1, P2](using t1: TensorTree[P1], t2: TensorTree[P2]): TensorTree[(P1, P2)] with
@@ -166,6 +181,13 @@ object TensorTree: // extends TensorTreeLowPriority:
     def fromPyTree(pyVal: Jax.PyAny): (P1, P2) =
       val pyTuple = pyVal.as[py.Dynamic]
       (t1.fromPyTree(pyTuple.bracketAccess(0)), t2.fromPyTree(pyTuple.bracketAccess(1)))
+
+    def toNumpyTree(p: (P1, P2)): Jax.PyAny =
+      py.Dynamic.global.tuple(Seq(t1.toNumpyTree(p._1), t2.toNumpyTree(p._2)).toPythonProxy)
+
+    def fromNumpyTree(pyVal: Jax.PyAny): (P1, P2) =
+      val pyTuple = pyVal.as[py.Dynamic]
+      (t1.fromNumpyTree(pyTuple.bracketAccess(0)), t2.fromNumpyTree(pyTuple.bracketAccess(1)))
 
   /** Instance for a list of tensor trees
     */
@@ -201,6 +223,15 @@ object TensorTree: // extends TensorTreeLowPriority:
       val len = py.Dynamic.global.len(pyList).as[Int]
       List.tabulate(len)(i => tp.fromPyTree(pyList.bracketAccess(i)))
 
+    def toNumpyTree(l: List[P]): Jax.PyAny =
+      val pyItems = l.map(a => tp.toNumpyTree(a))
+      py.Dynamic.global.list(pyItems.toPythonProxy)
+
+    def fromNumpyTree(pyVal: Jax.PyAny): List[P] =
+      val pyList = pyVal.as[py.Dynamic]
+      val len = py.Dynamic.global.len(pyList).as[Int]
+      List.tabulate(len)(i => tp.fromNumpyTree(pyList.bracketAccess(i)))
+
   given namedTupleInstance[N <: Tuple, V <: Tuple](using tt: TensorTree[V]): TensorTree[NamedTuple[N, V]] with
     def map(p: NamedTuple[N, V], f: [T <: Tuple, V2] => (Labels[T]) ?=> (Tensor[T, V2] => Tensor[T, V2])): NamedTuple[N, V] =
       tt.map(p.toTuple, f)
@@ -225,6 +256,12 @@ object TensorTree: // extends TensorTreeLowPriority:
 
     def fromPyTree(pyVal: Jax.PyAny): NamedTuple[N, V] =
       tt.fromPyTree(pyVal)
+
+    def toNumpyTree(p: NamedTuple[N, V]): Jax.PyAny =
+      tt.toNumpyTree(p.toTuple)
+
+    def fromNumpyTree(pyVal: Jax.PyAny): NamedTuple[N, V] =
+      tt.fromNumpyTree(pyVal)
 
   /** automatically derive a TensorTree instance for any case class (or product type)
     * whose fields all have TensorTree instances.
@@ -298,4 +335,15 @@ object TensorTree: // extends TensorTreeLowPriority:
       val pyTuple = pyVal.as[py.Dynamic]
       val elems = instances.zipWithIndex.map: (tc, index) =>
         tc.fromPyTree(pyTuple.bracketAccess(index))
+      m.fromProduct(Tuple.fromArray(elems.map(_.asInstanceOf[Object]).toArray))
+
+    def toNumpyTree(p: P): Jax.PyAny =
+      val pyTreeElems = p.productIterator.toList.zip(instances).map:
+        case (field, tc) => tc.toNumpyTree(field)
+      py.Dynamic.global.tuple(pyTreeElems.toPythonProxy)
+
+    def fromNumpyTree(pyVal: Jax.PyAny): P =
+      val pyTuple = pyVal.as[py.Dynamic]
+      val elems = instances.zipWithIndex.map: (tc, index) =>
+        tc.fromNumpyTree(pyTuple.bracketAccess(index))
       m.fromProduct(Tuple.fromArray(elems.map(_.asInstanceOf[Object]).toArray))
