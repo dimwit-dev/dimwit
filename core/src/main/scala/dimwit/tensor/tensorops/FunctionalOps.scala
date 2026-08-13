@@ -11,25 +11,44 @@ import dimwit.tensor.ShapeTypeHelpers.AxisReplacer
 import dimwit.tensor.ShapeTypeHelpers.SharedAxisRemover
 import dimwit.tensor.Tensor
 import dimwit.tensor.Tensor0
-import dimwit.tensor.tensorops.FunctionalOps.ZipVmap.TensorsOf
+import dimwit.tensortree.TensorTree
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
 import me.shadaj.scalapy.readwrite.Reader
 import me.shadaj.scalapy.readwrite.Writer
-import dimwit.tensortree.TensorTree
-import dimwit.tensor.ShapeTypeHelpers.UnwrapAxes
-import dimwit.tensor.ShapeTypeHelpers.AxesRemover
+
+import scala.NamedTuple.NamedTuple
 
 object FunctionalOps:
 
-  type PrependAxes[Axes <: Tuple, FOut] = Axes match
-    case EmptyTuple => FOut
-    case h *: t     => PrependAxis[h, PrependAxes[t, FOut]]
+  trait PrependAxis[L, FOut]:
+    type Out
 
-  type PrependAxis[L, FOut] = FOut match
-    case Tensor[shape, v] => Tensor[L *: shape, v]
-    case EmptyTuple       => EmptyTuple
-    case h *: t           => PrependAxis[L, h] *: PrependAxis[L, t]
+  object PrependAxis:
+    type Aux[L, FOut, Out0] = PrependAxis[L, FOut] { type Out = Out0 }
+
+    // Case 1: Tensor
+    given tensorCase[L, Shape <: Tuple, V]: PrependAxis[L, Tensor[Shape, V]] with
+      type Out = Tensor[L *: Shape, V]
+
+    // Case 2: EmptyTuple
+    given emptyTupleCase[L]: PrependAxis[L, EmptyTuple] with
+      type Out = EmptyTuple
+
+    // Case 3: Recursive Tuple (simplified without explicit tpOut variable)
+    given tupleCase[L, H, T <: Tuple, tpOut <: Tuple](using
+        hp: PrependAxis[L, H],
+        tp: PrependAxis.Aux[L, T, tpOut]
+    ): PrependAxis.Aux[L, H *: T, hp.Out *: tpOut] =
+      new PrependAxis[L, H *: T]:
+        type Out = hp.Out *: tpOut
+
+    // Case 4: NamedTuple
+    given namedTupleCase[L, Names <: Tuple, Values <: Tuple, vpOut <: Tuple](using
+        vp: PrependAxis.Aux[L, Values, vpOut]
+    ): PrependAxis.Aux[L, NamedTuple[Names, Values], NamedTuple[Names, vpOut]] =
+      new PrependAxis[L, NamedTuple[Names, Values]]:
+        type Out = NamedTuple[Names, vpOut]
 
   object ZipVmap:
 
@@ -72,9 +91,11 @@ object FunctionalOps:
     )(
         f: TensorsOf[ev.RemainingAxes, ValuesOf[Inputs]] => FOut
     )(using
+        prependAxis: PrependAxis[L, FOut]
+    )(using
         toPyTree: TensorTree[FOut],
-        fromPyTree: TensorTree[PrependAxis[L, FOut]]
-    ): PrependAxis[L, FOut] =
+        fromPyTree: TensorTree[prependAxis.Out]
+    ): prependAxis.Out =
       val fpy = (args: py.Dynamic) =>
         OnError.traceStack:
           val tensorList = args.as[Seq[py.Dynamic]].zip(ev.shapesLabels).map: (jaxArr, labels) =>
@@ -110,11 +131,13 @@ object FunctionalOps:
     )(using
         ev: SharedAxisRemover[(T, T2), L]
     )(
-        f: TensorsOf[ev.RemainingAxes, (V, V)] => FOut
+        f: ZipVmap.TensorsOf[ev.RemainingAxes, (V, V)] => FOut
+    )(using
+        prependAxis: PrependAxis[L, FOut]
     )(using
         toPyTree: TensorTree[FOut],
-        fromPyTree: TensorTree[PrependAxis[L, FOut]]
-    ): PrependAxis[L, FOut] =
+        fromPyTree: TensorTree[prependAxis.Out]
+    ): prependAxis.Out =
       ZipVmap.zipvmap(axis)(t, other)(f)
 
     /** Vectorized mapping over a specified axis of the tensor.
@@ -130,10 +153,12 @@ object FunctionalOps:
     )(
         f: Tensor[ev.RemainingAxes, V] => FOut
     )(using
+        prependAxis: PrependAxis[VmapAxis, FOut]
+    )(using
         toPyTree: TensorTree[FOut],
-        fromPyTree: TensorTree[PrependAxis[VmapAxis, FOut]],
+        fromPyTree: TensorTree[prependAxis.Out],
         labels: Labels[ev.RemainingAxes]
-    ): PrependAxis[VmapAxis, FOut] =
+    ): prependAxis.Out =
       val fpy = (jxpr: Jax.PyDynamic) =>
         OnError.traceStack:
           val innerTensor = Tensor[ev.RemainingAxes, V](jxpr)
