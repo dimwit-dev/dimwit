@@ -1,5 +1,6 @@
 package dimwit.tensortree
 
+import dimwit.python.PyIndex.itemAt
 import dimwit.jax.Jax
 import dimwit.tensor.*
 import dimwit.tensor.DType.Float32
@@ -95,9 +96,9 @@ object TensorTree: // extends TensorTreeLowPriority:
   ): (flatten: P => Tensor1[L, Float32], unflatten: Tensor1[L, Float32] => P) =
     val flattenUtil = py.module("jax.flatten_util")
     val result = flattenUtil.ravel_pytree(tt.toPyTree(reference)).as[py.Dynamic]
-    val unflattenPy = result.bracketAccess(1).as[py.Dynamic]
+    val unflattenPy = result.itemAt(1)
     val flatten = (p: P) =>
-      flatTree.fromPyTree(flattenUtil.ravel_pytree(tt.toPyTree(p)).as[py.Dynamic].bracketAccess(0))
+      flatTree.fromPyTree(flattenUtil.ravel_pytree(tt.toPyTree(p)).as[py.Dynamic].itemAt(0))
     val unflatten = (v: Tensor1[L, Float32]) => tt.fromPyTree(unflattenPy(flatTree.toPyTree(v)))
     (flatten = flatten, unflatten = unflatten)
 
@@ -180,14 +181,14 @@ object TensorTree: // extends TensorTreeLowPriority:
 
     def fromPyTree(pyVal: Jax.PyAny): (P1, P2) =
       val pyTuple = pyVal.as[py.Dynamic]
-      (t1.fromPyTree(pyTuple.bracketAccess(0)), t2.fromPyTree(pyTuple.bracketAccess(1)))
+      (t1.fromPyTree(pyTuple.itemAt(0)), t2.fromPyTree(pyTuple.itemAt(1)))
 
     def toNumpyTree(p: (P1, P2)): Jax.PyAny =
       py.Dynamic.global.tuple(Seq(t1.toNumpyTree(p._1), t2.toNumpyTree(p._2)).toPythonProxy)
 
     def fromNumpyTree(pyVal: Jax.PyAny): (P1, P2) =
       val pyTuple = pyVal.as[py.Dynamic]
-      (t1.fromNumpyTree(pyTuple.bracketAccess(0)), t2.fromNumpyTree(pyTuple.bracketAccess(1)))
+      (t1.fromNumpyTree(pyTuple.itemAt(0)), t2.fromNumpyTree(pyTuple.itemAt(1)))
 
   /** Instance for a list of tensor trees
     */
@@ -221,7 +222,7 @@ object TensorTree: // extends TensorTreeLowPriority:
     def fromPyTree(pyVal: Jax.PyAny): List[P] =
       val pyList = pyVal.as[py.Dynamic]
       val len = py.Dynamic.global.len(pyList).as[Int]
-      List.tabulate(len)(i => tp.fromPyTree(pyList.bracketAccess(i)))
+      List.tabulate(len)(i => tp.fromPyTree(pyList.itemAt(i)))
 
     def toNumpyTree(l: List[P]): Jax.PyAny =
       val pyItems = l.map(a => tp.toNumpyTree(a))
@@ -230,7 +231,7 @@ object TensorTree: // extends TensorTreeLowPriority:
     def fromNumpyTree(pyVal: Jax.PyAny): List[P] =
       val pyList = pyVal.as[py.Dynamic]
       val len = py.Dynamic.global.len(pyList).as[Int]
-      List.tabulate(len)(i => tp.fromNumpyTree(pyList.bracketAccess(i)))
+      List.tabulate(len)(i => tp.fromNumpyTree(pyList.itemAt(i)))
 
   given namedTupleInstance[N <: Tuple, V <: Tuple](using tt: TensorTree[V]): TensorTree[NamedTuple[N, V]] with
     def map(p: NamedTuple[N, V], f: [T <: Tuple, V2] => (Labels[T]) ?=> (Tensor[T, V2] => Tensor[T, V2])): NamedTuple[N, V] =
@@ -334,7 +335,7 @@ object TensorTree: // extends TensorTreeLowPriority:
     def fromPyTree(pyVal: Jax.PyAny): P =
       val pyTuple = pyVal.as[py.Dynamic]
       val elems = instances.zipWithIndex.map: (tc, index) =>
-        tc.fromPyTree(pyTuple.bracketAccess(index))
+        tc.fromPyTree(pyTuple.itemAt(index))
       m.fromProduct(Tuple.fromArray(elems.map(_.asInstanceOf[Object]).toArray))
 
     def toNumpyTree(p: P): Jax.PyAny =
@@ -345,5 +346,5 @@ object TensorTree: // extends TensorTreeLowPriority:
     def fromNumpyTree(pyVal: Jax.PyAny): P =
       val pyTuple = pyVal.as[py.Dynamic]
       val elems = instances.zipWithIndex.map: (tc, index) =>
-        tc.fromNumpyTree(pyTuple.bracketAccess(index))
+        tc.fromNumpyTree(pyTuple.itemAt(index))
       m.fromProduct(Tuple.fromArray(elems.map(_.asInstanceOf[Object]).toArray))

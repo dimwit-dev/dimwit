@@ -1,5 +1,6 @@
 package dimwit.linalg
 
+import dimwit.python.PyIndex.itemAt
 import dimwit.jax.Jax
 import dimwit.tensor.Axis
 import dimwit.tensor.Label
@@ -129,7 +130,7 @@ object LinearAlgebra:
         case QRMode.Reduced  => "reduced"
         case QRMode.Complete => "complete"
     )
-    (q = Tensor[(LRow, LBasis), V](qr.bracketAccess(0)), r = Tensor[(LBasis, LCol), V](qr.bracketAccess(1)))
+    (q = Tensor[(LRow, LBasis), V](qr.itemAt(0)), r = Tensor[(LBasis, LCol), V](qr.itemAt(1)))
 
   /** Computes the eigenvalues and eigenvectors of a symmetric matrix `t`.
     * @param t The input tensor representing a symmetric matrix.
@@ -145,8 +146,8 @@ object LinearAlgebra:
       : (eigenvalues: Tensor1[LEig, V], eigenvectors: Tensor2[LSpace, LEig, V]) =
 
     val ret = Jax.jnp.linalg.eigh(t.jaxValue, UPLO = if upper then "U" else "L", symmetrize_input = symmetrizeInput)
-    val eigenvalues: Tensor1[LEig, V] = Tensor(ret.bracketAccess(0))
-    val eigenvectors: Tensor2[LSpace, LEig, V] = Tensor(ret.bracketAccess(1))
+    val eigenvalues: Tensor1[LEig, V] = Tensor(ret.itemAt(0))
+    val eigenvectors: Tensor2[LSpace, LEig, V] = Tensor(ret.itemAt(1))
     (eigenvalues = eigenvalues, eigenvectors = eigenvectors)
 
   /** Computes the singular value decomposition (SVD) of the tensor `t`.
@@ -164,9 +165,9 @@ object LinearAlgebra:
       : (U: Tensor2[LRow, LBasis, V], S: Tensor1[LSing, V], Vh: Tensor2[LBasis, LCol, V]) =
 
     val ret = Jax.jnp.linalg.svd(t.jaxValue, full_matrices = fullMatrices, hermitian = hermitian)
-    val u: Tensor2[LRow, LBasis, V] = Tensor(ret.bracketAccess(0))
-    val s: Tensor1[LSing, V] = Tensor(ret.bracketAccess(1))
-    val vh: Tensor2[LBasis, LCol, V] = Tensor(ret.bracketAccess(2))
+    val u: Tensor2[LRow, LBasis, V] = Tensor(ret.itemAt(0))
+    val s: Tensor1[LSing, V] = Tensor(ret.itemAt(1))
+    val vh: Tensor2[LBasis, LCol, V] = Tensor(ret.itemAt(2))
     (U = u, S = s, Vh = vh)
 
   /** Solves the linear equation Ax = b for x, where A is a square matrix and b is a vector.
