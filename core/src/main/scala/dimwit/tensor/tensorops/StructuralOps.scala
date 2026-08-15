@@ -653,9 +653,9 @@ object StructuralOps:
     )(
         indices: Tensor1[L2, Int32]
     )(using
-        ev: AxisRemover[T, L1],
-        labels: Labels[ev.RemainingAxes]
-    ): Tensor[Tuple.Concat[Tuple1[L2], ev.RemainingAxes], V] =
+        ev: AxisReplacer[T, L1, L2],
+        labels: Labels[ev.NewShape]
+    ): Tensor[ev.NewShape, V] =
       val result = Jax.jnp.take(tensor.jaxValue, indices.jaxValue, axis = ev.index)
       Tensor(result)
 
