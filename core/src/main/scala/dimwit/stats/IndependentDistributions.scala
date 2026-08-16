@@ -216,22 +216,22 @@ class Exponential[T <: Tuple: Labels, V: IsFloating](val rate: Tensor[T, V]) ext
     )
     stndExp / rate
 
-class Poisson[T <: Tuple: Labels, V: IsInteger](val rate: Tensor[T, Float32]) extends IndependentDistribution[T, V]:
+class Poisson[T <: Tuple: Labels, VSample: IsInteger, VRate: IsFloating](val rate: Tensor[T, VRate]) extends IndependentDistribution[T, VSample]:
 
-  override def elementWiseLogProb(x: Tensor[T, V]): Tensor[T, LogProb] =
+  override def elementWiseLogProb(x: Tensor[T, VSample]): Tensor[T, LogProb] =
     liftPyTensor(jstats.poisson.logpmf(x.jaxValue, mu = rate.jaxValue))
 
-  override def sample(k: Random.Key): Tensor[T, V] =
-    liftPyTensor(rate.shape, VType[V])(
-      Jax.jrandom.poisson(k.jaxKey, lam = rate.jaxValue, shape = rate.shape.dimensions.toPythonProxy)
+  override def sample(k: Random.Key): Tensor[T, VSample] =
+    liftPyTensor(rate.shape, VType[VSample])(
+      Jax.jrandom.poisson(k.jaxKey, lam = rate.jaxValue, shape = rate.shape.dimensions.toPythonProxy, dtype = VType[VSample].dtype.jaxType)
     )
 
 object Poisson:
 
   /** Create a Poisson distribution from a rate tensor, sampling as Int32 counts */
-  def apply[T <: Tuple: Labels](rate: Tensor[T, Float32]): Poisson[T, Int32] =
-    new Poisson[T, Int32](rate)
+  def apply[T <: Tuple: Labels, VRate: IsFloating](rate: Tensor[T, VRate]): Poisson[T, Int32, VRate] =
+    new Poisson[T, Int32, VRate](rate)
 
   /** Create a Poisson distribution from a rate tensor, sampling counts of the given integer type */
-  def apply[T <: Tuple: Labels, V: IsInteger](rate: Tensor[T, Float32], vtype: VType[V]): Poisson[T, V] =
-    new Poisson[T, V](rate)
+  def apply[T <: Tuple: Labels, VSample: IsInteger, VRate: IsFloating](rate: Tensor[T, VRate], vtype: VType[VSample]): Poisson[T, VSample, VRate] =
+    new Poisson[T, VSample, VRate](rate)
