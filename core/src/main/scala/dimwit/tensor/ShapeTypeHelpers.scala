@@ -38,10 +38,10 @@ object ShapeTypeHelpers:
 
     def apply[T <: Tuple, L](using idx: AxisIndex[T, L]): Int = idx.index
 
-    given head[L, Tail <: Tuple]: AxisIndex[L *: Tail, L] with
+    given found[L, Tail <: Tuple]: AxisIndex[L *: Tail, L] with
       val index = 0
 
-    given tail[H, T <: Tuple, L](using
+    given search[H, T <: Tuple, L](using
         next: AxisIndex[T, L]
     ): AxisIndex[H *: T, L] with
       val index = 1 + next.index
@@ -108,7 +108,7 @@ object ShapeTypeHelpers:
           type Out = Tuple.Concat[R, T]
           def index = 0
 
-      given recurse[H, T <: Tuple, A, R <: Tuple, TailOut <: Tuple](using
+      given search[H, T <: Tuple, A, R <: Tuple, TailOut <: Tuple](using
           ne: NotGiven[H =:= A],
           tailSplice: Splice.Aux[T, A, R, TailOut]
       ): Splice.Aux[H *: T, A, R, H *: TailOut] =
@@ -140,7 +140,7 @@ object ShapeTypeHelpers:
         case _: (head *: tail) =>
           summonInline[AxisIndex[InTuple, head]].index :: indicesOfList[InTuple, tail]
 
-    inline given [T <: Tuple, ToFind <: Tuple]: AxisIndices[T, ToFind] = AxisIndicesImpl[T, ToFind](indicesOfList[T, ToFind])
+    inline given indices[T <: Tuple, ToFind <: Tuple]: AxisIndices[T, ToFind] = AxisIndicesImpl[T, ToFind](indicesOfList[T, ToFind])
 
   end AxisIndices
 
@@ -186,12 +186,12 @@ object ShapeTypeHelpers:
   object SharedAxisRemover:
     type Aux[S <: Tuple, A, O <: Tuple] = SharedAxisRemover[S, A] { type RemainingAxes = O }
 
-    given empty[Axis]: SharedAxisRemover.Aux[EmptyTuple, Axis, EmptyTuple] = new SharedAxisRemover[EmptyTuple, Axis]:
+    given emptyTuple[Axis]: SharedAxisRemover.Aux[EmptyTuple, Axis, EmptyTuple] = new SharedAxisRemover[EmptyTuple, Axis]:
       type RemainingAxes = EmptyTuple
       def indices = Nil
       def shapesLabels = Nil
 
-    given cons[H <: Tuple, T <: Tuple, Axis, R <: Tuple, TailOut <: Tuple](using
+    given consTuple[H <: Tuple, T <: Tuple, Axis, R <: Tuple, TailOut <: Tuple](using
         evH: AxisRemover.Aux[H, Axis, R],
         evT: SharedAxisRemover.Aux[T, Axis, TailOut],
         rLabels: Labels[R]
@@ -206,20 +206,16 @@ object ShapeTypeHelpers:
     def extract(t: T): Map[String, Int]
 
   object DimExtractor:
-    given DimExtractor[EmptyTuple] with
+    given emptyTuple: DimExtractor[EmptyTuple] with
       def extract(t: EmptyTuple) = Map.empty
 
-    given [L, Tail <: Tuple](using
+    given consTuple[L, Tail <: Tuple](using
         label: Label[L],
         tailExtractor: DimExtractor[Tail]
     ): DimExtractor[AxisExtent[L] *: Tail] with
       def extract(t: AxisExtent[L] *: Tail) =
         val size = t.head.size
         Map(label.name -> size) ++ tailExtractor.extract(t.tail)
-
-    given single[L](using label: Label[L]): DimExtractor[AxisExtent[L]] with
-      def extract(t: AxisExtent[L]) =
-        Map(label.name -> t.size)
 
   /** Merges multiple axes in a tensor shape into a single axis.
     *
@@ -241,7 +237,7 @@ object ShapeTypeHelpers:
     case head *: tail => MergeLabelsRec[tail, Acc |*| head]
 
   object MergeLabels:
-    given [T <: Tuple: Labels]: Label[MergeLabels[T]] with
+    given mergedLabel[T <: Tuple: Labels]: Label[MergeLabels[T]] with
       def name = summon[Labels[T]].names.mkString("*")
 
   object AxesMerger:

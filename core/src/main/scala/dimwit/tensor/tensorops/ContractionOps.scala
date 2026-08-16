@@ -1,11 +1,11 @@
 package dimwit.tensor.tensorops
 
 import dimwit.jax.Jax
+import dimwit.prime.PrimeConcat
 import dimwit.tensor.Axis
 import dimwit.tensor.Labels
 import dimwit.tensor.ShapeTypeHelpers.AxisRemover
 import dimwit.tensor.Tensor
-import dimwit.tensor.TupleHelpers.PrimeConcat
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
 import me.shadaj.scalapy.readwrite.Writer
@@ -56,13 +56,6 @@ object ContractionOps:
       *
       * @param axis The pair of axes along which to contract. Each axis must be present in its respective tensor.
       * @param other The other tensor to contract with.
-      *
-      * Example usage:
-      * {{{
-      * val t1: Tensor[("A", "B", "C"), Float] = ???
-      * val t2: Tensor[("D", "E, "F), Float] = ???
-      * val result = t1.dot(Axis[A]->Axis[D])(t2)
-      * }}}
       */
     @targetName("dotOn")
     def dot[

@@ -16,7 +16,7 @@ trait TreeOf[P, V]
 object TreeOf:
 
   // 1. Base case for Tensors
-  given [Q <: Tuple, V](using TensorTree[Tensor[Q, V]]): TreeOf[Tensor[Q, V], V] with {}
+  given tensor[Q <: Tuple, V](using TensorTree[Tensor[Q, V]]): TreeOf[Tensor[Q, V], V] with {}
 
   // 2. Inductive base cases for Tuples
   // This allows the compiler to step through the case class fields and lock in V.
@@ -28,12 +28,12 @@ object TreeOf:
   )(using TensorTree[H *: T]): TreeOf[H *: T, V] with {}
 
   // 3. Standard collections
-  given listInstance[A: TensorTree, V](using TreeOf[A, V]): TreeOf[List[A], V] with {}
+  given list[A: TensorTree, V](using TreeOf[A, V]): TreeOf[List[A], V] with {}
 
   // given mapInstance[K, A, V](using TreeOf[A, V]): TreeOf[Map[K, A], V] with {}
 
   // 4. Named tuples, delegating to the TreeOf instance of the underlying value tuple
-  given namedTupleInstance[N <: Tuple, V <: Tuple: TensorTree, Fl](using TreeOf[V, Fl]): TreeOf[NamedTuple[N, V], Fl] with {}
+  given namedTuple[N <: Tuple, V <: Tuple: TensorTree, Fl](using TreeOf[V, Fl]): TreeOf[NamedTuple[N, V], Fl] with {}
 
   inline given derived[P <: Product: TensorTree, V](using
       evNotTuple: NotGiven[P <:< Tuple],
@@ -100,7 +100,7 @@ object TreeOf:
     // helper typeclass
     trait IsFloatingTensor[P, V]
     object IsFloatingTensor:
-      given [T <: Tuple, V: IsFloating]: IsFloatingTensor[Tensor[T, V], V] with {}
+      given tensor[T <: Tuple, V: IsFloating]: IsFloatingTensor[Tensor[T, V], V] with {}
 
     // Scalar broadcast extensions (Tensor0 op Tree)
     extension [V: IsFloating](p2: Tensor0[V])

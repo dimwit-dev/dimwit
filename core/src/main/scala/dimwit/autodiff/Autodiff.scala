@@ -3,32 +3,100 @@ package dimwit.autodiff
 import dimwit.python.PyIndex.itemAt
 import dimwit.OnError
 import dimwit.jax.Jax
+import dimwit.prime.PrimeConcat
 import dimwit.tensor.Tensor
 import dimwit.tensor.Tensor0
 import dimwit.tensor.TensorOps.IsFloating
-import dimwit.tensor.TupleHelpers.PrimeConcatType
 import dimwit.tensortree.TensorTree
 import me.shadaj.scalapy.py
 
+import scala.NamedTuple.NamedTuple
+import scala.annotation.implicitNotFound
+import scala.deriving.Mirror
+
 object Autodiff:
 
-  type Gradient[In, Out] = Out match
-    case EmptyTuple      => EmptyTuple
-    case h *: t          => Gradient[In, h] *: Gradient[In, t]
-    case Tensor[outS, v] => GradientTensorVsInput[In, outS, v]
-    case _               => EmptyTuple
+  /** The derivative of a function `In => Out`: the structure of `Out`, with every
+    * tensor in it replaced by its derivative with respect to the whole of `In`.
+    *
+    * Instances are open, so this stays in step with [[TensorTree]] - a structure
+    * a user has given a `TensorTree` can be given a `Gradient` too.
+    */
+  @implicitNotFound(
+    "Cannot express the derivative of ${Out} with respect to ${In}. Both must be built from tensors, tuples, named tuples or case classes with a TensorTree instance"
+  )
+  trait Gradient[In, Out]:
+    type Result
 
-  type GradientTensorVsInput[In, OutShape <: Tuple, V] = In match
-    case EmptyTuple      => EmptyTuple
-    case h *: t          => GradientTensorVsInput[h, OutShape, V] *: GradientTensorVsInput[t, OutShape, V]
-    case Tensor[inS, v2] => Tensor[PrimeConcatType[OutShape, inS], V]
+  object Gradient extends GradientLowPriority:
 
-  type Hessian[In] = HessianProduct[In, In]
+    type Aux[In, Out, R] = Gradient[In, Out] { type Result = R }
 
-  type HessianProduct[In, Out] = Out match
-    case EmptyTuple      => EmptyTuple
-    case h *: t          => HessianProduct[In, h] *: HessianProduct[In, t]
-    case Tensor[outS, v] => GradientTensorVsInput[In, outS, v]
+    private[autodiff] def instance[In, Out, R]: Aux[In, Out, R] =
+      new Gradient[In, Out]:
+        type Result = R
+
+    /** An output tensor is differentiated against every tensor in the input. */
+    given tensor[In, OutShape <: Tuple, V, R](using
+        vsInput: GradientTensorVsInput.Aux[In, OutShape, V, R]
+    ): Aux[In, Tensor[OutShape, V], R] = instance
+
+    given emptyTuple[In]: Aux[In, EmptyTuple, EmptyTuple] = instance
+
+    given consTuple[In, H, HR, T <: Tuple, TR <: Tuple](using
+        head: Aux[In, H, HR],
+        tail: Aux[In, T, TR]
+    ): Aux[In, H *: T, HR *: TR] = instance
+
+    given namedTuple[In, N <: Tuple, Vs <: Tuple, R <: Tuple](using
+        values: Aux[In, Vs, R]
+    ): Aux[In, NamedTuple[N, Vs], NamedTuple[N, R]] = instance
+
+  trait GradientLowPriority:
+    /** A case class output becomes a named tuple of its field derivatives,
+      * keeping the field names. Lower priority than the tuple cases, since
+      * tuples are Products too.
+      */
+    given product[In, P <: Product, Names <: Tuple, Elems <: Tuple, R <: Tuple](using
+        m: Mirror.ProductOf[P] { type MirroredElemLabels = Names; type MirroredElemTypes = Elems },
+        elems: Gradient.Aux[In, Elems, R]
+    ): Gradient.Aux[In, P, NamedTuple[Names, R]] = Gradient.instance
+
+  /** The derivative of one output tensor of shape `OutShape` with respect to the
+    * whole input structure `In`. Mirrors [[Gradient]], recursing on the input.
+    */
+  trait GradientTensorVsInput[In, OutShape <: Tuple, V]:
+    type Result
+
+  object GradientTensorVsInput extends GradientTensorVsInputLowPriority:
+
+    type Aux[In, OutShape <: Tuple, V, R] = GradientTensorVsInput[In, OutShape, V] { type Result = R }
+
+    private[autodiff] def instance[In, OutShape <: Tuple, V, R]: Aux[In, OutShape, V, R] =
+      new GradientTensorVsInput[In, OutShape, V]:
+        type Result = R
+
+    /** Output axes first, then the input axes, primed where they collide. */
+    given tensor[InShape <: Tuple, InV, OutShape <: Tuple, V, O <: Tuple](using
+        concat: PrimeConcat.Aux[OutShape, InShape, O]
+    ): Aux[Tensor[InShape, InV], OutShape, V, Tensor[O, V]] = instance
+
+    given emptyTuple[OutShape <: Tuple, V]: Aux[EmptyTuple, OutShape, V, EmptyTuple] = instance
+
+    given consTuple[H, HR, T <: Tuple, TR <: Tuple, OutShape <: Tuple, V](using
+        head: Aux[H, OutShape, V, HR],
+        tail: Aux[T, OutShape, V, TR]
+    ): Aux[H *: T, OutShape, V, HR *: TR] = instance
+
+    given namedTuple[N <: Tuple, Vs <: Tuple, R <: Tuple, OutShape <: Tuple, V](using
+        values: Aux[Vs, OutShape, V, R]
+    ): Aux[NamedTuple[N, Vs], OutShape, V, NamedTuple[N, R]] = instance
+
+  trait GradientTensorVsInputLowPriority:
+    given product[P <: Product, Names <: Tuple, Elems <: Tuple, R <: Tuple, OutShape <: Tuple, V](using
+        m: Mirror.ProductOf[P] { type MirroredElemLabels = Names; type MirroredElemTypes = Elems },
+        elems: GradientTensorVsInput.Aux[Elems, OutShape, V, R]
+    ): GradientTensorVsInput.Aux[P, OutShape, V, NamedTuple[Names, R]] = GradientTensorVsInput.instance
 
   // TODO replace with TupledFunction when available (no longer experimental)
   def grad[T1, T2, V: IsFloating](f: (T1, T2) => Tensor0[V])(using t1Tree: TensorTree[T1], t2Tree: TensorTree[T2], outTree: TensorTree[Tensor0[V]]): (T1, T2) => Grad[(T1, T2)] = (t1, t2) => grad(f.tupled)((t1, t2))
@@ -76,8 +144,9 @@ object Autodiff:
   def jacobian[In, Out](f: In => Out)(using
       inTree: TensorTree[In],
       outTree: TensorTree[Out],
-      gradTree: TensorTree[Gradient[In, Out]]
-  ): In => Gradient[In, Out] =
+      gradient: Gradient[In, Out],
+      gradTree: TensorTree[gradient.Result]
+  ): In => gradient.Result =
 
     val fpy = (jxpr: py.Dynamic) =>
       OnError.traceStack:
@@ -94,8 +163,9 @@ object Autodiff:
   def jacRev[In, Out](f: In => Out)(using
       inTree: TensorTree[In],
       outTree: TensorTree[Out],
-      gradTree: TensorTree[Gradient[In, Out]]
-  ): In => Gradient[In, Out] =
+      gradient: Gradient[In, Out],
+      gradTree: TensorTree[gradient.Result]
+  ): In => gradient.Result =
     val fpy = (jxpr: py.Dynamic) =>
       OnError.traceStack:
         outTree.toPyTree(f(inTree.fromPyTree(jxpr)))
@@ -105,8 +175,9 @@ object Autodiff:
   def jacFwd[In, Out](f: In => Out)(using
       inTree: TensorTree[In],
       outTree: TensorTree[Out],
-      gradTree: TensorTree[Gradient[In, Out]]
-  ): In => Gradient[In, Out] =
+      gradient: Gradient[In, Out],
+      gradTree: TensorTree[gradient.Result]
+  ): In => gradient.Result =
     val fpy = (jxpr: py.Dynamic) =>
       OnError.traceStack:
         outTree.toPyTree(f(inTree.fromPyTree(jxpr)))
@@ -116,8 +187,9 @@ object Autodiff:
   def hessian[In, V: IsFloating](f: In => Tensor0[V])(using
       inTree: TensorTree[In],
       outTree: TensorTree[Tensor0[V]],
-      hessTree: TensorTree[Hessian[In]]
-  ): In => Hessian[In] =
+      hess: Gradient[In, In],
+      hessTree: TensorTree[hess.Result]
+  ): In => hess.Result =
     val fpy = (jxpr: py.Dynamic) =>
       OnError.traceStack:
         val x = inTree.fromPyTree(jxpr)
