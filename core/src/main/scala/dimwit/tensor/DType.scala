@@ -11,51 +11,51 @@ import java.nio.ByteOrder
 
 object DType:
 
-  type UInt8 = UInt8.type
+  sealed trait UInt8
   given uint8IsFloating: IsInteger[UInt8] with
     def dtype: DType = DType.UInt8
 
-  type UInt16 = UInt16.type
+  sealed trait UInt16
   given uint16IsInteger: IsInteger[UInt16] with
     def dtype: DType = DType.UInt16
 
-  type UInt32 = UInt32.type
+  sealed trait UInt32
   given uint32IsInteger: IsInteger[UInt32] with
     def dtype: DType = DType.UInt32
 
-  type Int8 = Int8.type
+  sealed trait Int8
   given int8IsInteger: IsInteger[Int8] with
     def dtype: DType = DType.Int8
 
-  type Int16 = Int16.type
+  sealed trait Int16
   given int16IsInteger: IsInteger[Int16] with
     def dtype: DType = DType.Int16
 
-  type Int32 = Int32.type
+  sealed trait Int32
   given int32IsInteger: IsInteger[Int32] with
     def dtype: DType = DType.Int32
 
-  type Int64 = Int64.type
+  sealed trait Int64
   given int64IsInteger: IsInteger[Int64] with
     def dtype: DType = DType.Int64
 
-  type Float16 = Float16.type
+  sealed trait Float16
   given float16IsFloating: IsFloating[Float16] with
     def dtype: DType = DType.Float16
 
-  type BFloat16 = BFloat16.type
+  sealed trait BFloat16
   given bfloat16IsFloating: IsFloating[BFloat16] with
     def dtype: DType = DType.BFloat16
 
-  type Float32 = Float32.type
+  sealed trait Float32
   given float32IsFloating: IsFloating[Float32] with
     def dtype: DType = DType.Float32
 
-  type Float64 = Float64.type
+  sealed trait Float64
   given float64IsFloating: IsFloating[Float64] with
     def dtype: DType = DType.Float64
 
-  type Bool = Bool.type
+  sealed trait Bool
   given boolIsBoolean: IsBoolean[Bool] with
     def dtype: DType = DType.Bool
 

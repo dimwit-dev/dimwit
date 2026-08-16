@@ -213,7 +213,7 @@ tensor1 + tensor3
 //     dimwit.tensor.DType.Float32]
 // )
 // Required: dimwit.tensor.Tensor[(MdocApp1.this.A, MdocApp1.this.B),
-//   (dimwit.tensor.DType.Float32 : dimwit.tensor.DType)]
+//   dimwit.tensor.DType.Float32]
 // tensor1 + tensor3 
 //           ^^^^^^^
 // error:
@@ -242,7 +242,7 @@ tensor1 + tensor3
 //     dimwit.tensor.DType.Float32]
 // )
 // Required: dimwit.tensor.Tensor[(MdocApp1.this.A, MdocApp1.this.B),
-//   (dimwit.tensor.DType.Float32 : dimwit.tensor.DType)]
+//   dimwit.tensor.DType.Float32]
 // tensor1 + tensor3
 //           ^^^^^^^
 ```

@@ -377,7 +377,7 @@ val wrong = t + 5.0f  // Use +! instead
 // error: 
 // Found:    (5.0f : Float)
 // Required: dimwit.tensor.Tensor[(MdocApp0.this.A, MdocApp0.this.B),
-//   (dimwit.tensor.DType.Float32 : dimwit.tensor.DType)]
+//   dimwit.tensor.DType.Float32]
 // error: 
 // Conflicting definitions:
 // val t:
@@ -1099,15 +1099,11 @@ val wrong = intTensor.exp  // exp requires IsFloating constraint
 // value exp is not a member of dimwit.tensor.Tensor1[MdocApp12.this.A, dimwit.tensor.DType.Int32].
 // An extension method was tried, but could not be fully constructed:
 // 
-//     dimwit.exp[Tuple1[MdocApp12.this.A],
-//       (dimwit.tensor.DType.Int32 : dimwit.tensor.DType)](this.intTensor)(
+//     dimwit.exp[Tuple1[MdocApp12.this.A], dimwit.tensor.DType.Int32](this.intTensor)(
 //       dimwit.tensor.Labels.concat[MdocApp12.this.A, EmptyTuple.type](
 //         this.A.derived$Label, dimwit.tensor.Labels.namesOfEmpty),
 //       /* missing */
-//         summon[
-//           dimwit.tensor.TensorOps.IsFloating[
-//             (dimwit.tensor.DType.Int32 : dimwit.tensor.DType)]
-//         ]
+//         summon[dimwit.tensor.TensorOps.IsFloating[dimwit.tensor.DType.Int32]]
 //     )
 // 
 //     failed with:
@@ -1123,15 +1119,12 @@ val wrong = boolTensor.mean
 // value mean is not a member of dimwit.tensor.Tensor1[MdocApp12.this.A, dimwit.tensor.DType.Bool].
 // An extension method was tried, but could not be fully constructed:
 // 
-//     dimwit.mean[Tuple1[MdocApp12.this.A],
-//       (dimwit.tensor.DType.Bool : dimwit.tensor.DType)](this.boolTensor)(
+//     dimwit.mean[Tuple1[MdocApp12.this.A], dimwit.tensor.DType.Bool](this.boolTensor)
+//       (
 //       dimwit.tensor.Labels.concat[MdocApp12.this.A, EmptyTuple.type](
 //         this.A.derived$Label, dimwit.tensor.Labels.namesOfEmpty),
 //       /* missing */
-//         summon[
-//           dimwit.tensor.TensorOps.IsFloating[
-//             (dimwit.tensor.DType.Bool : dimwit.tensor.DType)]
-//         ]
+//         summon[dimwit.tensor.TensorOps.IsFloating[dimwit.tensor.DType.Bool]]
 //     )
 // 
 //     failed with:
@@ -1151,8 +1144,7 @@ val wrong = t1 + t2  // Different labels AND different sizes
 // error: 
 // Found:    (MdocApp12.this.t2 :
 //   dimwit.tensor.Tensor1[MdocApp12.this.B, dimwit.tensor.DType.Float32])
-// Required: dimwit.tensor.Tensor[Tuple1[MdocApp12.this.A],
-//   (dimwit.tensor.DType.Float32 : dimwit.tensor.DType)]
+// Required: dimwit.tensor.Tensor[Tuple1[MdocApp12.this.A], dimwit.tensor.DType.Float32]
 ```
 
 ```scala
@@ -1190,7 +1182,7 @@ val wrong = t + 10.0f  // Should use +! for scalar broadcast
 // error: 
 // Found:    (10.0f : Float)
 // Required: dimwit.tensor.Tensor[(MdocApp12.this.A, MdocApp12.this.B),
-//   (dimwit.tensor.DType.Float32 : dimwit.tensor.DType)]
+//   dimwit.tensor.DType.Float32]
 ```
 
 ```scala
@@ -1205,7 +1197,7 @@ val wrong = t1 +! t2
 // 
 //     dimwit.tensor.tensorops.TensorOpsUtil.Broadcast.broadcastLeft[
 //       Tuple1[MdocApp12.this.A], Tuple1[MdocApp12.this.A],
-//       (dimwit.tensor.DType.Float32 : dimwit.tensor.DType)](
+//       dimwit.tensor.DType.Float32](
 //       dimwit.tensor.Labels.concat[MdocApp12.this.A, EmptyTuple.type](
 //         this.A.derived$Label, dimwit.tensor.Labels.namesOfEmpty),
 //       dimwit.tensor.Labels.concat[MdocApp12.this.A, EmptyTuple.type](
