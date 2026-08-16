@@ -401,7 +401,7 @@ class DistributionSuite extends DimwitTest:
 
   describe("Poisson"):
     it("logProbs matches JAX"):
-      val rate = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1, 3, 10))
+      val rate = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1.0f, 3.0f, 10.0f))
       val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1, 2, 8))
 
       val dist = Poisson(rate)
@@ -413,7 +413,7 @@ class DistributionSuite extends DimwitTest:
 
     it("sample means approximates rate"):
       val poisson = Poisson(
-        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1, 5))
+        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1.0f, 5.0f))
       )
       val key = Random.Key(42)
       val samples = key.splitvmap(Axis[Samples] -> 10000)(k => poisson.sample(k))
