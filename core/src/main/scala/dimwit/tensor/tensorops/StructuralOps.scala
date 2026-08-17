@@ -1,5 +1,6 @@
 package dimwit.tensor.tensorops
 
+import dimwit.python.PyIndex.itemAt
 import dimwit.jax.Einops
 import dimwit.jax.Jax
 import dimwit.tensor.Axis
@@ -581,7 +582,7 @@ object StructuralOps:
         labels: Labels[ev.RemainingAxes]
     ): Tensor[ev.RemainingAxes, V] =
       val pyIndices = tensor.calcPyIndices(inputs, ev.indices)
-      Tensor(tensor.jaxValue.bracketAccess(pyIndices))
+      Tensor(tensor.jaxValue.itemAt(pyIndices))
 
     /** Slice the given tensor, specifying the axis and index to slice at.
       *
@@ -667,7 +668,7 @@ object StructuralOps:
         labels: Labels[T]
     )(value: Tensor[ev.RemainingAxes, V]): Tensor[T, V] =
       val pyIndices = tensor.calcPyIndices(inputs, ev.indices)
-      val result = tensor.jaxValue.at.bracketAccess(pyIndices).set(value.jaxValue)
+      val result = tensor.jaxValue.at.itemAt(pyIndices).set(value.jaxValue)
       Tensor(result)
 
     // Convenience overload for Float
@@ -679,7 +680,7 @@ object StructuralOps:
         labels: Labels[T]
     )(value: Float): Tensor[T, V] =
       val pyIndices = tensor.calcPyIndices(inputs, ev.indices)
-      val result = tensor.jaxValue.at.bracketAccess(pyIndices).set(value)
+      val result = tensor.jaxValue.at.itemAt(pyIndices).set(value)
       Tensor(result)
 
     // Convenience overload for AxisAtIndex

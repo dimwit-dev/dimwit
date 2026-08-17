@@ -1,5 +1,6 @@
 package dimwit.autodiff
 
+import dimwit.python.PyIndex.itemAt
 import dimwit.OnError
 import dimwit.jax.Jax
 import dimwit.tensor.Tensor
@@ -68,8 +69,8 @@ object Autodiff:
     (params: Input) =>
       val pyParams = inTree.toPyTree(params)
       val r = gpy(pyParams)
-      val pyValue = r.bracketAccess(0)
-      val pyGrad = r.bracketAccess(1)
+      val pyValue = r.itemAt(0)
+      val pyGrad = r.itemAt(1)
       (Tensor(pyValue), Grad(inTree.fromPyTree(pyGrad).asInstanceOf[Input]))
 
   def jacobian[In, Out](f: In => Out)(using

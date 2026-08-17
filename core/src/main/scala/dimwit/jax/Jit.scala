@@ -1,5 +1,6 @@
 package dimwit.jax
 
+import dimwit.python.PyIndex.itemAt
 import dimwit.OnError
 import dimwit.tensortree.TensorTree
 import dimwit.jax.Jax
@@ -271,7 +272,7 @@ object JitDonating:
     val jitted = pyJit(fpy, Map("donate_argnums" -> Tuple2(0, 1)))
     def apply(r1: Donatable, r2: Donatable2): (Donatable, Donatable2) =
       val res = jitted(r1, r2).as[Jax.PyDynamic]
-      (res.bracketAccess(0), res.bracketAccess(1))
+      (res.itemAt(0), res.itemAt(1))
 
   // Three Params
 
@@ -301,7 +302,7 @@ object JitDonating:
     def apply(t1: T1, r1: Donatable, r2: Donatable2): (Donatable, Donatable2) =
       val pyT1 = TensorTree[T1].toPyTree(t1)
       val res = jitted(pyT1, r1, r2).as[Jax.PyDynamic]
-      (res.bracketAccess(0), res.bracketAccess(1))
+      (res.itemAt(0), res.itemAt(1))
 
   case class JitReducerI0O3[R1: TensorTree, R2: TensorTree, R3: TensorTree](f: (R1, R2, R3) => (R1, R2, R3)) extends JitReducerO3[R1, R2, R3]:
     val fpy = (r1: Donatable, r2: Donatable2, r3: Donatable3) =>
@@ -314,7 +315,7 @@ object JitDonating:
     val jitted = pyJit(fpy, Map("donate_argnums" -> Tuple3(0, 1, 2)))
     def apply(r1: Donatable, r2: Donatable2, r3: Donatable3): (Donatable, Donatable2, Donatable3) =
       val res = jitted(r1, r2, r3).as[Jax.PyDynamic]
-      (res.bracketAccess(0), res.bracketAccess(1), res.bracketAccess(2))
+      (res.itemAt(0), res.itemAt(1), res.itemAt(2))
 
   // Four Params
 
@@ -348,7 +349,7 @@ object JitDonating:
       val pyT1 = TensorTree[T1].toPyTree(t1)
       val pyT2 = TensorTree[T2].toPyTree(t2)
       val res = jitted(pyT1, pyT2, r1, r2).as[Jax.PyDynamic]
-      (res.bracketAccess(0), res.bracketAccess(1))
+      (res.itemAt(0), res.itemAt(1))
 
   case class JitReducerI1O3[R1: TensorTree, R2: TensorTree, R3: TensorTree, T1: TensorTree](f: (T1, R1, R2, R3) => (R1, R2, R3)) extends JitReducerO3[R1, R2, R3]:
     val fpy = (t1: Jax.PyDynamic, r1: Donatable, r2: Donatable2, r3: Donatable3) =>
@@ -363,7 +364,7 @@ object JitDonating:
     def apply(t1: T1, r1: Donatable, r2: Donatable2, r3: Donatable3): (Donatable, Donatable2, Donatable3) =
       val pyT1 = TensorTree[T1].toPyTree(t1)
       val res = jitted(pyT1, r1, r2, r3).as[Jax.PyDynamic]
-      (res.bracketAccess(0), res.bracketAccess(1), res.bracketAccess(2))
+      (res.itemAt(0), res.itemAt(1), res.itemAt(2))
 
   case class JitReducerI0R4[R1: TensorTree, R2: TensorTree, R3: TensorTree, R4: TensorTree](f: (R1, R2, R3, R4) => (R1, R2, R3, R4)) extends JitReducerO4[R1, R2, R3, R4]:
     val fpy = (r1: Donatable, r2: Donatable2, r3: Donatable3, r4: Donatable4) =>
@@ -377,7 +378,7 @@ object JitDonating:
     val jitted = pyJit(fpy, Map("donate_argnums" -> Tuple4(0, 1, 2, 3)))
     def apply(r1: Donatable, r2: Donatable2, r3: Donatable3, r4: Donatable4): (Donatable, Donatable2, Donatable3, Donatable4) =
       val res = jitted(r1, r2, r3, r4).as[Jax.PyDynamic]
-      (res.bracketAccess(0), res.bracketAccess(1), res.bracketAccess(2), res.bracketAccess(3))
+      (res.itemAt(0), res.itemAt(1), res.itemAt(2), res.itemAt(3))
 
   // --- Helper Methods (Constructors) ---
 
