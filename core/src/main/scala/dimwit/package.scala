@@ -79,6 +79,7 @@ package object dimwit:
 
   // Export operations
   export dimwit.tensor.TensorOps.*
+  export dimwit.linalg.LinearAlgebra.{VectorNormType, MatrixNormType, QRMode}
   export dimwit.tensor.ValueOps.*
 
   // Export devices

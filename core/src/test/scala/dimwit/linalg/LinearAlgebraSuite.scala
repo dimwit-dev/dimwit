@@ -2,28 +2,28 @@ package dimwit.linalg
 
 import dimwit.*
 
-class LinearAlgebraTests extends DimwitTest:
+class LinearAlgebraSuite extends DimwitTest:
 
   describe("Vector norms"):
     val v = Tensor1(Axis[A]).fromArray(Array(3.0f, 4.0f))
 
     it("L1 norm"):
-      LinearAlgebra.norm(v, LinearAlgebra.VectorNormType.L1).item shouldBe 7.0f +- 1e-5f
+      v.vectorNorm(VectorNormType.L1).item shouldBe 7.0f +- 1e-5f
 
     it("L2 norm"):
-      LinearAlgebra.norm(v, LinearAlgebra.VectorNormType.L2).item shouldBe 5.0f +- 1e-5f
+      v.vectorNorm(VectorNormType.L2).item shouldBe 5.0f +- 1e-5f
 
     it("Ord(1) norm equals L1"):
-      LinearAlgebra.norm(v, LinearAlgebra.VectorNormType.Ord(1)).item shouldBe
-        LinearAlgebra.norm(v, LinearAlgebra.VectorNormType.L1).item +- 1e-5f
+      v.vectorNorm(VectorNormType.Ord(1)).item shouldBe
+        v.vectorNorm(VectorNormType.L1).item +- 1e-5f
 
     it("Ord(3) norm"):
       // (3^3 + 4^3)^(1/3) = (27 + 64)^(1/3) = 91^(1/3) ≈ 4.4979
-      LinearAlgebra.norm(v, LinearAlgebra.VectorNormType.Ord(3)).item shouldBe
+      v.vectorNorm(VectorNormType.Ord(3)).item shouldBe
         Math.pow(91.0, 1.0 / 3.0).toFloat +- 1e-4f
 
     it("Inf norm (max abs value)"):
-      LinearAlgebra.norm(v, LinearAlgebra.VectorNormType.Inf).item shouldBe 4.0f +- 1e-5f
+      v.vectorNorm(VectorNormType.Inf).item shouldBe 4.0f +- 1e-5f
 
   describe("Matrix norms"):
     // [[3, 0], [4, 0]]: easy to reason about column/row sums
@@ -33,23 +33,23 @@ class LinearAlgebraTests extends DimwitTest:
 
     it("Frobenius norm"):
       // sqrt(3^2 + 4^2) = 5
-      LinearAlgebra.norm(m, LinearAlgebra.MatrixNormType.Frobenius).item shouldBe 5.0f +- 1e-5f
+      m.matrixNorm(MatrixNormType.Frobenius).item shouldBe 5.0f +- 1e-5f
 
     it("Nuclear norm"):
       // singular values of [[3,0],[4,0]] are 5 and 0; nuclear = sum = 5
-      LinearAlgebra.norm(m, LinearAlgebra.MatrixNormType.Nuclear).item shouldBe 5.0f +- 1e-5f
+      m.matrixNorm(MatrixNormType.Nuclear).item shouldBe 5.0f +- 1e-5f
 
     it("Spectral norm (ord=2)"):
       // largest singular value = 5
-      LinearAlgebra.norm(m, LinearAlgebra.MatrixNormType.Spectral).item shouldBe 5.0f +- 1e-5f
+      m.matrixNorm(MatrixNormType.Spectral).item shouldBe 5.0f +- 1e-5f
 
     it("One norm (max absolute column sum)"):
       // col 0 sum = 3+4=7, col 1 sum = 0 → 7
-      LinearAlgebra.norm(m, LinearAlgebra.MatrixNormType.One).item shouldBe 7.0f +- 1e-5f
+      m.matrixNorm(MatrixNormType.One).item shouldBe 7.0f +- 1e-5f
 
     it("Inf norm (max absolute row sum)"):
       // row 0 sum = 3, row 1 sum = 4 → 4
-      LinearAlgebra.norm(m, LinearAlgebra.MatrixNormType.Inf).item shouldBe 4.0f +- 1e-5f
+      m.matrixNorm(MatrixNormType.Inf).item shouldBe 4.0f +- 1e-5f
 
   describe("Cholesky factorization"):
 
@@ -128,8 +128,14 @@ class LinearAlgebraTests extends DimwitTest:
 
     it("Frobenius norm is preserved: ||A||_F = ||R||_F (since Q is orthogonal)"):
       val (_, r) = LinearAlgebra.qr(qrMat, Axis[LBasis])
-      LinearAlgebra.norm(r, LinearAlgebra.MatrixNormType.Frobenius).item shouldBe
-        LinearAlgebra.norm(qrMat, LinearAlgebra.MatrixNormType.Frobenius).item +- 1e-4f
+      r.matrixNorm(MatrixNormType.Frobenius).item shouldBe
+        qrMat.matrixNorm(MatrixNormType.Frobenius).item +- 1e-4f
+
+    it("Complete mode yields a square Q"):
+      val (q, _) = LinearAlgebra.qr(qrMat, Axis[LBasis], QRMode.Complete)
+      val qqt = q.dot(Axis[LBasis])(q)
+      val expected = identity[A, Prime[A]]
+      qqt should approxEqual(expected, tolerance = 1e-5f)
 
   describe("Singular value decomposition (SVD)"):
     trait LBasis derives Label
@@ -145,13 +151,11 @@ class LinearAlgebraTests extends DimwitTest:
     it("singular values sum equals nuclear norm"):
       trait LBasis derives Label
       val (_, s, _) = LinearAlgebra.svd(diagMat, Axis[LBasis], Axis[LSing])
-      s.sum.item shouldBe
-        LinearAlgebra.norm(diagMat, LinearAlgebra.MatrixNormType.Nuclear).item +- 1e-4f
+      s.sum.item shouldBe diagMat.matrixNorm(MatrixNormType.Nuclear).item +- 1e-4f
 
     it("largest singular value equals spectral norm"):
       val (_, s, _) = LinearAlgebra.svd(diagMat, Axis[LBasis], Axis[LSing])
-      s.max.item shouldBe
-        LinearAlgebra.norm(diagMat, LinearAlgebra.MatrixNormType.Spectral).item +- 1e-4f
+      s.max.item shouldBe diagMat.matrixNorm(MatrixNormType.Spectral).item +- 1e-4f
 
     it("U is orthonormal: U @ U^T = I"):
       val (u, _, _) = LinearAlgebra.svd(diagMat, Axis[LBasis], Axis[LSing])
@@ -164,6 +168,20 @@ class LinearAlgebraTests extends DimwitTest:
       val vhvht = vh.dot(Axis[Prime[A]])(vh)
       val expected = identity[LBasis, Prime[LBasis]]
       vhvht should approxEqual(expected, tolerance = 1e-5f)
+
+  describe("Determinant and inverse"):
+
+    // [[2, 1], [1, 3]]: det = 2*3 - 1*1 = 5
+    val invertible = Tensor2(Axis[A], Axis[Prime[A]]).fromArray(
+      Array(Array(2.0f, 1.0f), Array(1.0f, 3.0f))
+    )
+
+    it("determinant of a 2x2 matrix"):
+      invertible.det.item shouldBe 5.0f +- 1e-5f
+
+    it("inverse times the original is the identity"):
+      val product = invertible.inv.dot(Axis[A])(invertible)
+      product should approxEqual(identity[Prime[A], Prime[Prime[A]]], tolerance = 1e-5f)
 
   describe("Diagonal extraction"):
     trait LDiag derives Label
