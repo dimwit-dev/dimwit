@@ -4,6 +4,10 @@
 > 
 > Donald Knuth
 
+<p align="center">
+  <img src="assets/dimwit-logo.svg" alt="DimWit — Tensor programming with wit" width="360">
+</p>
+
 
 ## Vision
 

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="150 22 385 392" width="385" height="392" role="img">
+  <title>dimwit — Tensor programming with wit</title>
+  <desc>A solid isometric block in three shades of Scala red, subdivided into a 3x3x3 grid. Three thin red lines extend from one vertex along each axis, each ending in a red dot and a type name: Batch, Seq and Emb. Below sits the dimwit wordmark with "wit" in red, and the tagline "Tensor programming with wit".</desc>
+
+  <style>
+    .dw-label { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 14px; font-weight: 500; fill: #1A1A19; }
+    .dw-mark  { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 30px; font-weight: 500; letter-spacing: 1px; fill: #1A1A19; }
+    .dw-tag   { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 12px; font-weight: 400; letter-spacing: 1.5px; fill: #6B6A66; }
+  </style>
+
+  <!-- tensor block -->
+  <polygon points="240,120 400,120 464,68 304,68" fill="#F0705C"/>
+  <polygon points="400,120 464,68 464,228 400,280" fill="#A81E14"/>
+  <rect x="240" y="120" width="160" height="160" fill="#DE3423"/>
+
+  <!-- cell divisions -->
+  <g stroke="#FFFFFF" stroke-width="1" opacity="0.3" fill="none">
+    <path d="M293.3 120V280M346.7 120V280M240 173.3H400M240 226.7H400"/>
+    <path d="M293.3 120L357.3 68M346.7 120L410.7 68M261.3 102.7H421.3M282.7 85.3H442.7"/>
+    <path d="M400 173.3L464 121.3M400 226.7L464 174.7M421.3 102.7V262.7M442.7 85.3V245.3"/>
+  </g>
+
+  <!-- axis extensions -->
+  <g stroke="#DE3423" stroke-width="1.5" stroke-linecap="round">
+    <path d="M240 120H223"/>
+    <path d="M400 280V298"/>
+    <path d="M464 68L480 55"/>
+  </g>
+  <g fill="#DE3423">
+    <circle cx="223" cy="120" r="2.5"/>
+    <circle cx="400" cy="298" r="2.5"/>
+    <circle cx="480" cy="55" r="2.5"/>
+  </g>
+
+  <!-- axis names -->
+  <text class="dw-label" x="212" y="125" text-anchor="end">Batch</text>
+  <text class="dw-label" x="400" y="318" text-anchor="middle">Seq</text>
+  <text class="dw-label" x="490" y="52" text-anchor="start">Emb</text>
+
+  <!-- wordmark + tagline -->
+  <text class="dw-mark" x="352" y="366" text-anchor="middle">dim<tspan fill="#DE3423">wit</tspan></text>
+  <text class="dw-tag" x="352" y="390" text-anchor="middle">Tensor programming with wit</text>
+</svg>
