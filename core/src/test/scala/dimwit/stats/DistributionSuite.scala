@@ -40,6 +40,53 @@ class DistributionSuite extends DimwitTest:
       val expectedMeans = normal.loc
       sampleMeans should approxEqual(expectedMeans, 0.2f)
 
+  describe("TruncatedNormal Distribution"):
+    it("logProbs matches JAX"):
+      val loc = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.0f, 1.0f, -0.5f))
+      val scale = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1.0f, 0.5f, 2.0f))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 1.5f, -1.0f))
+
+      val numStd = 2.0f
+      val dist = TruncatedNormal.symmetric(loc, scale, numStd = numStd)
+      val scalaLogProbs = dist.elementWiseLogProb(x)
+      val low = (dist.loc - numStd *! scale)
+      val high = (dist.loc + numStd *! scale)
+      val a = (low - loc) / scale
+      val b = (high - loc) / scale
+      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float32])(
+        jstats.truncnorm.logpdf(
+          x.jaxValue,
+          a = a.jaxValue,
+          b = b.jaxValue,
+          loc = loc.jaxValue,
+          scale = scale.jaxValue
+        )
+      )
+      scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
+
+    it("sample means approximates means"):
+      val loc = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.0f, 1.0f))
+      val scale = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1.0f, 0.5f))
+      val dist = TruncatedNormal.symmetric(loc, scale, numStd = 2.0f)
+
+      val key = Random.Key(42)
+      val samples = key.splitvmap(Axis[Samples] -> 10000)(k => dist.sample(k))
+      val sampleMeans = samples.mean(Axis[Samples])
+      val expectedMeans = dist.loc
+      sampleMeans should approxEqual(expectedMeans, 0.2f)
+
+    it("samples strictly respect bounds"):
+      val loc = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.0f, 1.0f))
+      val scale = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1.0f, 0.5f))
+      // Use a tight boundary (e.g. 1 standard deviation) to heavily force truncation
+      val dist = TruncatedNormal.symmetric(loc, scale, numStd = 1.0f)
+
+      val key = Random.Key(42)
+      val samples = key.splitvmap(Axis[Samples] -> 10000)(k => dist.sample(k))
+
+      (samples.min(Axis[Samples]) >= dist.low).all.item shouldBe true
+      (samples.max(Axis[Samples]) <= dist.high).all.item shouldBe true
+
   describe("Uniform Distribution"):
     it("logProbs matches JAX"):
       val low = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.0f, -1.0f, 2.0f))
