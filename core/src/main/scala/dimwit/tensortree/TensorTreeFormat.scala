@@ -1,6 +1,5 @@
 package dimwit.tensortree
 
-import dimwit.jax.Jax
 import me.shadaj.scalapy.py
 
 import java.nio.file.Path

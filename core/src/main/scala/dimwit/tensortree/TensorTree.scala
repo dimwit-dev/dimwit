@@ -104,7 +104,7 @@ object TensorTree: // extends TensorTreeLowPriority:
 
   /** Generic instance for any Tensor[Q, V] with labels Q and value V
     */
-  given genericTensorInstance[Q <: Tuple, V](using n: Labels[Q]): TensorTree[Tensor[Q, V]] with
+  given tensor[Q <: Tuple, V](using n: Labels[Q]): TensorTree[Tensor[Q, V]] with
     def map(t: Tensor[Q, V], f: [T <: Tuple, V2] => (Labels[T]) ?=> (Tensor[T, V2] => Tensor[T, V2])): Tensor[Q, V] =
       import TensorOps.retag
       f[Q, V](using n)(t.retag[Q](using n))
@@ -138,7 +138,7 @@ object TensorTree: // extends TensorTreeLowPriority:
   /** Tensor tree instance for an empty tree. This can be useful
     * for example for optimizers that don't have internal state
     */
-  given TensorTree[Unit] with
+  given unit: TensorTree[Unit] with
     def map(p: Unit, f: [T <: Tuple, V] => (Labels[T]) ?=> (Tensor[T, V] => Tensor[T, V])): Unit = ()
     def mapWithName(p: Unit, f: [T <: Tuple, V] => (Labels[T]) ?=> ((String, Tensor[T, V]) => Tensor[T, V]), path: String = ""): Unit = ()
     def mapLeaves[A](p: Unit, f: [T <: Tuple, V] => (Labels[T]) ?=> (Tensor[T, V] => A)): Iterator[A] = Iterator.empty
@@ -150,49 +150,9 @@ object TensorTree: // extends TensorTreeLowPriority:
     def toNumpyTree(p: Unit): Jax.PyAny = py.Dynamic.global.None
     def fromNumpyTree(pyVal: Jax.PyAny): Unit = ()
 
-  /** Instance for a tuple of two tensors */
-  given tupleInstance[P1, P2](using t1: TensorTree[P1], t2: TensorTree[P2]): TensorTree[(P1, P2)] with
-    def map(p: (P1, P2), f: [T <: Tuple, V] => (Labels[T]) ?=> (Tensor[T, V] => Tensor[T, V])): (P1, P2) =
-      (t1.map(p._1, f), t2.map(p._2, f))
-
-    def mapWithName(p: (P1, P2), f: [T <: Tuple, V] => (Labels[T]) ?=> ((String, Tensor[T, V]) => Tensor[T, V]), path: String = ""): (P1, P2) =
-      val p1Path = if path.isEmpty then "_1" else s"$path._1"
-      val p2Path = if path.isEmpty then "_2" else s"$path._2"
-      (t1.mapWithName(p._1, f, p1Path), t2.mapWithName(p._2, f, p2Path))
-
-    def mapLeaves[A](p: (P1, P2), f: [T <: Tuple, V] => (Labels[T]) ?=> (Tensor[T, V] => A)): Iterator[A] =
-      t1.mapLeaves(p._1, f) ++ t2.mapLeaves(p._2, f)
-
-    def foreach(p: (P1, P2), f: [T <: Tuple, V] => (Labels[T]) ?=> (Tensor[T, V] => Unit)): Unit =
-      t1.foreach(p._1, f)
-      t2.foreach(p._2, f)
-
-    def foreachWithName(p: (P1, P2), f: [T <: Tuple, V] => (Labels[T]) ?=> ((String, Tensor[T, V]) => Unit), path: String = ""): Unit =
-      val p1Path = if path.isEmpty then "_1" else s"$path._1"
-      val p2Path = if path.isEmpty then "_2" else s"$path._2"
-      t1.foreachWithName(p._1, f, p1Path)
-      t2.foreachWithName(p._2, f, p2Path)
-
-    def zipMap(p1: (P1, P2), p2: (P1, P2), f: [T <: Tuple, V] => (Labels[T]) ?=> ((Tensor[T, V], Tensor[T, V]) => Tensor[T, V])): (P1, P2) =
-      (t1.zipMap(p1._1, p2._1, f), t2.zipMap(p1._2, p2._2, f))
-
-    def toPyTree(p: (P1, P2)): Jax.PyAny =
-      py.Dynamic.global.tuple(Seq(t1.toPyTree(p._1), t2.toPyTree(p._2)).toPythonProxy)
-
-    def fromPyTree(pyVal: Jax.PyAny): (P1, P2) =
-      val pyTuple = pyVal.as[py.Dynamic]
-      (t1.fromPyTree(pyTuple.itemAt(0)), t2.fromPyTree(pyTuple.itemAt(1)))
-
-    def toNumpyTree(p: (P1, P2)): Jax.PyAny =
-      py.Dynamic.global.tuple(Seq(t1.toNumpyTree(p._1), t2.toNumpyTree(p._2)).toPythonProxy)
-
-    def fromNumpyTree(pyVal: Jax.PyAny): (P1, P2) =
-      val pyTuple = pyVal.as[py.Dynamic]
-      (t1.fromNumpyTree(pyTuple.itemAt(0)), t2.fromNumpyTree(pyTuple.itemAt(1)))
-
   /** Instance for a list of tensor trees
     */
-  given listInstance[P](using tp: TensorTree[P]): TensorTree[List[P]] with
+  given list[P](using tp: TensorTree[P]): TensorTree[List[P]] with
     def map(l: List[P], f: [T <: Tuple, V] => (Labels[T]) ?=> (Tensor[T, V] => Tensor[T, V])): List[P] =
       l.map(elem => tp.map(elem, f))
 
@@ -233,7 +193,7 @@ object TensorTree: // extends TensorTreeLowPriority:
       val len = py.Dynamic.global.len(pyList).as[Int]
       List.tabulate(len)(i => tp.fromNumpyTree(pyList.itemAt(i)))
 
-  given namedTupleInstance[N <: Tuple, V <: Tuple](using tt: TensorTree[V]): TensorTree[NamedTuple[N, V]] with
+  given namedTuple[N <: Tuple, V <: Tuple](using tt: TensorTree[V]): TensorTree[NamedTuple[N, V]] with
     def map(p: NamedTuple[N, V], f: [T <: Tuple, V2] => (Labels[T]) ?=> (Tensor[T, V2] => Tensor[T, V2])): NamedTuple[N, V] =
       tt.map(p.toTuple, f)
 

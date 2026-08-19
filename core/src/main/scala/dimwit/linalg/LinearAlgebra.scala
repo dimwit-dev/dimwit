@@ -39,7 +39,7 @@ object LinearAlgebra:
     * @param t The input tensor from which to compute the determinant.
     * @return The determinant of the input tensor
     */
-  def det[LRow: Label, LCol: Label, V: IsFloating](t: Tensor[(LRow, LCol), V]): Tensor0[V] =
+  def det[LRow: Label, LCol: Label, V: IsFloating](t: Tensor2[LRow, LCol, V]): Tensor0[V] =
     Tensor(Jax.jnp.linalg.det(t.jaxValue))
 
   /** Extracts the diagonal, with an optional offset,

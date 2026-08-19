@@ -15,24 +15,6 @@ package object dimwit:
   object StringLabelMath:
     infix type *[A <: String, B <: String] = A + "*" + B
 
-  trait Prime[T]
-  object Prime:
-    given [L](using label: Label[L]): Label[Prime[L]] with
-      val name: String = s"${label.name}'"
-
-    type RemovePrimes[T <: Tuple] <: Tuple = T match
-      case EmptyTuple       => EmptyTuple
-      case Prime[l] *: tail => l *: RemovePrimes[tail]
-      case h *: tail        => h *: RemovePrimes[tail]
-
-    extension [T <: Tuple: Labels, V](tensor: Tensor[T, V])
-      def dropPrimes: Tensor[RemovePrimes[T], V] =
-        given newLabels: Labels[RemovePrimes[T]] with
-          val names: List[String] =
-            val oldLabels = summon[Labels[T]]
-            oldLabels.names.toList.map(_.replace("'", ""))
-        Tensor[RemovePrimes[T], V](tensor.jaxValue)
-
   def gc(): Unit =
     System.gc()
     Jax.gc()
@@ -58,7 +40,7 @@ package object dimwit:
       val name: String = s"${labelA.name}+${labelB.name}"
 
   // Export tensor and related types
-  export dimwit.tensor.{Tensor, Tensor0, Tensor1, Tensor2, Tensor3, TypedIndex}
+  export dimwit.tensor.{Tensor, Tensor0, Tensor1, Tensor2, Tensor3, Tensor4, TypedIndex}
   export dimwit.tensor.{Shape, Shape0, Shape1, Shape2, Shape3}
   export dimwit.tensor.DType
   export dimwit.tensor.DType.{BFloat16, Float16, Float32, Float64, Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, Bool}
@@ -76,6 +58,9 @@ package object dimwit:
     AxisAtTensorIndex
   }
   export dimwit.tensor.ShapeTypeHelpers.{AxisInTensor, AxisIndex, AxisRemover, AxisReplacer, AxisIndices, AxesRemover, AxesConditionalRemover, SharedAxisRemover}
+
+  // Export the Prime axis marker and the type classes that manipulate it
+  export dimwit.prime.{Prime, PrimeRemover, PrimeRest, PrimeConcat}
 
   // Export operations
   export dimwit.tensor.TensorOps.*

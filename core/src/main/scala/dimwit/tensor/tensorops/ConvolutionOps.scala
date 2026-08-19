@@ -7,6 +7,7 @@ import dimwit.tensor.Label
 import dimwit.tensor.Labels
 import dimwit.tensor.ShapeTypeHelpers.AxisIndex
 import dimwit.tensor.Tensor
+import dimwit.tensor.Tensor3
 import dimwit.tensor.TensorOps.IsFloating
 import dimwit.tensor.TensorOps.swap
 import me.shadaj.scalapy.py
@@ -41,7 +42,7 @@ object ConvolutionOps:
       * @return A new tensor representing the result of the convolution operation.
       */
     def conv1d[OutChannel: Label](
-        kernel: Tensor[(S1, InChannel, OutChannel), V],
+        kernel: Tensor3[S1, InChannel, OutChannel, V],
         stride: Stride1[S1] | Int = 1,
         padding: Padding = Padding.SAME
     ): Tensor[S1 *: OutChannel *: EmptyTuple, V] =

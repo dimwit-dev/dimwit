@@ -61,7 +61,7 @@ object MNISTLoader:
     finally
       file.close()
 
-  private def createDataset[S <: Sample: Label](imagesFile: String, labelsFile: String, maxSamples: Option[Int] = None): Try[Tuple2[Tensor[(S, Height, Width), Float32], Tensor1[S, Int8]]] =
+  private def createDataset[S <: Sample: Label](imagesFile: String, labelsFile: String, maxSamples: Option[Int] = None): Try[Tuple2[Tensor3[S, Height, Width, Float32], Tensor1[S, Int8]]] =
     Try:
       val images = loadImages[S](imagesFile, maxSamples)
       val labels = loadLabels[S](labelsFile, maxSamples)
@@ -69,12 +69,12 @@ object MNISTLoader:
       val imagesFloat = images.asFloat32 /! 255.0f
       (imagesFloat, labels)
 
-  def createTrainingDataset(dataDir: String = "data", maxSamples: Option[Int] = None): Try[Tuple2[Tensor[(TrainSample, Height, Width), Float32], Tensor1[TrainSample, Int8]]] =
+  def createTrainingDataset(dataDir: String = "data", maxSamples: Option[Int] = None): Try[Tuple2[Tensor3[TrainSample, Height, Width, Float32], Tensor1[TrainSample, Int8]]] =
     val imagesFile = s"$dataDir/train-images-idx3-ubyte"
     val labelsFile = s"$dataDir/train-labels-idx1-ubyte"
     createDataset[TrainSample](imagesFile, labelsFile, maxSamples)
 
-  def createTestDataset(dataDir: String = "data", maxSamples: Option[Int] = None): Try[Tuple2[Tensor[(TestSample, Height, Width), Float32], Tensor1[TestSample, Int8]]] =
+  def createTestDataset(dataDir: String = "data", maxSamples: Option[Int] = None): Try[Tuple2[Tensor3[TestSample, Height, Width, Float32], Tensor1[TestSample, Int8]]] =
     val imagesFile = s"$dataDir/t10k-images-idx3-ubyte"
     val labelsFile = s"$dataDir/t10k-labels-idx1-ubyte"
     createDataset[TestSample](imagesFile, labelsFile, maxSamples)

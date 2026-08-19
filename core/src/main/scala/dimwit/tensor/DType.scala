@@ -12,7 +12,7 @@ import java.nio.ByteOrder
 object DType:
 
   sealed trait UInt8
-  given uint8IsFloating: IsInteger[UInt8] with
+  given uint8IsInteger: IsInteger[UInt8] with
     def dtype: DType = DType.UInt8
 
   sealed trait UInt16

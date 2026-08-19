@@ -27,14 +27,13 @@ import dimwit.tensor.ShapeTypeHelpers.MergeLabels
 import dimwit.tensor.ShapeTypeHelpers.UnwrapAxes
 import dimwit.tensor.ShapeTypeHelpers.UnwrapDims
 import dimwit.tensor.Tensor
-import dimwit.tensor.Tensor0
 import dimwit.tensor.Tensor1
 import dimwit.tensor.TupleHelpers
 import dimwit.tensor.TupleHelpers.StrictSubset
-import dimwit.tensor.TupleHelpers.TensorEvidence.CheckValid
-import dimwit.tensor.TupleHelpers.TensorEvidence.ComputeMissing
-import dimwit.tensor.TupleHelpers.TensorEvidence.IsPermutation
-import dimwit.tensor.TupleHelpers.TensorEvidence.ValidationResult
+import dimwit.tensor.TensorEvidence.CheckValid
+import dimwit.tensor.TensorEvidence.ComputeMissing
+import dimwit.tensor.TensorEvidence.IsPermutation
+import dimwit.tensor.TensorEvidence.ValidationResult
 import dimwit.|+|
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
@@ -46,19 +45,55 @@ import scala.util.NotGiven
 
 object StructuralOps:
 
+  /** Inserts axis `New` directly after axis `Anchor`. */
+  trait AxisInserter[T <: Tuple, Anchor, New]:
+    type Out <: Tuple
+
+  object AxisInserter extends AxisInserterLowPriority:
+    type Aux[T <: Tuple, Anchor, New, O <: Tuple] = AxisInserter[T, Anchor, New] { type Out = O }
+
+    private[tensorops] def instance[T <: Tuple, Anchor, New, O <: Tuple]: Aux[T, Anchor, New, O] =
+      new AxisInserter[T, Anchor, New]:
+        type Out = O
+
+    given found[Anchor, New, T <: Tuple]: Aux[Anchor *: T, Anchor, New, Anchor *: New *: T] = instance
+
+  trait AxisInserterLowPriority:
+    given search[H, Anchor, New, T <: Tuple, O <: Tuple](using
+        tail: AxisInserter.Aux[T, Anchor, New, O]
+    ): AxisInserter.Aux[H *: T, Anchor, New, H *: O] = AxisInserter.instance
+
+  /** Exchanges two axes in a shape, leaving every other axis in place.
+    *
+    * The three priority tiers resolve `swap(a, a)` to [[firstTuple]] rather than
+    * leaving it ambiguous between [[firstTuple]] and [[AxisSwapperSecond.secondTuple]].
+    */
+  trait AxisSwapper[T <: Tuple, L1, L2]:
+    type Out <: Tuple
+
+  object AxisSwapper extends AxisSwapperSecond:
+    type Aux[T <: Tuple, L1, L2, O <: Tuple] = AxisSwapper[T, L1, L2] { type Out = O }
+
+    private[tensorops] def instance[T <: Tuple, L1, L2, O <: Tuple]: Aux[T, L1, L2, O] =
+      new AxisSwapper[T, L1, L2]:
+        type Out = O
+
+    given emptyTuple[L1, L2]: Aux[EmptyTuple, L1, L2, EmptyTuple] = instance
+
+    given firstTuple[L1, L2, T <: Tuple, O <: Tuple](using tail: Aux[T, L1, L2, O]): Aux[L1 *: T, L1, L2, L2 *: O] = instance
+
+  trait AxisSwapperSecond extends AxisSwapperOther:
+    given secondTuple[L1, L2, T <: Tuple, O <: Tuple](using
+        tail: AxisSwapper.Aux[T, L1, L2, O]
+    ): AxisSwapper.Aux[L2 *: T, L1, L2, L1 *: O] = AxisSwapper.instance
+
+  trait AxisSwapperOther:
+    given otherTuple[H, L1, L2, T <: Tuple, O <: Tuple](using
+        tail: AxisSwapper.Aux[T, L1, L2, O]
+    ): AxisSwapper.Aux[H *: T, L1, L2, H *: O] = AxisSwapper.instance
+
   private object Util:
 
-    type InsertBefore[T <: Tuple, A, B] <: Tuple = T match
-      case EmptyTuple => B *: EmptyTuple
-      case A *: tail  => B *: A *: tail
-      case h *: tail  => h *: InsertBefore[tail, A, B]
-
-    type InsertAfter[T <: Tuple, A, B] <: Tuple = T match
-      case EmptyTuple => B *: EmptyTuple
-      case A *: tail  => A *: B *: tail
-      case h *: tail  => h *: InsertAfter[tail, A, B]
-
-    type SliceIndex = Int | List[Int] | Range | Tensor0[Int32]
     type ExtractLabel[X] = X match
       case AxisAtIndex[l]           => l
       case AxisAtRange[l]           => l
@@ -71,61 +106,38 @@ object StructuralOps:
 
     object SliceLabelExtractor:
 
-      given empty: SliceLabelExtractor[EmptyTuple, EmptyTuple] =
+      given emptyTuple: SliceLabelExtractor[EmptyTuple, EmptyTuple] =
         new SliceLabelExtractor[EmptyTuple, EmptyTuple] {}
 
-      // New givens for AxisSelector types
-      given consAxisAtIndex[L, Tail <: Tuple, TailOut <: Tuple](using
+      given atIndexTuple[L, Tail <: Tuple, TailOut <: Tuple](using
           tailExt: SliceLabelExtractor[Tail, TailOut]
       ): SliceLabelExtractor[AxisAtIndex[L] *: Tail, L *: TailOut] =
         new SliceLabelExtractor[AxisAtIndex[L] *: Tail, L *: TailOut] {}
 
-      given consAxisAtRange[L, Tail <: Tuple, TailOut <: Tuple](using
+      given atRangeTuple[L, Tail <: Tuple, TailOut <: Tuple](using
           tailExt: SliceLabelExtractor[Tail, TailOut]
       ): SliceLabelExtractor[AxisAtRange[L] *: Tail, TailOut] =
         new SliceLabelExtractor[AxisAtRange[L] *: Tail, TailOut] {}
 
-      given consAxisAtIndices[L, Tail <: Tuple, TailOut <: Tuple](using
+      given atIndicesTuple[L, Tail <: Tuple, TailOut <: Tuple](using
           tailExt: SliceLabelExtractor[Tail, TailOut]
       ): SliceLabelExtractor[AxisAtIndices[L] *: Tail, TailOut] =
         new SliceLabelExtractor[AxisAtIndices[L] *: Tail, TailOut] {}
 
-      given consAxisAtTupleIndices[L, I <: NonEmptyTuple, Tail <: Tuple, TailOut <: Tuple](using
+      given atTupleIndicesTuple[L, I <: NonEmptyTuple, Tail <: Tuple, TailOut <: Tuple](using
           tailExt: SliceLabelExtractor[Tail, TailOut]
       ): SliceLabelExtractor[AxisAtTupleIndices[L, I] *: Tail, TailOut] =
         new SliceLabelExtractor[AxisAtTupleIndices[L, I] *: Tail, TailOut] {}
 
-      given consAxisAtTensorIndex[L, Tail <: Tuple, TailOut <: Tuple](using
+      given atTensorIndexTuple[L, Tail <: Tuple, TailOut <: Tuple](using
           tailExt: SliceLabelExtractor[Tail, TailOut]
       ): SliceLabelExtractor[AxisAtTensorIndex[L] *: Tail, L *: TailOut] =
         new SliceLabelExtractor[AxisAtTensorIndex[L] *: Tail, L *: TailOut] {}
 
-      // Keep backward compatibility with tuple syntax
-      given consInt[L, Tail <: Tuple, TailOut <: Tuple](using
-          tailExt: SliceLabelExtractor[Tail, TailOut]
-      ): SliceLabelExtractor[(Axis[L], Int) *: Tail, L *: TailOut] =
-        new SliceLabelExtractor[(Axis[L], Int) *: Tail, L *: TailOut] {}
-
-      given consTensor0Int[L, Tail <: Tuple, TailOut <: Tuple](using
-          tailExt: SliceLabelExtractor[Tail, TailOut]
-      ): SliceLabelExtractor[(Axis[L], Tensor0[Int32]) *: Tail, L *: TailOut] =
-        new SliceLabelExtractor[(Axis[L], Tensor0[Int32]) *: Tail, L *: TailOut] {}
-
-      given consSeq[L, SeqT <: Seq[Int], Tail <: Tuple, TailOut <: Tuple](using
-          tailExt: SliceLabelExtractor[Tail, TailOut]
-      ): SliceLabelExtractor[(Axis[L], SeqT) *: Tail, TailOut] =
-        new SliceLabelExtractor[(Axis[L], SeqT) *: Tail, TailOut] {}
-
-    type Swap[T <: Tuple, A, B] <: Tuple = T match
-      case EmptyTuple => EmptyTuple
-      case A *: tail  => B *: Swap[tail, A, B]
-      case B *: tail  => A *: Swap[tail, A, B]
-      case h *: tail  => h *: Swap[tail, A, B]
-
     @implicitNotFound("The axis ${L} is already present in the tensor shape ${T}.")
     trait AxisAbsent[T, L]
     object AxisAbsent:
-      given [T <: Tuple, L](using NotGiven[Tuple.Contains[T, L] =:= true]): AxisAbsent[T, L] = new AxisAbsent[T, L] {}
+      given notContained[T <: Tuple, L](using NotGiven[Tuple.Contains[T, L] =:= true]): AxisAbsent[T, L] = new AxisAbsent[T, L] {}
 
   import Util.*
 
@@ -200,15 +212,16 @@ object StructuralOps:
       afterAxis: Axis[L]
   )(using
       newLabel: Label[NewL],
-      axisIndex: AxisIndex[T, L]
-  ): Tensor[InsertAfter[T, L, NewL], V] =
+      axisIndex: AxisIndex[T, L],
+      inserter: AxisInserter[T, L, NewL]
+  ): Tensor[inserter.Out, V] =
     require(tensors.nonEmpty, "Cannot stack an empty sequence of tensors")
     val axisIdx = axisIndex.index + 1 // we are inserting after the given axis, so shift by 1
     val jaxValuesSeq = tensors.map(_.jaxValue).toPythonProxy
     val stackedJaxValue = Jax.jnp.stack(jaxValuesSeq, axis = axisIdx)
     val names = summon[Labels[T]].names
     val newNames = names.take(axisIdx) ++ Seq(newLabel.name) ++ names.drop(axisIdx)
-    given Labels[InsertAfter[T, L, NewL]] with
+    given Labels[inserter.Out] with
       val names = newNames.toSeq
     Tensor(stackedJaxValue)
 
@@ -267,13 +280,13 @@ object StructuralOps:
   object ValidConcat:
     type Aux[T1 <: Tuple, T2 <: Tuple, O <: Tuple] = ValidConcat[T1, T2] { type Out = O }
 
-    given recursive[H, T1Tail <: Tuple, T2Tail <: Tuple, OutTail <: Tuple](using
+    given sameAxisTuple[H, T1Tail <: Tuple, T2Tail <: Tuple, OutTail <: Tuple](using
         next: ValidConcat.Aux[T1Tail, T2Tail, OutTail]
     ): ValidConcat[H *: T1Tail, H *: T2Tail] with
       type Out = H *: OutTail
       def index: Int = next.index + 1
 
-    given concatAxis[H1, H2, Tail <: Tuple](using
+    given concatAxisTuple[H1, H2, Tail <: Tuple](using
         isDifferent: NotGiven[H1 =:= H2]
     ): ValidConcat[H1 *: Tail, H2 *: Tail] with
       type Out = (H1 |+| H2) *: Tail
@@ -290,7 +303,7 @@ object StructuralOps:
   object Deconcatenator extends DeconcatenatorLowPriority:
     type Aux[L, C <: Tuple] = Deconcatenator[L] { type Components = C }
 
-    given recursive[A, B, CA <: Tuple, CB <: Tuple](using
+    given concatenated[A, B, CA <: Tuple, CB <: Tuple](using
         da: Aux[A, CA],
         db: Aux[B, CB]
     ): Aux[A |+| B, Tuple.Concat[CA, CB]] =
@@ -299,7 +312,7 @@ object StructuralOps:
         def labels = da.labels ++ db.labels
 
   trait DeconcatenatorLowPriority:
-    given base[L](using l: Label[L]): Deconcatenator.Aux[L, L *: EmptyTuple] =
+    given single[L](using l: Label[L]): Deconcatenator.Aux[L, L *: EmptyTuple] =
       new Deconcatenator[L]:
         type Components = L *: EmptyTuple
         def labels = List(l)
@@ -312,12 +325,12 @@ object StructuralOps:
     type Aux[C <: Tuple, F <: Tuple, S, V, O <: Tuple] =
       TensorTupleMaker[C, F, S, V] { type Out = O }
 
-    given empty[F <: Tuple, S, V]: Aux[EmptyTuple, F, S, V, EmptyTuple] =
+    given emptyTuple[F <: Tuple, S, V]: Aux[EmptyTuple, F, S, V, EmptyTuple] =
       new TensorTupleMaker[EmptyTuple, F, S, V]:
         type Out = EmptyTuple
         def apply(a: Seq[Jax.PyDynamic], c: List[Label[?]], o: Seq[String], i: Int) = EmptyTuple
 
-    given cons[Head, Tail <: Tuple, F <: Tuple, S, V, NewShape <: Tuple](using
+    given consTuple[Head, Tail <: Tuple, F <: Tuple, S, V, NewShape <: Tuple](using
         replacer: TupleHelpers.Replacer[F, S, Head] { type Out = NewShape },
         tailMaker: TensorTupleMaker[Tail, F, S, V]
     ): Aux[Head *: Tail, F, S, V, Tensor[NewShape, V] *: tailMaker.Out] =
@@ -518,7 +531,6 @@ object StructuralOps:
       targetDims.zip(inputList).foreach { case (dimIndex, input) =>
         val dimSize = tensor.shape.dimensions(dimIndex)
         input match
-          // New AxisSelector types
           case AxisAtIndex(_, idx) =>
             indicesBuffer(dimIndex) = py.Any.from(idx)
           case AxisAtRange(_, range) =>
@@ -529,17 +541,6 @@ object StructuralOps:
             indicesBuffer(dimIndex) = indices.toList.asInstanceOf[List[Int]].map(py.Any.from).toPythonCopy
           case AxisAtTensorIndex(_, tensorIdx) =>
             indicesBuffer(dimIndex) = tensorIdx.jaxValue
-          // Backward compatibility with tuples
-          case (_, sliceIndex) =>
-            sliceIndex match
-              case sliceSeq: List[Int] @unchecked =>
-                indicesBuffer(dimIndex) = sliceSeq.map(py.Any.from).toPythonProxy
-              case range: Range @unchecked =>
-                indicesBuffer(dimIndex) = PySlice(range.head, range.last + 1, range.step)
-              case idx: Int =>
-                indicesBuffer(dimIndex) = py.Any.from(idx)
-              case tensorId: Tensor0[Int32] @unchecked =>
-                indicesBuffer(dimIndex) = tensorId.jaxValue
       }
 
       Jax.Dynamic.global.tuple(indicesBuffer.toSeq.toPythonProxy)
@@ -860,9 +861,10 @@ object StructuralOps:
     )(using
         labels: Labels[T],
         axisIndex1: AxisIndex[T, L1],
-        axisIndex2: AxisIndex[T, L2]
-    ): Tensor[Swap[T, L1, L2], V] =
-      given Labels[Swap[T, L1, L2]] with
+        axisIndex2: AxisIndex[T, L2],
+        swapper: AxisSwapper[T, L1, L2]
+    ): Tensor[swapper.Out, V] =
+      given Labels[swapper.Out] with
         def names =
           val originalNames = summon[Labels[T]].names
           val ax1Name = summon[Label[L1]].name

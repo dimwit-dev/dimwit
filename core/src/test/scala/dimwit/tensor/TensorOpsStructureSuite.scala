@@ -1,7 +1,6 @@
 package dimwit.tensor
 
 import dimwit.*
-import dimwit.tensor.Labels.concat
 import scala.compiletime.testing.typeCheckErrors
 
 class TensorOpsStructureSuite extends DimwitTest:
@@ -213,6 +212,42 @@ class TensorOpsStructureSuite extends DimwitTest:
       t.shape(Axis[A]) shouldBe (2)
       t.shape(Axis[B]) shouldBe (3)
       t.shape(Axis[C]) shouldBe (4)
+
+  describe("swap function"):
+
+    it("swaps two axes that both sit behind the head"):
+      val swapped = t3.swap(Axis[B], Axis[C])
+      swapped.axes shouldBe List("A", "C", "B")
+      swapped should approxEqual(t3.transpose(Axis[A], Axis[C], Axis[B]))
+
+    it("swaps the head axis with a later one"):
+      val swapped = t3.swap(Axis[A], Axis[B])
+      swapped.axes shouldBe List("B", "A", "C")
+      swapped should approxEqual(t3.transpose(Axis[B], Axis[A], Axis[C]))
+
+    it("swaps the outermost and innermost axis"):
+      val swapped = t3.swap(Axis[A], Axis[C])
+      swapped.axes shouldBe List("C", "B", "A")
+      swapped should approxEqual(t3.transpose(Axis[C], Axis[B], Axis[A]))
+
+    it("swapping an axis with itself is the identity"):
+      val same = t3.swap(Axis[A], Axis[A])
+      same.axes shouldBe List("A", "B", "C")
+      same should approxEqual(t3)
+
+  describe("dropPrimes"):
+
+    it("drops the prime from a primed trailing axis"):
+      val primed = Tensor(Shape(Axis[A] -> 2, Axis[Prime[B]] -> 3)).fill(1f)
+      val dropped = primed.dropPrimes
+      dropped.axes shouldBe List("A", "B")
+      dropped should approxEqual(Tensor(Shape(Axis[A] -> 2, Axis[B] -> 3)).fill(1f))
+
+    it("drops primes from a mix of primed and unprimed axes"):
+      val primed = Tensor(Shape(Axis[Prime[A]] -> 2, Axis[B] -> 3, Axis[Prime[C]] -> 4)).fill(1f)
+      val dropped = primed.dropPrimes
+      dropped.axes shouldBe List("A", "B", "C")
+      dropped.shape(Axis[C]) shouldBe 4
 
   describe("Dimension manipulation"):
 
@@ -573,3 +608,23 @@ class TensorOpsStructureSuite extends DimwitTest:
           )
         )
       ))
+
+    it("stacks after an axis that is not the head"):
+      val t1 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f), Array(3.0f, 4.0f)))
+      val t2 = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(5.0f, 6.0f), Array(7.0f, 8.0f)))
+
+      val stacked = stack(Seq(t1, t2), newAxis = Axis[C], afterAxis = Axis[B])
+
+      stacked.axes shouldBe List("A", "B", "C")
+      stacked should approxEqual(Tensor3(Axis[A], Axis[B], Axis[C]).fromArray(
+        Array(
+          Array(Array(1.0f, 5.0f), Array(2.0f, 6.0f)),
+          Array(Array(3.0f, 7.0f), Array(4.0f, 8.0f))
+        )
+      ))
+
+    it("stacks after the middle axis of a 3D tensor"):
+      val stacked = stack(Seq(t3, t3), newAxis = Axis[D], afterAxis = Axis[B])
+
+      stacked.axes shouldBe List("A", "B", "D", "C")
+      stacked.shape(Axis[D]) shouldBe 2

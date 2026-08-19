@@ -104,9 +104,9 @@ val wrong = t.sum(Axis[C])
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
 //       (repl.MdocSession.MdocApp.A, repl.MdocSession.MdocApp.B),
 //       repl.MdocSession.MdocApp.C, R](
-//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[repl.MdocSession.MdocApp.A,
+//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.search[repl.MdocSession.MdocApp.A,
 //         repl.MdocSession.MdocApp.B *: EmptyTuple.type, repl.MdocSession.MdocApp.C](
-//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[repl.MdocSession.MdocApp.B,
+//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.search[repl.MdocSession.MdocApp.B,
 //           EmptyTuple.type, repl.MdocSession.MdocApp.C](
 //           dimwit.tensor.ShapeTypeHelpers.AxisIndex.concatRight[A², B², L])
 //       ),
@@ -209,7 +209,7 @@ val summed = wrongAxis.sum(Axis[B])  // B not in shape!
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
 //       Tuple1[repl.MdocSession.MdocApp.A], repl.MdocSession.MdocApp.B, R](
-//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[repl.MdocSession.MdocApp.A,
+//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.search[repl.MdocSession.MdocApp.A,
 //         EmptyTuple.type, repl.MdocSession.MdocApp.B](
 //         dimwit.tensor.ShapeTypeHelpers.AxisIndex.concatRight[A², B², L]),
 //     ???)
@@ -316,9 +316,9 @@ val wrong = t.sum(Axis[C])
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
 //       (MdocApp0.this.A, MdocApp0.this.B), MdocApp0.this.C, R](
-//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp0.this.A,
+//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.search[MdocApp0.this.A,
 //         MdocApp0.this.B *: EmptyTuple.type, MdocApp0.this.C](
-//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp0.this.B,
+//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.search[MdocApp0.this.B,
 //           EmptyTuple.type, MdocApp0.this.C](
 //           dimwit.tensor.ShapeTypeHelpers.AxisIndex.concatRight[A², B², L])
 //       ),
@@ -437,9 +437,9 @@ val wrong = m1.dot(Axis[B])(m2)
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
 //       (MdocApp1.this.C, MdocApp1.this.D), MdocApp1.this.B, R](
-//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp1.this.C,
+//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.search[MdocApp1.this.C,
 //         MdocApp1.this.D *: EmptyTuple.type, MdocApp1.this.B](
-//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp1.this.D,
+//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.search[MdocApp1.this.D,
 //           EmptyTuple.type, MdocApp1.this.B](
 //           dimwit.tensor.ShapeTypeHelpers.AxisIndex.concatRight[A, B², L])
 //       ),
@@ -456,9 +456,9 @@ val wrong = m1.dot(Axis[B])(m2)
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
 //       (MdocApp1.this.C, MdocApp1.this.D), MdocApp1.this.B, R](
-//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp1.this.C,
+//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.search[MdocApp1.this.C,
 //         MdocApp1.this.D *: EmptyTuple.type, MdocApp1.this.B](
-//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp1.this.D,
+//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.search[MdocApp1.this.D,
 //           EmptyTuple.type, MdocApp1.this.B](
 //           dimwit.tensor.ShapeTypeHelpers.AxisIndex.concatRight[A, B², L])
 //       ),
@@ -1100,8 +1100,8 @@ val wrong = intTensor.exp  // exp requires IsFloating constraint
 // An extension method was tried, but could not be fully constructed:
 // 
 //     dimwit.exp[Tuple1[MdocApp12.this.A], dimwit.tensor.DType.Int32](this.intTensor)(
-//       dimwit.tensor.Labels.concat[MdocApp12.this.A, EmptyTuple.type](
-//         this.A.derived$Label, dimwit.tensor.Labels.namesOfEmpty),
+//       dimwit.tensor.Labels.consTuple[MdocApp12.this.A, EmptyTuple.type](
+//         this.A.derived$Label, dimwit.tensor.Labels.emptyTuple),
 //       /* missing */
 //         summon[dimwit.tensor.TensorOps.IsFloating[dimwit.tensor.DType.Int32]]
 //     )
@@ -1121,8 +1121,8 @@ val wrong = boolTensor.mean
 // 
 //     dimwit.mean[Tuple1[MdocApp12.this.A], dimwit.tensor.DType.Bool](this.boolTensor)
 //       (
-//       dimwit.tensor.Labels.concat[MdocApp12.this.A, EmptyTuple.type](
-//         this.A.derived$Label, dimwit.tensor.Labels.namesOfEmpty),
+//       dimwit.tensor.Labels.consTuple[MdocApp12.this.A, EmptyTuple.type](
+//         this.A.derived$Label, dimwit.tensor.Labels.emptyTuple),
 //       /* missing */
 //         summon[dimwit.tensor.TensorOps.IsFloating[dimwit.tensor.DType.Bool]]
 //     )
@@ -1158,9 +1158,9 @@ val wrong = m1.dot(Axis[B])(m2)  // Axis[B] not in m2
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
 //       (MdocApp12.this.C, MdocApp12.this.D), MdocApp12.this.B, R](
-//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp12.this.C,
+//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.search[MdocApp12.this.C,
 //         MdocApp12.this.D *: EmptyTuple.type, MdocApp12.this.B](
-//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp12.this.D,
+//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.search[MdocApp12.this.D,
 //           EmptyTuple.type, MdocApp12.this.B](
 //           dimwit.tensor.ShapeTypeHelpers.AxisIndex.concatRight[A, B², L])
 //       ),
@@ -1198,17 +1198,17 @@ val wrong = t1 +! t2
 //     dimwit.tensor.tensorops.TensorOpsUtil.Broadcast.broadcastLeft[
 //       Tuple1[MdocApp12.this.A], Tuple1[MdocApp12.this.A],
 //       dimwit.tensor.DType.Float32](
-//       dimwit.tensor.Labels.concat[MdocApp12.this.A, EmptyTuple.type](
-//         this.A.derived$Label, dimwit.tensor.Labels.namesOfEmpty),
-//       dimwit.tensor.Labels.concat[MdocApp12.this.A, EmptyTuple.type](
-//         this.A.derived$Label, dimwit.tensor.Labels.namesOfEmpty),
-//       dimwit.tensor.TupleHelpers.StrictSubset.derive[Tuple1[MdocApp12.this.A],
+//       dimwit.tensor.Labels.consTuple[MdocApp12.this.A, EmptyTuple.type](
+//         this.A.derived$Label, dimwit.tensor.Labels.emptyTuple),
+//       dimwit.tensor.Labels.consTuple[MdocApp12.this.A, EmptyTuple.type](
+//         this.A.derived$Label, dimwit.tensor.Labels.emptyTuple),
+//       dimwit.tensor.TupleHelpers.StrictSubset.bridge[Tuple1[MdocApp12.this.A],
 //         Tuple1[MdocApp12.this.A]](
-//         dimwit.tensor.TupleHelpers.Subset.head[MdocApp12.this.A, EmptyTuple.type,
-//           Tuple1[MdocApp12.this.A]](
+//         dimwit.tensor.TupleHelpers.Subset.consTuple²[MdocApp12.this.A,
+//           EmptyTuple.type, Tuple1[MdocApp12.this.A]](
 //           dimwit.tensor.TupleHelpers.SetMember.found[MdocApp12.this.A,
 //             EmptyTuple.type],
-//           dimwit.tensor.TupleHelpers.Subset.empty[Tuple1[MdocApp12.this.A]]),
+//           dimwit.tensor.TupleHelpers.Subset.emptyTuple²[Tuple1[MdocApp12.this.A]]),
 //         /* missing */
 //           summon[
 //             scala.util.NotGiven[Tuple1[MdocApp12.this.A] =:=
@@ -1217,7 +1217,13 @@ val wrong = t1 +! t2
 //       )
 //     )
 // 
-// But no implicit values were found that match type scala.util.NotGiven[Tuple1[MdocApp12.this.A] =:= Tuple1[MdocApp12.this.A]].
+// But no implicit values were found that match type scala.util.NotGiven[Tuple1[MdocApp12.this.A] =:= Tuple1[MdocApp12.this.A]]
+// 
+// where:    consTuple   is a given instance in object Labels
+//           consTuple²  is a given instance in object Subset
+//           emptyTuple  is a given instance in object Labels
+//           emptyTuple² is a given instance in object Subset
+// .
 // val wrong = t1 +! t2
 //                   ^^
 ```
@@ -1234,9 +1240,9 @@ val wrong = t.sum(Axis[C])  // Axis[C] not in tensor
 // 
 //     dimwit.tensor.ShapeTypeHelpers.AxisRemover.bridge[
 //       (MdocApp12.this.A, MdocApp12.this.B), MdocApp12.this.C, R](
-//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp12.this.A,
+//       dimwit.tensor.ShapeTypeHelpers.AxisIndex.search[MdocApp12.this.A,
 //         MdocApp12.this.B *: EmptyTuple.type, MdocApp12.this.C](
-//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.tail[MdocApp12.this.B,
+//         dimwit.tensor.ShapeTypeHelpers.AxisIndex.search[MdocApp12.this.B,
 //           EmptyTuple.type, MdocApp12.this.C](
 //           dimwit.tensor.ShapeTypeHelpers.AxisIndex.concatRight[A², B², L])
 //       ),

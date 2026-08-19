@@ -1,6 +1,6 @@
 package dimwit.tensor
 
-import dimwit.Prime
+import dimwit.prime.Prime
 import dimwit.hardware.Device
 import dimwit.jax.Jax
 import dimwit.jax.Jax.PyDynamic
