@@ -34,6 +34,32 @@ object Normal:
   def standardSample(key: Random.Key): Tensor0[Float32] = new Normal(Tensor0(0f), Tensor0(1f)).sample(key)
   def standardNormal[T <: Tuple: Labels](shape: Shape[T]): Normal[T, Float32] = Normal.standardIsotropic(shape, scale = Tensor0(VType[Float32])(1f))
 
+/** Truncated Normal (Gaussian) distribution */
+class TruncatedNormal[T <: Tuple: Labels, V: IsFloating](val loc: Tensor[T, V], val scale: Tensor[T, V], val low: Tensor[T, V], val high: Tensor[T, V]) extends IndependentDistribution[T, V]:
+
+  private lazy val a = (low - loc) / scale
+  private lazy val b = (high - loc) / scale
+
+  override def elementWiseLogProb(x: Tensor[T, V]): Tensor[T, LogProb] =
+    liftPyTensor(jstats.truncnorm.logpdf(x.jaxValue, a = a.jaxValue, b = b.jaxValue, loc = loc.jaxValue, scale = scale.jaxValue))
+
+  override def sample(key: Random.Key): Tensor[T, V] =
+    val stdTruncated = liftPyTensor(loc.shape, VType[V])(
+      Jax.jrandom.truncated_normal(key.jaxKey, lower = a.jaxValue, upper = b.jaxValue, shape = loc.shape.dimensions.toPythonProxy)
+    )
+    stdTruncated * scale + loc
+
+object TruncatedNormal:
+
+  def apply[T <: Tuple: Labels, V: IsFloating](loc: Tensor[T, V], scale: Tensor[T, V], low: Tensor[T, V], high: Tensor[T, V]): TruncatedNormal[T, V] =
+    new TruncatedNormal(loc, scale, low, high)
+
+  def symmetric[T <: Tuple: Labels, V: IsFloating](loc: Tensor[T, V], scale: Tensor[T, V], numStd: Float = 2.0f): TruncatedNormal[T, V] =
+    val boundOffset = scale *! Tensor0(VType[V])(numStd)
+    val low = loc - boundOffset
+    val high = loc + boundOffset
+    new TruncatedNormal(loc, scale, low, high)
+
 /** Uniform distribution */
 class Uniform[T <: Tuple: Labels, V: IsFloating](val low: Tensor[T, V], val high: Tensor[T, V]) extends IndependentDistribution[T, V]:
 
