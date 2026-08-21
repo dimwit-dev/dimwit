@@ -52,10 +52,16 @@ ThisBuild / scalafixDependencies +=
 
 addCommandAlias("testAndCoverage", "; clean; coverage; test; coverageReport")
 
+// alias for uploading core to Sonatype Central
+addCommandAlias("sonaUploadCore", "; project core; sonatypeCentralUpload; project root")
+
 lazy val root = (project in file("."))
   .aggregate(core, examples)
   .settings(
-    name := "dimwit-root"
+    name := "dimwit-root",
+    publish / skip := true,
+    publishLocal / skip := true,
+    publishArtifact := false
   )
 
 lazy val uvPython: String =
@@ -98,8 +104,8 @@ lazy val examples = (project in file("examples"))
     ),
     fork := true,
     // Don't publish examples
-    publish := {},
-    publishLocal := {},
+    publish / skip := true,
+    publishLocal / skip := true,
     publishArtifact := false,
     scalacOptions ++= commonScalacOptions,
     scalafmtFailOnErrors := false,
