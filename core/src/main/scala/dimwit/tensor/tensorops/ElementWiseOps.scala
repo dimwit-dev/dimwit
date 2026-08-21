@@ -154,6 +154,19 @@ object ElementWiseOps:
   // ---------------------------------------------------------
   // IsBoolean operations
   // ---------------------------------------------------------
+
+  /** Elementwise logical AND of two tensors of the same shape and type. */
+  def logicalAnd[T <: Tuple: Labels, V: IsBoolean](t1: Tensor[T, V], t2: Tensor[T, V]): Tensor[T, V] = Tensor(Jax.jnp.logical_and(t1.jaxValue, t2.jaxValue))
+
+  /** Elementwise logical OR of two tensors of the same shape and type. */
+  def logicalOr[T <: Tuple: Labels, V: IsBoolean](t1: Tensor[T, V], t2: Tensor[T, V]): Tensor[T, V] = Tensor(Jax.jnp.logical_or(t1.jaxValue, t2.jaxValue))
+
+  /** Elementwise logical XOR of two tensors of the same shape and type. */
+  def logicalXor[T <: Tuple: Labels, V: IsBoolean](t1: Tensor[T, V], t2: Tensor[T, V]): Tensor[T, V] = Tensor(Jax.jnp.logical_xor(t1.jaxValue, t2.jaxValue))
+
+  /** Elementwise logical NOT of a tensor. */
+  def logicalNot[T <: Tuple: Labels, V: IsBoolean](t: Tensor[T, V]): Tensor[T, V] = Tensor(Jax.jnp.logical_not(t.jaxValue))
+
   extension [T <: Tuple: Labels, V: IsBoolean](t: Tensor[T, V])
 
     /** returns true if all elements of the tensor are true, false otherwise */
@@ -163,4 +176,22 @@ object ElementWiseOps:
     def any: Tensor0[V] = Tensor0(Jax.jnp.any(t.jaxValue))
 
     /** returns a tensor of the same shape with each element negated (logical NOT) */
-    def unary_! : Tensor[T, V] = Tensor(Jax.jnp.logical_not(t.jaxValue))
+    def unary_! : Tensor[T, V] = logicalNot(t)
+
+    /** elementwise logical AND with another tensor of the same shape */
+    infix def and(other: Tensor[T, V]): Tensor[T, V] = logicalAnd(t, other)
+
+    /** elementwise logical OR with another tensor of the same shape */
+    infix def or(other: Tensor[T, V]): Tensor[T, V] = logicalOr(t, other)
+
+    /** elementwise logical XOR with another tensor of the same shape */
+    infix def xor(other: Tensor[T, V]): Tensor[T, V] = logicalXor(t, other)
+
+    /** elementwise logical AND with a broadcastable tensor */
+    infix def and_![O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, V] = bc.applyTo(t, other)(logicalAnd)
+
+    /** elementwise logical OR with a broadcastable tensor */
+    infix def or_![O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, V] = bc.applyTo(t, other)(logicalOr)
+
+    /** elementwise logical XOR with a broadcastable tensor */
+    infix def xor_![O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, V] = bc.applyTo(t, other)(logicalXor)
