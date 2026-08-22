@@ -34,6 +34,7 @@ import dimwit.tensor.TensorEvidence.CheckValid
 import dimwit.tensor.TensorEvidence.ComputeMissing
 import dimwit.tensor.TensorEvidence.IsPermutation
 import dimwit.tensor.TensorEvidence.ValidationResult
+import dimwit.tensor.tensorops.TensorOpsUtil.Broadcast3
 import dimwit.|+|
 import me.shadaj.scalapy.py
 import me.shadaj.scalapy.py.SeqConverters
@@ -142,23 +143,34 @@ object StructuralOps:
   import Util.*
 
   object TensorWhere:
-    /** Returns a new tensor where elements are selected from `x` or `y`
-      * depending on the boolean condition.
-      *
-      * @param condition A tensor of boolean values that determines which elements to select.
-      * @param x A tensor from which to select elements when the condition is true.
-      * @param y A tensor from which to select elements when the condition is false.
-      *
-      * @return A new tensor with elements from `x` where the condition is true, and elements from `y` where the condition is false.
+
+    /** Returns a new tensor selecting elements from `ifTrue` where the condition is true
+      * and from `ifFalse` where it is false.
       */
     def where[T <: Tuple: Labels, V](
         condition: Tensor[T, Bool],
-        x: Tensor[T, V],
-        y: Tensor[T, V]
+        ifTrue: Tensor[T, V],
+        ifFalse: Tensor[T, V]
     ): Tensor[T, V] =
-      Tensor(Jax.jnp.where(condition.jaxValue, x.jaxValue, y.jaxValue))
+      Tensor(Jax.jnp.where(condition.jaxValue, ifTrue.jaxValue, ifFalse.jaxValue))
+
+    /** Like [[where]], but broadcasts condition, `ifTrue` and `ifFalse` to their common shape,
+      * which is the one of the three shapes containing all axes of the other two.
+      */
+    def where_![C <: Tuple, T <: Tuple, F <: Tuple, V](
+        condition: Tensor[C, Bool],
+        ifTrue: Tensor[T, V],
+        ifFalse: Tensor[F, V]
+    )(using
+        @implicitNotFound(
+          "Cannot broadcast condition ${C}, ifTrue ${T} and ifFalse ${F} to a common shape. One of them must contain all axes of the other two. If all have the same shape nothing has to be broadcast, use `where` instead of `where_!`."
+        ) bc: Broadcast3[C, T, F, V]
+    ): Tensor[bc.Out, V] =
+      val (c, t, f) = bc.broadcast(condition, ifTrue, ifFalse)
+      where(c, t, f)(using bc.labelsOut)
 
   export TensorWhere.where
+  export TensorWhere.where_!
 
   /** Returns a new tensor with the upper triangular part of the input tensor,
     * setting elements below the kth diagonal to zero.

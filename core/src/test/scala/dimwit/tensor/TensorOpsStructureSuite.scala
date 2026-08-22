@@ -335,6 +335,71 @@ class TensorOpsStructureSuite extends DimwitTest:
         )
       )
 
+  describe("where_!"):
+
+    val tAB = Tensor2(Axis[A], Axis[B]).fromArray(
+      Array(
+        Array(1.0f, 2.0f),
+        Array(3.0f, 4.0f)
+      )
+    )
+    val maskAB = Tensor2(Axis[A], Axis[B]).fromArray(
+      Array(
+        Array(true, true),
+        Array(false, false)
+      )
+    )
+
+    it("broadcasts a Tensor0"):
+      where_!(maskAB, tAB, Tensor0(0.0f)) should approxEqual(
+        Tensor.like(tAB).fromArray(Array(1.0f, 2.0f, 0.0f, 0.0f))
+      )
+      where_!(maskAB, Tensor0(0.0f), tAB) should approxEqual(
+        Tensor.like(tAB).fromArray(Array(0.0f, 0.0f, 3.0f, 4.0f))
+      )
+
+    it("broadcasts a tensor with a subset of the labels"):
+      val tB = Tensor1(Axis[B]).fromArray(Array(10.0f, 20.0f))
+      where_!(maskAB, tAB, tB) should approxEqual(
+        Tensor.like(tAB).fromArray(Array(1.0f, 2.0f, 10.0f, 20.0f))
+      )
+      where_!(maskAB, tB, tAB) should approxEqual(
+        Tensor.like(tAB).fromArray(Array(10.0f, 20.0f, 3.0f, 4.0f))
+      )
+
+    it("broadcasts the condition"):
+      val maskA = Tensor1(Axis[A]).fromArray(Array(true, false))
+      val tAB2 = Tensor.like(tAB).fromArray(Array(10.0f, 20.0f, 30.0f, 40.0f))
+      where_!(maskA, tAB, tAB2) should approxEqual(
+        Tensor.like(tAB).fromArray(Array(1.0f, 2.0f, 30.0f, 40.0f))
+      )
+
+    it("broadcasts the condition and an alternative"):
+      val maskA = Tensor1(Axis[A]).fromArray(Array(true, false))
+      where_!(maskA, tAB, Tensor0(0.0f)) should approxEqual(
+        Tensor.like(tAB).fromArray(Array(1.0f, 2.0f, 0.0f, 0.0f))
+      )
+      where_!(maskA, Tensor0(0.0f), tAB) should approxEqual(
+        Tensor.like(tAB).fromArray(Array(0.0f, 0.0f, 3.0f, 4.0f))
+      )
+
+    it("broadcasts both alternatives to the shape of the condition"):
+      val tA = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f))
+      val tB = Tensor1(Axis[B]).fromArray(Array(10.0f, 20.0f))
+      where_!(maskAB, tA, tB) should approxEqual(
+        Tensor.like(tAB).fromArray(Array(1.0f, 1.0f, 10.0f, 20.0f))
+      )
+
+    it("must require broadcasting"):
+      val tAB2 = Tensor.like(tAB).fromArray(Array(10.0f, 20.0f, 30.0f, 40.0f))
+      val errors = typeCheckErrors("where_!(maskAB, tAB, tAB2)")
+      errors should have size 1
+      errors.head.message should include("use `where` instead of `where_!`")
+
+    it("rejects shapes that are not nested"):
+      val tC = Tensor1(Axis[C]).fromArray(Array(10.0f))
+      "where_!(maskAB, tAB, tC)" shouldNot compile
+
   describe("Concatenation"):
 
     it("Prime axes are rearrangable"):
