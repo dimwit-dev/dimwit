@@ -62,8 +62,6 @@ check out the [examples](examples/src/main/scala).
 
 ## Using DimWit as a Library
 
-**Note**: DimWit is currently in early development (`0.1.0-SNAPSHOT`). Snapshots are published to the Sonatype Central snapshot repository.
-
 ### Requirements
 
 - Scala **3.8** or newer
@@ -80,9 +78,8 @@ lazy val myProject = (project in file("."))
   .settings(
     name := "my-project",
     libraryDependencies ++= Seq(
-      "ch.contrafactus" %% "dimwit-core" % "0.1.0-SNAPSHOT"
+      "ch.contrafactus" %% "dimwit-core" % "0.1.0"
     ),
-    resolvers += Resolver.sonatypeCentralSnapshots,
     fork := true
   )
 ```
