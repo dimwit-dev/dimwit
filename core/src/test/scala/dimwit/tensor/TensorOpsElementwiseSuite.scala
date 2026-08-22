@@ -83,10 +83,53 @@ class TensorOpsElementwiseSuite extends DimwitTest:
 
   describe("Boolean ops (Tensor2)"):
 
+    val c2 = Tensor2(Axis[A], Axis[B]).fromArray(
+      Array(
+        Array(true, true),
+        Array(false, false)
+      )
+    )
+
     it("inverse (!)"):
       (!b2) shouldEqual Tensor2(Axis[A], Axis[B]).fromArray(
         Array(Array(false, true), Array(true, false))
       )
+
+    it("and"):
+      val expected = Tensor.like(b2).fromArray(Array(true, false, false, false))
+      (b2 and c2) shouldEqual expected
+      (b2 and c2) shouldEqual (c2 and b2)
+
+    it("or"):
+      val expected = Tensor.like(b2).fromArray(Array(true, true, false, true))
+      (b2 or c2) shouldEqual expected
+      (b2 or c2) shouldEqual (c2 or b2)
+
+    it("xor"):
+      val expected = Tensor.like(b2).fromArray(Array(false, true, false, true))
+      (b2 xor c2) shouldEqual expected
+      (b2 xor c2) shouldEqual (c2 xor b2)
+
+    it("identities"):
+      val allTrue = Tensor.like(b2).fill(true)
+      val allFalse = Tensor.like(b2).fill(false)
+      (b2 and allTrue) shouldEqual b2
+      (b2 and allFalse) shouldEqual allFalse
+      (b2 or allFalse) shouldEqual b2
+      (b2 or allTrue) shouldEqual allTrue
+      (b2 xor allFalse) shouldEqual b2
+      (b2 xor allTrue) shouldEqual !b2
+      (b2 xor b2) shouldEqual allFalse
+      // De Morgan
+      (!(b2 and c2)) shouldEqual ((!b2) or (!c2))
+      (!(b2 or c2)) shouldEqual ((!b2) and (!c2))
+
+    it("broadcasting (and_! / or_! / xor_!)"):
+      val bA = Tensor1(Axis[A]).fromArray(Array(true, false))
+      (b2 and_! bA) shouldEqual Tensor.like(b2).fromArray(Array(true, false, false, false))
+      (b2 or_! bA) shouldEqual Tensor.like(b2).fromArray(Array(true, true, false, true))
+      (b2 xor_! bA) shouldEqual Tensor.like(b2).fromArray(Array(false, true, false, true))
+      (bA and_! b2) shouldEqual (b2 and_! bA)
 
   describe("Casting Ops (Tensor2)"):
 

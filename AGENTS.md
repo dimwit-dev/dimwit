@@ -264,7 +264,28 @@ val tanh = t.tanh
 
 // Clipping
 val clipped = t.clip(Tensor0(1.5f), Tensor0(3.5f))
+
+// Logical operations on Bool tensors (exact shape match)
+val bx = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(true, false), Array(false, true)))
+val by = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(true, true), Array(false, false)))
+
+val both = bx and by  // [[true, false], [false, false]]
+val either = bx or by  // [[true, true], [false, true]]
+val exclusive = bx xor by  // [[false, true], [false, true]]
+val negated = !bx  // [[false, true], [true, false]]
+
+// Broadcasting variants (! suffix, as for +! / *!)
+val row = Tensor1(Axis[A]).fromArray(Array(true, false))
+val bothB = bx and_! row  // [[true, false], [false, false]]
+val eitherB = bx or_! row  // [[true, true], [false, true]]
+val exclusiveB = bx xor_! row  // [[false, true], [false, true]]
+
+// Typical use: combine comparison masks
+val inRange = (t > Tensor.like(t).fill(1.0f)) and (t < Tensor.like(t).fill(4.0f))
 ```
+
+**Note**: `and` / `or` / `xor` are elementwise and always evaluate both operands - unlike Scala's
+short-circuiting `&&` / `||` on `Boolean`, which is why those symbols are deliberately not provided.
 
 ### Reduction Operations
 
@@ -340,7 +361,7 @@ val wrong = t.sum(Axis[C])
 //     dimwit.tensor.DType.Float32] in class MdocApp0 at line 53 and
 // val t:
 //   dimwit.tensor.Tensor2[MdocApp0.this.A, MdocApp0.this.B,
-//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 88
+//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 99
 //
 ```
 
@@ -368,7 +389,7 @@ val scalarBroadcast = Tensor0(5.0f).broadcastTo(tensor.shape)
 val greater = tensor > Tensor0(25.0f).broadcastTo(tensor.shape)
 ```
 
-**Important**: Standard operators `+`, `-`, `*`, `/` require **exact shape match**. Use `+!`, `-!`, `*!`, `/!` for broadcasting.
+**Important**: Standard operators `+`, `-`, `*`, `/` require **exact shape match**. Use `+!`, `-!`, `*!`, `/!` for broadcasting. The same holds for the logical operators on `Bool` tensors: `and`, `or`, `xor` require an exact shape match, `and_!`, `or_!`, `xor_!` broadcast.
 
 ```scala
 val t = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f)))
@@ -385,7 +406,7 @@ val wrong = t + 5.0f  // Use +! instead
 //     dimwit.tensor.DType.Float32] in class MdocApp0 at line 53 and
 // val t:
 //   dimwit.tensor.Tensor2[MdocApp0.this.A, MdocApp0.this.B,
-//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 97
+//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 108
 //
 ```
 
@@ -475,19 +496,19 @@ val wrong = m1.dot(Axis[B])(m2)
 // Conflicting definitions:
 // val m1:
 //   dimwit.tensor.Tensor2[MdocApp1.this.A, MdocApp1.this.B,
-//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 119 and
+//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 130 and
 // val m1:
 //   dimwit.tensor.Tensor2[MdocApp1.this.A, MdocApp1.this.B,
-//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 122
+//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 133
 // 
 // error: 
 // Conflicting definitions:
 // val m2:
 //   dimwit.tensor.Tensor2[MdocApp1.this.B, MdocApp1.this.C,
-//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 120 and
+//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 131 and
 // val m2:
 //   dimwit.tensor.Tensor2[MdocApp1.this.C, MdocApp1.this.D,
-//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 123
+//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 134
 //
 ```
 

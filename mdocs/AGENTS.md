@@ -204,7 +204,28 @@ val tanh = t.tanh
 
 // Clipping
 val clipped = t.clip(Tensor0(1.5f), Tensor0(3.5f))
+
+// Logical operations on Bool tensors (exact shape match)
+val bx = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(true, false), Array(false, true)))
+val by = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(true, true), Array(false, false)))
+
+val both = bx and by  // [[true, false], [false, false]]
+val either = bx or by  // [[true, true], [false, true]]
+val exclusive = bx xor by  // [[false, true], [false, true]]
+val negated = !bx  // [[false, true], [true, false]]
+
+// Broadcasting variants (! suffix, as for +! / *!)
+val row = Tensor1(Axis[A]).fromArray(Array(true, false))
+val bothB = bx and_! row  // [[true, false], [false, false]]
+val eitherB = bx or_! row  // [[true, true], [false, true]]
+val exclusiveB = bx xor_! row  // [[false, true], [false, true]]
+
+// Typical use: combine comparison masks
+val inRange = (t > Tensor.like(t).fill(1.0f)) and (t < Tensor.like(t).fill(4.0f))
 ```
+
+**Note**: `and` / `or` / `xor` are elementwise and always evaluate both operands - unlike Scala's
+short-circuiting `&&` / `||` on `Boolean`, which is why those symbols are deliberately not provided.
 
 ### Reduction Operations
 
@@ -276,7 +297,7 @@ val scalarBroadcast = Tensor0(5.0f).broadcastTo(tensor.shape)
 val greater = tensor > Tensor0(25.0f).broadcastTo(tensor.shape)
 ```
 
-**Important**: Standard operators `+`, `-`, `*`, `/` require **exact shape match**. Use `+!`, `-!`, `*!`, `/!` for broadcasting.
+**Important**: Standard operators `+`, `-`, `*`, `/` require **exact shape match**. Use `+!`, `-!`, `*!`, `/!` for broadcasting. The same holds for the logical operators on `Bool` tensors: `and`, `or`, `xor` require an exact shape match, `and_!`, `or_!`, `xor_!` broadcast.
 
 ```scala mdoc:fail
 val t = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f)))
