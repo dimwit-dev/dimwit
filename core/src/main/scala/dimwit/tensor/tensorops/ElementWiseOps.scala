@@ -26,13 +26,44 @@ object ElementWiseOps:
   /** Elementwise minimum of two tensors. */
   def minimum[T <: Tuple: Labels, V](t1: Tensor[T, V], t2: Tensor[T, V]): Tensor[T, V] = Tensor(Jax.jnp.minimum(t1.jaxValue, t2.jaxValue))
 
+  /** Elementwise `<` of two tensors of the same shape. */
+  def less[T <: Tuple: Labels, V](t1: Tensor[T, V], t2: Tensor[T, V]): Tensor[T, Bool] = Tensor(Jax.jnp.less(t1.jaxValue, t2.jaxValue))
+
+  /** Elementwise `<=` of two tensors of the same shape. */
+  def lessEqual[T <: Tuple: Labels, V](t1: Tensor[T, V], t2: Tensor[T, V]): Tensor[T, Bool] = Tensor(Jax.jnp.less_equal(t1.jaxValue, t2.jaxValue))
+
+  /** Elementwise `>` of two tensors of the same shape. */
+  def greater[T <: Tuple: Labels, V](t1: Tensor[T, V], t2: Tensor[T, V]): Tensor[T, Bool] = Tensor(Jax.jnp.greater(t1.jaxValue, t2.jaxValue))
+
+  /** Elementwise `>=` of two tensors of the same shape. */
+  def greaterEqual[T <: Tuple: Labels, V](t1: Tensor[T, V], t2: Tensor[T, V]): Tensor[T, Bool] = Tensor(Jax.jnp.greater_equal(t1.jaxValue, t2.jaxValue))
+
+  /** Elementwise equality of two tensors of the same shape. */
+  def equal[T <: Tuple: Labels, V](t1: Tensor[T, V], t2: Tensor[T, V]): Tensor[T, Bool] = Tensor(Jax.jnp.equal(t1.jaxValue, t2.jaxValue))
+
   // extension methods for comparisons
   extension [T <: Tuple: Labels, V](t: Tensor[T, V])
 
-    def <(other: Tensor[T, V]): Tensor[T, Bool] = Tensor(Jax.jnp.less(t.jaxValue, other.jaxValue))
-    def <=(other: Tensor[T, V]): Tensor[T, Bool] = Tensor(Jax.jnp.less_equal(t.jaxValue, other.jaxValue))
-    def >(other: Tensor[T, V]): Tensor[T, Bool] = Tensor(Jax.jnp.greater(t.jaxValue, other.jaxValue))
-    def >=(other: Tensor[T, V]): Tensor[T, Bool] = Tensor(Jax.jnp.greater_equal(t.jaxValue, other.jaxValue))
+    def <(other: Tensor[T, V]): Tensor[T, Bool] = less(t, other)
+    def <=(other: Tensor[T, V]): Tensor[T, Bool] = lessEqual(t, other)
+    def >(other: Tensor[T, V]): Tensor[T, Bool] = greater(t, other)
+    def >=(other: Tensor[T, V]): Tensor[T, Bool] = greaterEqual(t, other)
+
+    /** Like [[<]], but broadcasts both sides to their common shape first.
+      *
+      * Must be written backticked (``a `<!` b``) or dotted (`a.<!(b)`): bare infix `a <! b` does not parse, because the
+      * lexer reads `<!` as the start of an XML literal. The other broadcasting comparisons have no such restriction.
+      */
+    def `<!`[O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, Bool] = bc.applyTo(t, other)(less)
+
+    /** Like [[<=]], but broadcasts both sides to their common shape first. */
+    def <=![O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, Bool] = bc.applyTo(t, other)(lessEqual)
+
+    /** Like [[>]], but broadcasts both sides to their common shape first. */
+    def >![O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, Bool] = bc.applyTo(t, other)(greater)
+
+    /** Like [[>=]], but broadcasts both sides to their common shape first. */
+    def >=![O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, Bool] = bc.applyTo(t, other)(greaterEqual)
 
     /** Checks full array equality, returns true if all elements are equal */
     def ===(other: Tensor[T, V]): Tensor0[Bool] = Tensor0(Jax.jnp.array_equal(t.jaxValue, other.jaxValue))
@@ -40,7 +71,10 @@ object ElementWiseOps:
     /** Elementwise equality, returns a tensor of bools indicating which elements are equal */
     def elementEquals(other: Tensor[T, V]): Tensor[T, Bool] =
       require(t.shape.dimensions == other.shape.dimensions, s"Shape mismatch: ${t.shape.dimensions} vs ${other.shape.dimensions}")
-      Tensor(jaxValue = Jax.jnp.equal(t.jaxValue, other.jaxValue))
+      equal(t, other)
+
+    /** Like [[elementEquals]], but broadcasts both sides to their common shape first. */
+    def elementEquals_![O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, Bool] = bc.applyTo(t, other)(equal)
 
     /** Casts the elements of this tensor to a tensor of type Bool. */
     def asBool: Tensor[T, Bool] = t.asType(VType[Bool])
