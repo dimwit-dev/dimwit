@@ -457,6 +457,44 @@ class TensorOpsStructureSuite extends DimwitTest:
         val t3 = t.set(Axis[A].at(1 to 2))(Tensor1(Axis[A]).fromArray(Array(7.0f, 8.0f)))
         t3 should approxEqual(Tensor1(Axis[A]).fromArray(Array(1.0f, 7.0f, 8.0f)))
 
+      it("slice at a range"):
+        val t = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f, 3.0f, 4.0f))
+        t.slice(Axis[A].at(1 to 2)) should approxEqual(Tensor1(Axis[A]).fromArray(Array(2.0f, 3.0f)))
+        t.slice(Axis[A].at(1 until 3)) should approxEqual(Tensor1(Axis[A]).fromArray(Array(2.0f, 3.0f)))
+        t.slice(Axis[A].at(0 until 4 by 2)) should approxEqual(Tensor1(Axis[A]).fromArray(Array(1.0f, 3.0f)))
+
+      it("slice at a descending range"):
+        val t = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f, 3.0f, 4.0f))
+        t.slice(Axis[A].at(3 to 1 by -1)) should approxEqual(Tensor1(Axis[A]).fromArray(Array(4.0f, 3.0f, 2.0f)))
+        t.slice(Axis[A].at(3 until 0 by -1)) should approxEqual(Tensor1(Axis[A]).fromArray(Array(4.0f, 3.0f, 2.0f)))
+        // both spellings of a descending range down to index 0
+        t.slice(Axis[A].at(3 to 0 by -1)) should approxEqual(Tensor1(Axis[A]).fromArray(Array(4.0f, 3.0f, 2.0f, 1.0f)))
+        t.slice(Axis[A].at(3 until -1 by -1)) should approxEqual(Tensor1(Axis[A]).fromArray(Array(4.0f, 3.0f, 2.0f, 1.0f)))
+        t.slice(Axis[A].at(3 to 0 by -2)) should approxEqual(Tensor1(Axis[A]).fromArray(Array(4.0f, 2.0f)))
+
+      it("slice rejects a range that leaves the axis"):
+        val t = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f, 3.0f, 4.0f))
+        the[IllegalArgumentException] thrownBy t.slice(Axis[A].at(3 until -10000 by -1)) should have message
+          "requirement failed: Range 3 until -10000 by -1 is out of bounds for axis of size 4"
+        an[IllegalArgumentException] should be thrownBy t.slice(Axis[A].at(3 until -3 by -1))
+        an[IllegalArgumentException] should be thrownBy t.slice(Axis[A].at(0 until 10))
+        // a very negative end is fine as long as the step steps over the invalid indices
+        t.slice(Axis[A].at(3 until -3 by -3)) should approxEqual(Tensor1(Axis[A]).fromArray(Array(4.0f, 1.0f)))
+
+      it("slice at an empty range yields a zero-length axis"):
+        val t = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f), Array(3.0f, 4.0f)))
+        val empty = t.slice(Axis[A].at(0 until 0))
+        empty.axes shouldBe List("A", "B")
+        empty.shape(Axis[A]) shouldBe 0
+        empty.shape(Axis[B]) shouldBe 2
+        t.slice(Axis[A].at(2 until 2)).shape(Axis[A]) shouldBe 0
+        t.slice(Axis[A].at(1 until 1)).shape(Axis[A]) shouldBe 0
+
+      it("set at an empty range is a no-op"):
+        val t = Tensor1(Axis[A]).fromArray(Array(1.0f, 2.0f, 3.0f))
+        val empty = Tensor1(Axis[A]).fromArray(Array.empty[Float])
+        t.set(Axis[A].at(1 until 1))(empty) should approxEqual(t)
+
     describe("AxisAtIndices"):
 
       it("set at a seq"):
