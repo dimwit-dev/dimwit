@@ -330,9 +330,15 @@ object Tensor2:
   def apply[L1: Label, L2: Label](axisExtent1: AxisExtent[L1], axisExtent2: AxisExtent[L2]): Tensor.DefaultsFactory[Tuple2[L1, L2]] = Tensor.DefaultsFactory(Shape(axisExtent1, axisExtent2))
   def apply[L1: Label, L2: Label, V](axisExtent1: AxisExtent[L1], axisExtent2: AxisExtent[L2], vtype: VType[V]): Tensor.TypedFactory[Tuple2[L1, L2], V] = Tensor.TypedFactory(Shape(axisExtent1, axisExtent2), vtype)
 
-  private def eyeImpl[L: Label, V](dim: AxisExtent[L], vtype: VType[V]): Tensor2[L, Prime[L], V] = Tensor(Jax.jnp.eye(dim.size, dtype = vtype.dtype.jaxType))
-  def eye[L: Label](dim: AxisExtent[L]): Tensor2[L, Prime[L], Float32] = eyeImpl(dim, VType[Float32])
-  def eye[L: Label, V](dim: AxisExtent[L], vtype: VType[V]): Tensor2[L, Prime[L], V] = eyeImpl(dim, vtype)
+  private def eyeImpl[T <: Tuple: Labels, V](n: Int, m: Int, vtype: VType[V] = VType[Float32]): Tensor[T, V] = Tensor(Jax.jnp.eye(n, m, dtype = vtype.dtype.jaxType))
+
+  def eye[L: Label](dim: AxisExtent[L]): Tensor2[L, Prime[L], Float32] = eye(dim, Axis[Prime[L]] -> dim.size)
+  def eye[L: Label, V](dim: AxisExtent[L], vtype: VType[V]): Tensor2[L, Prime[L], V] = eye(dim, Axis[Prime[L]] -> dim.size, vtype)
+  def eye[L1: Label, L2: Label](n: AxisExtent[L1], m: AxisExtent[L2]): Tensor2[L1, L2, Float32] = eyeImpl[(L1, L2), Float32](n.size, m.size)
+  def eye[L1: Label, L2: Label, V](n: AxisExtent[L1], m: AxisExtent[L2], vtype: VType[V]): Tensor2[L1, L2, V] = eyeImpl[(L1, L2), V](n.size, m.size, vtype)
+  def eye[L1: Label, L2: Label](shape: Shape2[L1, L2]): Tensor2[L1, L2, Float32] = eye(shape.extent(Axis[L1]), shape.extent(Axis[L2]))
+  def eye[L1: Label, L2: Label, V](shape: Shape2[L1, L2], vtype: VType[V]): Tensor2[L1, L2, V] = eye(shape.extent(Axis[L1]), shape.extent(Axis[L2]), vtype)
+
   def diag[L: Label, V](diag: Tensor1[L, V]): Tensor2[L, Prime[L], V] = Tensor(Jax.jnp.diag(diag.jaxValue))
 
 /** Companion object for Tensors of rank 3.

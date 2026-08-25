@@ -92,3 +92,45 @@ class TensorCreationSuite extends DimwitTest:
         idx(Axis[A]).toFloat
       }
       result shouldEqual Tensor1(Axis[A]).fromArray(Array(0.0f, 1.0f, 2.0f, 3.0f))
+
+  describe("eye"):
+
+    it("square: from a single extent"):
+      val result = Tensor2.eye(Axis[A] -> 3)
+      result.shape shouldEqual Shape2(Axis[A] -> 3, Axis[Prime[A]] -> 3)
+      result shouldEqual Tensor2(Axis[A], Axis[B]).fromArray(
+        Array(Array(1.0f, 0.0f, 0.0f), Array(0.0f, 1.0f, 0.0f), Array(0.0f, 0.0f, 1.0f))
+      )
+
+    it("square: from two extents and from a shape"):
+      val expected = Tensor2(Axis[A], Axis[B]).fromArray(
+        Array(Array(1.0f, 0.0f), Array(0.0f, 1.0f))
+      )
+      Tensor2.eye(Axis[A] -> 2, Axis[B] -> 2) shouldEqual expected
+      Tensor2.eye(Shape2(Axis[A] -> 2, Axis[B] -> 2)) shouldEqual expected
+
+    it("wide: more columns than rows, zero padded"):
+      val expected = Tensor2(Axis[A], Axis[B]).fromArray(
+        Array(Array(1.0f, 0.0f, 0.0f), Array(0.0f, 1.0f, 0.0f))
+      )
+      val fromExtents = Tensor2.eye(Axis[A] -> 2, Axis[B] -> 3)
+      fromExtents.shape shouldEqual Shape2(Axis[A] -> 2, Axis[B] -> 3)
+      fromExtents shouldEqual expected
+      Tensor2.eye(Shape2(Axis[A] -> 2, Axis[B] -> 3)) shouldEqual expected
+
+    it("tall: more rows than columns, truncating"):
+      val expected = Tensor2(Axis[A], Axis[B]).fromArray(
+        Array(Array(1.0f, 0.0f), Array(0.0f, 1.0f), Array(0.0f, 0.0f))
+      )
+      val fromExtents = Tensor2.eye(Axis[A] -> 3, Axis[B] -> 2)
+      fromExtents.shape shouldEqual Shape2(Axis[A] -> 3, Axis[B] -> 2)
+      fromExtents shouldEqual expected
+      Tensor2.eye(Shape2(Axis[A] -> 3, Axis[B] -> 2)) shouldEqual expected
+
+    it("defaults to Float32 and accepts an explicit vtype in all variants"):
+      Tensor2.eye(Axis[A] -> 2).dtype shouldBe DType.Float32
+      Tensor2.eye(Axis[A] -> 2, Axis[B] -> 3).dtype shouldBe DType.Float32
+      Tensor2.eye(Shape2(Axis[A] -> 2, Axis[B] -> 3)).dtype shouldBe DType.Float32
+      Tensor2.eye(Axis[A] -> 2, VType[Int32]).dtype shouldBe DType.Int32
+      Tensor2.eye(Axis[A] -> 2, Axis[B] -> 3, VType[Int32]).dtype shouldBe DType.Int32
+      Tensor2.eye(Shape2(Axis[A] -> 2, Axis[B] -> 3), VType[Int32]).dtype shouldBe DType.Int32
