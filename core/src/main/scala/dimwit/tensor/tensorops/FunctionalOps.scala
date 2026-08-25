@@ -130,12 +130,12 @@ object FunctionalOps:
       * @param f A function that takes a tuple of tensors (with the specified axis removed) and returns a new tensor.
       * @return A new tensor resulting from applying `f` to the zipped tensors.
       */
-    def zipvmap[L: Label, T2 <: Tuple, FOut](axis: Axis[L])(
-        other: Tensor[T2, V]
+    def zipvmap[L: Label, T2 <: Tuple, V2, FOut](axis: Axis[L])(
+        other: Tensor[T2, V2]
     )(using
         ev: SharedAxisRemover[(T, T2), L]
     )(
-        f: TensorsOf[ev.RemainingAxes, (V, V)] => FOut
+        f: TensorsOf[ev.RemainingAxes, (V, V2)] => FOut
     )(using
         prependAxis: PrependAxis[L, FOut],
         toPyTree: TensorTree[FOut],
