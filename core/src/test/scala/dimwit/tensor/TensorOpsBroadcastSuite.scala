@@ -110,6 +110,47 @@ class TensorOpsBroadcastSuite extends DimwitTest:
           )
         )
 
+  describe("Comparison Broadcasting"):
+
+    def bools(values: Boolean*) = Tensor(iAB.shape).fromArray(values.toArray)
+
+    it("Greater (>!)"):
+      (iAB >! iA) shouldEqual bools(false, true, true, true)
+      (iA >! iAB) shouldEqual bools(false, false, false, false)
+
+    it("Greater or equal (>=!)"):
+      (iAB >=! iA) shouldEqual bools(true, true, true, true)
+      (iA >=! iAB) shouldEqual bools(true, false, false, false)
+
+    it("Less (`<!`)"):
+      (iAB `<!` iA) shouldEqual bools(false, false, false, false)
+      (iA `<!` iAB) shouldEqual bools(false, true, true, true)
+      iAB.<!(iA) shouldEqual bools(false, false, false, false)
+
+    it("Less or equal (<=!)"):
+      (iAB <=! iA) shouldEqual bools(true, false, false, false)
+      (iA <=! iAB) shouldEqual bools(true, true, true, true)
+
+    it("Elementwise equality (elementEquals_!)"):
+      iAB.elementEquals_!(iA) shouldEqual bools(true, false, false, false)
+      iA.elementEquals_!(iAB) shouldEqual bools(true, false, false, false)
+
+    it("Against a scalar"):
+      (iAB >! 2) shouldEqual bools(false, false, true, true)
+      (2 >! iAB) shouldEqual bools(true, false, false, false)
+      (iAB <=! 2) shouldEqual bools(true, true, false, false)
+      (iAB `<!` 2) shouldEqual bools(true, false, false, false)
+      (2 `<!` iAB) shouldEqual bools(false, false, true, true)
+
+    it("Floats too"):
+      (tAB >! tA) shouldEqual bools(true, true, true, true)
+      (tA >=! tAB) shouldEqual bools(false, false, false, false)
+
+    it("Nothing to broadcast between equal shapes"):
+      "iAB >! iAB" shouldNot compile
+      "iAB <=! iAB" shouldNot compile
+      "iAB `<!` iAB" shouldNot compile
+
   describe("Tensor-to-Tensor Broadcasting (complex)"):
 
     val tABCD = Tensor(Shape(Axis[A] -> 2, Axis[B] -> 2, Axis[C] -> 2, Axis[D] -> 2)).fromArray(
