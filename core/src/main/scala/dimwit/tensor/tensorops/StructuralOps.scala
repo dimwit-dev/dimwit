@@ -534,7 +534,13 @@ object StructuralOps:
           case AxisAtIndex(_, idx) =>
             indicesBuffer(dimIndex) = py.Any.from(idx)
           case AxisAtRange(_, range) =>
-            indicesBuffer(dimIndex) = PySlice(range.head, range.last + 1, range.step)
+            require(range.isEmpty || (range.min >= 0 && range.max < dimSize), s"$range is out of bounds for axis of size $dimSize")
+            // map Scala Range to Python Range which is exclusive
+            val stop = range match
+              case r: Range.Inclusive => r.end + r.step.sign
+              case r: Range.Exclusive => r.end
+            // the range is in bounds, so a negative stop can only mean "before the first element", which Python spells as None
+            indicesBuffer(dimIndex) = PySlice(range.start, if stop < 0 then py.None else py.Any.from(stop), range.step)
           case AxisAtIndices(_, indices) =>
             indicesBuffer(dimIndex) = indices.map(py.Any.from).toPythonCopy // TODO find out why Copy is needed here
           case AxisAtTupleIndices(_, indices) =>
