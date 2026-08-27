@@ -88,6 +88,16 @@ class TensorOpsFunctionalSuite extends DimwitTest:
       // Each row of ta sums to 3.0, each row of tc sums to 8.0 => 11.0 per row
       res.shouldEqual(Tensor1(Axis[A]).fromArray(Array(11.0f, 11.0f)))
 
+    it("extension zipvmap with two different-vtype tensors"):
+      val floats = Tensor(Shape(Axis[A] -> 2, Axis[B] -> 3)).fill(2.0f)
+      val ints = Tensor(Shape(Axis[A] -> 2, Axis[C] -> 4)).fill(3)
+      val res = floats.zipvmap(Axis[A])(ints) {
+        case (rowFloat, rowInt) =>
+          rowFloat.sum + rowInt.asFloat32.sum
+      }
+      // Each row of floats sums to 6.0, each row of ints sums to 12 => 18.0 per row
+      res shouldEqual Tensor1(Axis[A]).fromArray(Array(18.0f, 18.0f))
+
     it("zipvmap2 return tuple"):
       val t1 = Tensor(Shape(Axis[A] -> 2, Axis[B] -> 3)).fill(0f)
       val t2 = Tensor(Shape(Axis[A] -> 2, Axis[B] -> 3)).fill(1f)
