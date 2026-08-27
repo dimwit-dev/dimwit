@@ -124,7 +124,7 @@ Alternatively, you can configure the Python environment manually using these env
 
 ## Status 
 
-**Early but functional.** DimWit successfully runs complex models including GPT-2 (see [example](https://github.com/dimwit-dev/deepwit/tree/main/examples/src/main/scala/example/gpt)). The core concepts are stable, but the API is still evolving.
+**Early but functional.** DimWit successfully runs complex models including GPT-2 (see [example](https://github.com/dimwit-dev/deepwit/tree/main/examples/src/main/scala/deepwit/examples/gpt)). The core concepts are stable, but the API is still evolving.
 
 **Not production-ready** - expect breaking changes.
 
