@@ -69,6 +69,10 @@ class TensorOpsElementwiseSuite extends DimwitTest:
       t.isnan shouldEqual Tensor.like(b2).fromArray(Array(true, false, false, false))
       t.isfinite shouldEqual Tensor.like(b2).fromArray(Array(false, false, true, true))
 
+    it("nanToNum"):
+      val t = Tensor.like(t2).fromArray(Array(Float.NaN, Float.PositiveInfinity, Float.NegativeInfinity, 1.0f))
+      t.nanToNum shouldEqual Tensor.like(t2).fromArray(Array(0.0f, Float.MaxValue, -Float.MaxValue, 1.0f))
+
     it("mod"):
       val t = Tensor.like(t2).fromArray(Array(-7.0f, 7.0f, -7.0f, 7.0f))
       val divisor = Tensor.like(t2).fromArray(Array(3.0f, 3.0f, -3.0f, -3.0f))

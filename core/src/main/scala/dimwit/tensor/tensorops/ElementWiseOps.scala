@@ -189,6 +189,7 @@ object ElementWiseOps:
     def round: Tensor[T, V] = Tensor(Jax.jnp.round(t.jaxValue))
     def isnan: Tensor[T, Bool] = Tensor(Jax.jnp.isnan(t.jaxValue))
     def isfinite: Tensor[T, Bool] = Tensor(Jax.jnp.isfinite(t.jaxValue))
+    def nanToNum: Tensor[T, V] = Tensor(Jax.jnp.nan_to_num(t.jaxValue))
 
     def approxEquals(other: Tensor[T, V], tolerance: Float = 1e-6f): Tensor0[Bool] = approxElementEquals(other, tolerance).all
     def approxElementEquals(other: Tensor[T, V], tolerance: Float = 1e-6f): Tensor[T, Bool] =
