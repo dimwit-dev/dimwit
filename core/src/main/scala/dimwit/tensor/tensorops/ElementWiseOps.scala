@@ -173,6 +173,14 @@ object ElementWiseOps:
     def sin: Tensor[T, V] = Tensor(Jax.jnp.sin(t.jaxValue))
     def cos: Tensor[T, V] = Tensor(Jax.jnp.cos(t.jaxValue))
     def tanh: Tensor[T, V] = Tensor(Jax.jnp.tanh(t.jaxValue))
+    def arcsin: Tensor[T, V] = Tensor(Jax.jnp.arcsin(t.jaxValue))
+    def arccos: Tensor[T, V] = Tensor(Jax.jnp.arccos(t.jaxValue))
+    def arctan: Tensor[T, V] = Tensor(Jax.jnp.arctan(t.jaxValue))
+    def floor: Tensor[T, V] = Tensor(Jax.jnp.floor(t.jaxValue))
+    def ceil: Tensor[T, V] = Tensor(Jax.jnp.ceil(t.jaxValue))
+    def round: Tensor[T, V] = Tensor(Jax.jnp.round(t.jaxValue))
+    def isnan: Tensor[T, Bool] = Tensor(Jax.jnp.isnan(t.jaxValue))
+    def isfinite: Tensor[T, Bool] = Tensor(Jax.jnp.isfinite(t.jaxValue))
 
     def approxEquals(other: Tensor[T, V], tolerance: Float = 1e-6f): Tensor0[Bool] = approxElementEquals(other, tolerance).all
     def approxElementEquals(other: Tensor[T, V], tolerance: Float = 1e-6f): Tensor[T, Bool] =
