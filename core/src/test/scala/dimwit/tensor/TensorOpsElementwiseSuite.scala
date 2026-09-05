@@ -69,6 +69,15 @@ class TensorOpsElementwiseSuite extends DimwitTest:
       t.isnan shouldEqual Tensor.like(b2).fromArray(Array(true, false, false, false))
       t.isfinite shouldEqual Tensor.like(b2).fromArray(Array(false, false, true, true))
 
+    it("mod"):
+      val t = Tensor.like(t2).fromArray(Array(-7.0f, 7.0f, -7.0f, 7.0f))
+      val divisor = Tensor.like(t2).fromArray(Array(3.0f, 3.0f, -3.0f, -3.0f))
+      (t % divisor) should approxEqual(Tensor.like(t2).fromArray(Array(2.0f, 1.0f, -1.0f, -2.0f)))
+
+    it("mod broadcasting (%!)"):
+      val t = Tensor1(Axis[A]).fromArray(Array(-7.0f, 7.0f))
+      (t %! Tensor0(3.0f)) should approxEqual(Tensor1(Axis[A]).fromArray(Array(2.0f, 1.0f)))
+
     it("clip"):
       t2.clip(0.0f, 2.0f) should approxEqual(Tensor.like(t2).fromArray(Array(0.0f, 0.0f, 1.0f, 2.0f)))
 
@@ -90,6 +99,11 @@ class TensorOpsElementwiseSuite extends DimwitTest:
 
     it("pow"):
       i2.pow(Tensor0(3)) shouldEqual Tensor.like(i2).fromArray(Array(-1, 0, 1, 8))
+
+    it("mod"):
+      val t = Tensor.like(i2).fromArray(Array(-7, 7, -7, 7))
+      val divisor = Tensor.like(i2).fromArray(Array(3, 3, -3, -3))
+      (t % divisor) shouldEqual Tensor.like(i2).fromArray(Array(2, 1, -1, -2))
 
     it("clip"):
       i2.clip(0, 1) shouldEqual Tensor.like(i2).fromArray(Array(0, 0, 1, 1))
