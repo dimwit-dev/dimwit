@@ -70,7 +70,7 @@ class AutodiffSuite extends DimwitTest:
         val jf = Autodiff.jacobian(f)
 
         val x = Tensor1(Axis[A]).fromArray(Array(1.0f, 1.0f))
-        jf(x) should approxEqual(Tensor2.eye(x.extent(Axis[A]), x.vtype) *! 2.0f)
+        jf(x) should approxEqual(Tensor2(x.extent(Axis[A])).eye(x.vtype) *! 2.0f)
 
   describe("jacRev"):
 
@@ -84,8 +84,8 @@ class AutodiffSuite extends DimwitTest:
 
       // the first output is x2, so it depends on x2 only, and the other way round
       x1_dx1 should approxEqual(Tensor.like(x1_dx1).fill(0f))
-      x1_dx2 should approxEqual(Tensor2.eye(x1.extent(Axis[A]), x1.vtype))
-      x2_dx1 should approxEqual(Tensor2.eye(x2.extent(Axis[A]), x2.vtype))
+      x1_dx2 should approxEqual(Tensor2(x1.extent(Axis[A])).eye(x1.vtype))
+      x2_dx1 should approxEqual(Tensor2(x2.extent(Axis[A])).eye(x2.vtype))
       x2_dx2 should approxEqual(Tensor.like(x2_dx2).fill(0f))
 
     it("d¹ of f: Tensor1[A] => Tensor1[B] keeps the output axis first"):
@@ -94,7 +94,7 @@ class AutodiffSuite extends DimwitTest:
 
       val x = Tensor1(Axis[A]).fromArray(Array(1.0f, 1.0f))
       df(x).axes shouldBe List("B", "A")
-      df(x) should approxEqual((Tensor2.eye(x.extent(Axis[A])) *! 2.0f).relabelAll((Axis[B], Axis[A])))
+      df(x) should approxEqual((Tensor2(x.extent(Axis[A])).eye *! 2.0f).relabelAll((Axis[B], Axis[A])))
 
     it("d² of f(x1, x2) = sum(x1 * x2)"):
       def f(x1: Tensor1[A, Float32], x2: Tensor1[A, Float32]): Tensor0[Float32] = (x1 * x2).sum
@@ -106,8 +106,8 @@ class AutodiffSuite extends DimwitTest:
 
       // d²/dx1² and d²/dx2² vanish, the mixed partials are the identity
       x1_dx1 should approxEqual(Tensor.like(x1_dx1).fill(0f))
-      x1_dx2 should approxEqual(Tensor2.eye(x1.extent(Axis[A]), x1.vtype))
-      x2_dx1 should approxEqual(Tensor2.eye(x2.extent(Axis[A]), x2.vtype))
+      x1_dx2 should approxEqual(Tensor2(x1.extent(Axis[A])).eye(x1.vtype))
+      x2_dx1 should approxEqual(Tensor2(x2.extent(Axis[A])).eye(x2.vtype))
       x2_dx2 should approxEqual(Tensor.like(x2_dx2).fill(0f))
 
   describe("jacFwd"):
@@ -122,8 +122,8 @@ class AutodiffSuite extends DimwitTest:
 
       // the first output is x2, so it depends on x2 only, and the other way round
       x1_dx1 should approxEqual(Tensor.like(x1_dx1).fill(0f))
-      x1_dx2 should approxEqual(Tensor2.eye(x1.extent(Axis[A]), x1.vtype))
-      x2_dx1 should approxEqual(Tensor2.eye(x2.extent(Axis[A]), x2.vtype))
+      x1_dx2 should approxEqual(Tensor2(x1.extent(Axis[A])).eye(x1.vtype))
+      x2_dx1 should approxEqual(Tensor2(x2.extent(Axis[A])).eye(x2.vtype))
       x2_dx2 should approxEqual(Tensor.like(x2_dx2).fill(0f))
 
     it("d¹ of f: Tensor1[A] => Tensor1[B] keeps the output axis first"):
@@ -132,7 +132,7 @@ class AutodiffSuite extends DimwitTest:
 
       val x = Tensor1(Axis[A]).fromArray(Array(1.0f, 1.0f))
       df(x).axes shouldBe List("B", "A")
-      df(x) should approxEqual((Tensor2.eye(x.extent(Axis[A])) *! 2.0f).relabelAll((Axis[B], Axis[A])))
+      df(x) should approxEqual((Tensor2(x.extent(Axis[A])).eye *! 2.0f).relabelAll((Axis[B], Axis[A])))
 
     it("d² of f(x1, x2) = sum(x1 * x2)"):
       def f(x1: Tensor1[A, Float32], x2: Tensor1[A, Float32]): Tensor0[Float32] = (x1 * x2).sum
@@ -144,8 +144,8 @@ class AutodiffSuite extends DimwitTest:
 
       // d²/dx1² and d²/dx2² vanish, the mixed partials are the identity
       x1_dx1 should approxEqual(Tensor.like(x1_dx1).fill(0f))
-      x1_dx2 should approxEqual(Tensor2.eye(x1.extent(Axis[A]), x1.vtype))
-      x2_dx1 should approxEqual(Tensor2.eye(x2.extent(Axis[A]), x2.vtype))
+      x1_dx2 should approxEqual(Tensor2(x1.extent(Axis[A])).eye(x1.vtype))
+      x2_dx1 should approxEqual(Tensor2(x2.extent(Axis[A])).eye(x2.vtype))
       x2_dx2 should approxEqual(Tensor.like(x2_dx2).fill(0f))
 
   describe("hessian"):
@@ -162,7 +162,7 @@ class AutodiffSuite extends DimwitTest:
         val hf = Autodiff.hessian(f)
 
         val x = Tensor1(Axis[A]).fromArray(Array(1.0f, 5.0f))
-        hf(x) should approxEqual(Tensor2.eye(x.extent(Axis[A]), x.vtype) *! 2.0f)
+        hf(x) should approxEqual(Tensor2(x.extent(Axis[A])).eye(x.vtype) *! 2.0f)
 
       it("Hessian of f(x1, x2) = sum(x1 * x2)"):
         def f(x1: Tensor1[A, Float32], x2: Tensor1[A, Float32]): Tensor0[Float32] = (x1 * x2).sum
@@ -174,8 +174,8 @@ class AutodiffSuite extends DimwitTest:
         val (x1_dx1, x1_dx2) = x1Grad
         val (x2_dx1, x2_dx2) = x2Grad
         x1_dx1 should approxEqual(Tensor.like(x1_dx1).fill(0f))
-        x1_dx2 should approxEqual(Tensor2.eye(x1.extent(Axis[A]), x1.vtype) *! Tensor0(1.0f))
-        x2_dx1 should approxEqual(Tensor2.eye(x2.extent(Axis[A]), x2.vtype) *! Tensor0(1.0f))
+        x1_dx2 should approxEqual(Tensor2(x1.extent(Axis[A])).eye(x1.vtype) *! Tensor0(1.0f))
+        x2_dx1 should approxEqual(Tensor2(x2.extent(Axis[A])).eye(x2.vtype) *! Tensor0(1.0f))
         x2_dx2 should approxEqual(Tensor.like(x2_dx2).fill(0f))
 
   describe("jacobian of a function whose input and output axes differ"):
@@ -186,7 +186,7 @@ class AutodiffSuite extends DimwitTest:
 
       val x = Tensor1(Axis[A]).fromArray(Array(1.0f, 1.0f))
       jf(x).axes shouldBe List("B", "A")
-      jf(x) should approxEqual((Tensor2.eye(x.extent(Axis[A])) *! 2.0f).relabelAll((Axis[B], Axis[A])))
+      jf(x) should approxEqual((Tensor2(x.extent(Axis[A])).eye *! 2.0f).relabelAll((Axis[B], Axis[A])))
 
     it("primes an input axis that collides with an output axis"):
       def f(x: Tensor2[A, B, Float32]): Tensor1[B, Float32] = x.sum(Axis[A])
@@ -255,19 +255,19 @@ class AutodiffSuite extends DimwitTest:
       val jf = Autodiff.jacobian(f)
       val jac = jf(params)
 
-      jac.w.w should approxEqual(Tensor2.eye(params.w.extent(Axis[A])))
+      jac.w.w should approxEqual(Tensor2(params.w.extent(Axis[A])).eye)
       jac.w.b should approxEqual(Tensor.like(jac.w.b).fill(0f))
       jac.b.w should approxEqual(Tensor.like(jac.b.w).fill(0f))
-      jac.b.b should approxEqual(Tensor2.eye(params.b.extent(Axis[B])))
+      jac.b.b should approxEqual(Tensor2(params.b.extent(Axis[B])).eye)
 
     it("takes the hessian of a scalar loss over a case class tree"):
       def loss(p: JacParams): Tensor0[Float32] = (p.w * p.w).sum + (p.b * p.b).sum
       val hf = Autodiff.hessian(loss)
       val hess = hf(params)
 
-      hess.w.w should approxEqual(Tensor2.eye(params.w.extent(Axis[A])) *! 2.0f)
+      hess.w.w should approxEqual(Tensor2(params.w.extent(Axis[A])).eye *! 2.0f)
       hess.w.b should approxEqual(Tensor.like(hess.w.b).fill(0f))
-      hess.b.b should approxEqual(Tensor2.eye(params.b.extent(Axis[B])) *! 2.0f)
+      hess.b.b should approxEqual(Tensor2(params.b.extent(Axis[B])).eye *! 2.0f)
 
     it("differentiates a function returning a named tuple"):
       def f(x: Tensor1[A, Float32]): (u: Tensor1[A, Float32], v: Tensor1[A, Float32]) =
@@ -276,8 +276,8 @@ class AutodiffSuite extends DimwitTest:
 
       val x = Tensor1(Axis[A]).fromArray(Array(1.0f, 1.0f))
       val jac = jf(x)
-      jac.u should approxEqual(Tensor2.eye(x.extent(Axis[A])) *! 2.0f)
-      jac.v should approxEqual(Tensor2.eye(x.extent(Axis[A])) *! 3.0f)
+      jac.u should approxEqual(Tensor2(x.extent(Axis[A])).eye *! 2.0f)
+      jac.v should approxEqual(Tensor2(x.extent(Axis[A])).eye *! 3.0f)
 
   describe("Complex application"):
     it("case class support"):

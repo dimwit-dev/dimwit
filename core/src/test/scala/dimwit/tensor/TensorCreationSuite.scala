@@ -92,3 +92,40 @@ class TensorCreationSuite extends DimwitTest:
         idx(Axis[A]).toFloat
       }
       result shouldEqual Tensor1(Axis[A]).fromArray(Array(0.0f, 1.0f, 2.0f, 3.0f))
+
+  describe("eye"):
+
+    it("square: from two extents or from a shape"):
+      val expected = Tensor2(Axis[A], Axis[B]).fromArray(
+        Array(Array(1.0f, 0.0f), Array(0.0f, 1.0f))
+      )
+      Tensor2(Axis[A] -> 2, Axis[B] -> 2).eye shouldEqual expected
+      Tensor2(Shape2(Axis[A] -> 2, Axis[B] -> 2)).eye shouldEqual expected
+
+    it("square: from a single extent, the second axis is the primed copy of the first"):
+      val result = Tensor2(Axis[A] -> 3).eye
+      result.shape shouldEqual Shape2(Axis[A] -> 3, Axis[Prime[A]] -> 3)
+      result shouldEqual Tensor2(Axis[A], Axis[B]).fromArray(
+        Array(Array(1.0f, 0.0f, 0.0f), Array(0.0f, 1.0f, 0.0f), Array(0.0f, 0.0f, 1.0f))
+      )
+
+    it("wide: more columns than rows, zero padded"):
+      val expected = Tensor2(Axis[A], Axis[B]).fromArray(
+        Array(Array(1.0f, 0.0f, 0.0f), Array(0.0f, 1.0f, 0.0f))
+      )
+      val result = Tensor2(Axis[A] -> 2, Axis[B] -> 3).eye
+      result.shape shouldEqual Shape2(Axis[A] -> 2, Axis[B] -> 3)
+      result shouldEqual expected
+
+    it("tall: more rows than columns, truncating"):
+      val expected = Tensor2(Axis[A], Axis[B]).fromArray(
+        Array(Array(1.0f, 0.0f), Array(0.0f, 1.0f), Array(0.0f, 0.0f))
+      )
+      val result = Tensor2(Axis[A] -> 3, Axis[B] -> 2).eye
+      result.shape shouldEqual Shape2(Axis[A] -> 3, Axis[B] -> 2)
+      result shouldEqual expected
+
+    it("defaults to Float32 and takes the vtype as an argument"):
+      Tensor2(Axis[A] -> 2, Axis[B] -> 3).eye.dtype shouldBe DType.Float32
+      Tensor2(Axis[A] -> 2, Axis[B] -> 3).eye(VType[Int32]).dtype shouldBe DType.Int32
+      Tensor2(Shape2(Axis[A] -> 2, Axis[B] -> 3)).eye(VType[Int16]).dtype shouldBe DType.Int16

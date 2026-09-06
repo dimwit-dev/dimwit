@@ -133,6 +133,34 @@ val t2dNested = Tensor2(Axis[A], Axis[B]).fromArray(
 )
 ```
 
+### Identity Matrices with `eye`
+
+`eye` is a creation method on the rank 2 factory: fix the shape first, then ask for the identity matrix.
+
+```scala mdoc:silent
+// Identity matrix, both axes labelled explicitly
+val eye = Tensor2(Axis[A] -> 3, Axis[B] -> 3).eye
+
+// From a single extent: the second axis is the primed copy of the first,
+// i.e. the type is Tensor2[A, Prime[A], Float32]
+val primedEye = Tensor2(Axis[A] -> 3).eye
+
+// From a shape
+val eyeFromShape = Tensor2(Shape2(Axis[A] -> 3, Axis[B] -> 3)).eye
+
+// Non-square: the diagonal stops at the shorter axis
+val wideEye = Tensor2(Axis[A] -> 2, Axis[B] -> 3).eye
+
+// Unlike fill and fromArray, eye has no values to derive the value type from.
+// It defaults to Float32 and takes the value type as an argument.
+val intEye = Tensor2(Axis[A] -> 3, Axis[B] -> 3).eye(VType[Int32])
+```
+
+```scala mdoc:fail
+// ERROR: eye only exists on the rank 2 factory
+val notAMatrix = Tensor1(Axis[A] -> 3).eye
+```
+
 ### Type Aliases for Common Shapes
 
 ```scala mdoc:silent

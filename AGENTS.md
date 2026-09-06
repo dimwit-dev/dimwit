@@ -165,6 +165,38 @@ val t2dNested = Tensor2(Axis[A], Axis[B]).fromArray(
 )
 ```
 
+### Identity Matrices with `eye`
+
+`eye` is a creation method on the rank 2 factory: fix the shape first, then ask for the identity matrix.
+
+```scala
+// Identity matrix, both axes labelled explicitly
+val eye = Tensor2(Axis[A] -> 3, Axis[B] -> 3).eye
+
+// From a single extent: the second axis is the primed copy of the first,
+// i.e. the type is Tensor2[A, Prime[A], Float32]
+val primedEye = Tensor2(Axis[A] -> 3).eye
+
+// From a shape
+val eyeFromShape = Tensor2(Shape2(Axis[A] -> 3, Axis[B] -> 3)).eye
+
+// Non-square: the diagonal stops at the shorter axis
+val wideEye = Tensor2(Axis[A] -> 2, Axis[B] -> 3).eye
+
+// Unlike fill and fromArray, eye has no values to derive the value type from.
+// It defaults to Float32 and takes the value type as an argument.
+val intEye = Tensor2(Axis[A] -> 3, Axis[B] -> 3).eye(VType[Int32])
+```
+
+```scala
+// ERROR: eye only exists on the rank 2 factory
+val notAMatrix = Tensor1(Axis[A] -> 3).eye
+// error:
+// value eye is not a member of dimwit.tensor.Tensor.ShapedFactory[Tuple1[repl.MdocSession.MdocApp.A]]
+// val notAMatrix = Tensor1(Axis[A] -> 3).eye
+//                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+```
+
 ### Type Aliases for Common Shapes
 
 ```scala
@@ -358,10 +390,10 @@ val wrong = t.sum(Axis[C])
 // Conflicting definitions:
 // val t:
 //   dimwit.tensor.Tensor2[MdocApp0.this.A, MdocApp0.this.B,
-//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 53 and
+//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 58 and
 // val t:
 //   dimwit.tensor.Tensor2[MdocApp0.this.A, MdocApp0.this.B,
-//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 99
+//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 104
 //
 ```
 
@@ -403,10 +435,10 @@ val wrong = t + 5.0f  // Use +! instead
 // Conflicting definitions:
 // val t:
 //   dimwit.tensor.Tensor2[MdocApp0.this.A, MdocApp0.this.B,
-//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 53 and
+//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 58 and
 // val t:
 //   dimwit.tensor.Tensor2[MdocApp0.this.A, MdocApp0.this.B,
-//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 108
+//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 113
 //
 ```
 
@@ -496,19 +528,19 @@ val wrong = m1.dot(Axis[B])(m2)
 // Conflicting definitions:
 // val m1:
 //   dimwit.tensor.Tensor2[MdocApp1.this.A, MdocApp1.this.B,
-//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 130 and
+//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 135 and
 // val m1:
 //   dimwit.tensor.Tensor2[MdocApp1.this.A, MdocApp1.this.B,
-//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 133
+//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 138
 // 
 // error: 
 // Conflicting definitions:
 // val m2:
 //   dimwit.tensor.Tensor2[MdocApp1.this.B, MdocApp1.this.C,
-//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 131 and
+//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 136 and
 // val m2:
 //   dimwit.tensor.Tensor2[MdocApp1.this.C, MdocApp1.this.D,
-//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 134
+//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 139
 //
 ```
 
@@ -1283,7 +1315,7 @@ val wrong = t.sum(Axis[C])  // Axis[C] not in tensor
 val t = Tensor2(Axis[A], Axis[B]).fill(1.0f)
 val wrong = t.vmap(Axis[C])(_.sum)  // Axis[C] doesn't exist
 // error: 
-// value fill is not a member of dimwit.tensor.Tensor2.DefaultsFactory[MdocApp12.this.A, MdocApp12.this.B]
+// value fill is not a member of dimwit.tensor.Tensor2.Axes2Factory[MdocApp12.this.A, MdocApp12.this.B]
 ```
 
 ### Gradient Errors
