@@ -52,6 +52,22 @@ object ReductionOps:
     def argsort[L: Label](axis: Axis[L])(using ev: AxisIndex[T, L]): Tensor[T, Int32] = Tensor(Jax.jnp.argsort(t.jaxValue, axis = ev.index))
     def argsort: Tensor[T, Int32] = Tensor(Jax.jnp.argsort(t.jaxValue))
 
+    /** sorts the tensor `t` along the specified axis */
+    def sort[L: Label](axis: Axis[L])(using ev: AxisIndex[T, L]): Tensor[T, V] = Tensor(Jax.jnp.sort(t.jaxValue, axis = ev.index))
+    def sort: Tensor[T, V] = Tensor(Jax.jnp.sort(t.jaxValue))
+
+    /** computes the cumulative sum of the tensor `t` along the specified axis. */
+    def cumsum[L: Label](axis: Axis[L])(using ev: AxisIndex[T, L]): Tensor[T, V] = Tensor(Jax.jnp.cumsum(t.jaxValue, axis = ev.index))
+    def cumsum: Tensor[T, V] = Tensor(Jax.jnp.cumsum(t.jaxValue))
+
+    /** computes the cumulative product of the tensor `t` along the specified axis. */
+    def cumprod[L: Label](axis: Axis[L])(using ev: AxisIndex[T, L]): Tensor[T, V] = Tensor(Jax.jnp.cumprod(t.jaxValue, axis = ev.index))
+    def cumprod: Tensor[T, V] = Tensor(Jax.jnp.cumprod(t.jaxValue))
+
+    /** computes the discrete difference of the tensor `t` along the specified axis, reducing that axis' size by one. */
+    def diff[L: Label](axis: Axis[L])(using ev: AxisIndex[T, L]): Tensor[T, V] = Tensor(Jax.jnp.diff(t.jaxValue, axis = ev.index))
+    def diff: Tensor[T, V] = Tensor(Jax.jnp.diff(t.jaxValue))
+
   // ---------------------------------------------------------
   // IsFloat operations (IsFloat or IsInt)
   // ---------------------------------------------------------

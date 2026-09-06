@@ -126,12 +126,19 @@ object ElementWiseOps:
   /** Multiplies each element of a tensor by a scalar tensor, returning a new tensor. */
   def multiplyScalar[T <: Tuple: Labels, V: IsNumber](t1: Tensor[T, V], s: Tensor0[V]): Tensor[T, V] = Tensor(Jax.jnp.multiply(t1.jaxValue, s.jaxValue))
 
+  /** Computes the element-wise remainder of `t1 / t2`, matching Python's `%` operator (the result takes the sign of the divisor). */
+  def mod[T <: Tuple: Labels, V: IsNumber](t1: Tensor[T, V], t2: Tensor[T, V]): Tensor[T, V] = Tensor(Jax.jnp.mod(t1.jaxValue, t2.jaxValue))
+
+  /** Computes the remainder of dividing each element of a tensor by a scalar tensor. */
+  def modScalar[T <: Tuple: Labels, V: IsNumber](t1: Tensor[T, V], s: Tensor0[V]): Tensor[T, V] = Tensor(Jax.jnp.mod(t1.jaxValue, s.jaxValue))
+
   // extension methods for the binary operations on two tensors
   extension [T <: Tuple: Labels, V: IsNumber](t: Tensor[T, V])
 
     def +(other: Tensor[T, V]): Tensor[T, V] = add(t, other)
     def -(other: Tensor[T, V]): Tensor[T, V] = subtract(t, other)
     def *(other: Tensor[T, V]): Tensor[T, V] = multiply(t, other)
+    def %(other: Tensor[T, V]): Tensor[T, V] = mod(t, other)
 
   // extension methods for the scalar operations.
   extension [T <: Tuple: Labels, V: IsNumber](t: Tensor[T, V])
@@ -143,6 +150,7 @@ object ElementWiseOps:
 
     def *![O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, V] = bc.applyTo(t, other)(multiply)
     def scale(other: Tensor0[V]): Tensor[T, V] = multiplyScalar(t, other)
+    def %![O <: Tuple](other: Tensor[O, V])(using bc: Broadcast[T, O, V]): Tensor[bc.Out, V] = bc.applyTo(t, other)(mod)
 
   // extension methods
   extension [T <: Tuple: Labels, V: IsNumber](t: Tensor[T, V])
@@ -173,6 +181,15 @@ object ElementWiseOps:
     def sin: Tensor[T, V] = Tensor(Jax.jnp.sin(t.jaxValue))
     def cos: Tensor[T, V] = Tensor(Jax.jnp.cos(t.jaxValue))
     def tanh: Tensor[T, V] = Tensor(Jax.jnp.tanh(t.jaxValue))
+    def arcsin: Tensor[T, V] = Tensor(Jax.jnp.arcsin(t.jaxValue))
+    def arccos: Tensor[T, V] = Tensor(Jax.jnp.arccos(t.jaxValue))
+    def arctan: Tensor[T, V] = Tensor(Jax.jnp.arctan(t.jaxValue))
+    def floor: Tensor[T, V] = Tensor(Jax.jnp.floor(t.jaxValue))
+    def ceil: Tensor[T, V] = Tensor(Jax.jnp.ceil(t.jaxValue))
+    def round: Tensor[T, V] = Tensor(Jax.jnp.round(t.jaxValue))
+    def isnan: Tensor[T, Bool] = Tensor(Jax.jnp.isnan(t.jaxValue))
+    def isfinite: Tensor[T, Bool] = Tensor(Jax.jnp.isfinite(t.jaxValue))
+    def nanToNum: Tensor[T, V] = Tensor(Jax.jnp.nan_to_num(t.jaxValue))
 
     def approxEquals(other: Tensor[T, V], tolerance: Float = 1e-6f): Tensor0[Bool] = approxElementEquals(other, tolerance).all
     def approxElementEquals(other: Tensor[T, V], tolerance: Float = 1e-6f): Tensor[T, Bool] =
