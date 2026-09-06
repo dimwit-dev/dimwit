@@ -226,7 +226,7 @@ class TensorOpsReductionSuite extends DimwitTest:
       res shouldEqual Tensor.like(res).fromArray(Array(1.0f, 3.0f, 6.0f, 4.0f, 9.0f, 15.0f))
 
     it("cumsum default axis"):
-      t2.cumsum shouldEqual t2.cumsum(axis = Axis[B])
+      t2.cumsum shouldEqual t2.flatten.relabelTo(Axis[A]).cumsum(Axis[A])
 
     it("cumsum axis A"):
       val res = t2.cumsum(axis = Axis[A])
@@ -237,7 +237,7 @@ class TensorOpsReductionSuite extends DimwitTest:
       res shouldEqual Tensor.like(res).fromArray(Array(1.0f, 2.0f, 6.0f, 4.0f, 20.0f, 120.0f))
 
     it("cumprod default axis"):
-      t2.cumprod shouldEqual t2.cumprod(axis = Axis[B])
+      t2.cumprod shouldEqual t2.flatten.relabelTo(Axis[A]).cumprod(Axis[A])
 
     it("diff axis B"):
       val res = t2.diff(axis = Axis[B])
