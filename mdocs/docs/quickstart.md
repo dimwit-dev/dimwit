@@ -165,7 +165,7 @@ val vector = Tensor1(Axis[Feature]).fromArray(Array(1.0f, 2.0f))
 A `Tensor2` represents a matrix. The Tensor2 factory provides convenient methods to create special matrices, such as for example the identity 
 matrix:
 ```scala mdoc:silent
-val eye = Tensor2.eye(Axis[Feature] -> 3)
+val eye = Tensor2(Axis[Feature] -> 3, Axis[Batch] -> 3).eye
 ``` 
 Of course, we can also create a Tensor2 from an array of data, just like we did for the general Tensor factory:
 ```scala mdoc:silent
