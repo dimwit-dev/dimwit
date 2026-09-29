@@ -1,7 +1,7 @@
 import ai.kien.python.Python
 import scala.sys.process._
 
-ThisBuild / version := "0.2-SNAPSHOT"
+ThisBuild / version := "0.3-SNAPSHOT"
 ThisBuild / scalaVersion := "3.9.0"
 ThisBuild / organization := "ch.contrafactus"
 
