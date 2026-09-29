@@ -64,7 +64,7 @@ check out the [examples](examples/src/main/scala).
 
 ### Requirements
 
-- Scala **3.8** or newer
+- Scala **3.9** or newer
 - sbt **1.11** or newer
 
 ### Installation
@@ -72,13 +72,13 @@ check out the [examples](examples/src/main/scala).
 Add to your `build.sbt` (minimal complete example):
 
 ```scala
-ThisBuild / scalaVersion := "3.8.1"
+ThisBuild / scalaVersion := "3.9.0"
 
 lazy val myProject = (project in file("."))
   .settings(
     name := "my-project",
     libraryDependencies ++= Seq(
-      "ch.contrafactus" %% "dimwit-core" % "0.1.0"
+      "ch.contrafactus" %% "dimwit-core" % "0.2.0"
     ),
     fork := true
   )
