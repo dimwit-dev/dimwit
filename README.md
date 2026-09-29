@@ -32,29 +32,35 @@ JAX and einops, and efficient implementations of tensor operations using JAX as 
 
 ```scala
 import dimwit.*
+import dimwit.autodiff.Autodiff
 
 // Labels are simply Scala types
 trait Batch derives Label
 trait Feature derives Label
+trait Hidden derives Label
 
-// Create a 2D tensor with shape (3, 2), labeled with Batch and Feature
-val t = Tensor(
-    Shape(Axis[Batch] -> 3, Axis[Feature] -> 2),
-).fromArray(
-    Array(
-        1.0f, 2.0f,
-        3.0f, 4.0f,
-        5.0f, 6.0f
-    )
+// Model parameters are plain case classes
+case class Params(w: Tensor2[Feature, Hidden, Float32], b: Tensor1[Hidden, Float32])
+
+// Write the model for a single example; axes are contracted by name, not position
+def layer(p: Params)(x: Tensor1[Feature, Float32]): Tensor1[Hidden, Float32] =
+  (x.dot(Axis[Feature])(p.w) + p.b).tanh
+
+// ... and lift it to a whole batch with vmap
+def loss(x: Tensor2[Batch, Feature, Float32])(p: Params): Tensor0[Float32] =
+  x.vmap(Axis[Batch])(layer(p)).pow(Tensor0(2.0f)).mean
+
+val x = Tensor(Shape(Axis[Batch] -> 32, Axis[Feature] -> 4)).fill(1.0f)
+val params = Params(
+  Tensor(Shape(Axis[Feature] -> 4, Axis[Hidden] -> 8)).fill(0.1f),
+  Tensor(Shape(Axis[Hidden] -> 8)).fill(0.0f)
 )
 
-// Function to normalize a single feature vector
-def normalize(x: Tensor1[Feature, Float32]) : Tensor1[Feature, Float32] = 
-    (x -! x.mean) /! x.std
+// Gradients have the same structure and types as the parameters
+val grads: Params = Autodiff.grad(loss(x))(params).value
 
-// Apply the normalization function across the Batch dimension
-val normalized: Tensor2[Batch, Feature, Float32] = 
-    t.vmap(Axis[Batch])(normalize)
+// Mistakes are caught at compile time:
+// x.dot(Axis[Hidden])(params.w)   // error: Axis[Hidden] not found in Tensor[(Batch, Feature)]
 ```
 
 See our [quickstart guide](docs/quickstart.md) for a more detailed introduction to the core concepts and API and 
