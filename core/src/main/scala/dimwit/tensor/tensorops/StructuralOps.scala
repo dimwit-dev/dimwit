@@ -628,93 +628,104 @@ private[dimwit] object StructuralExtensions:
     def apply[L](selector: AxisAtWindow[L])(using axisIndex: AxisIndex[T, L], labels: Labels[T]): Tensor[T, V] =
       tensor.select(selector)
 
-    /** A copy of the tensor with new values at an index along an axis.
+    // `tensor.updated(selector)(value)` returns a copy of the tensor with `value` at the selection, as `updated` does for
+    // Scala's immutable collections. `tensor.updated(selector)` is a [[TensorUpdate]]: its `updated` with a further selector
+    // selects along another axis of the selection, so `tensor.updated(s1).updated(s2)(value)` writes what `tensor(s1)(s2)` reads.
+
+    /** Update the tensor at an index along an axis.
       *
       * @param selector of the form `Axis[L].at(index)`
-      * @param value the new values, with the shape of `tensor.select(selector)`
+      * @return the update, to apply to the new values, with the shape of `tensor.select(selector)`
       */
-    def updated[L](selector: AxisAtIndex[L])(using
-        ev: AxisRemover[T, L],
-        labels: Labels[T]
-    )(value: Tensor[ev.RemainingAxes, V]): Tensor[T, V] =
-      requireSelectionShape(value, tensor.shape.dimensions.patch(ev.index, Nil, 1))
-      Tensor(tensor.jaxValue.at.itemAt(tensor.indexAlong(ev.index, py.Any.from(selector.index))).set(value.jaxValue))
+    def updated[L](selector: AxisAtIndex[L])(using ev: AxisRemover[T, L], labels: Labels[T]): TensorUpdate[T, ev.RemainingAxes, V] =
+      TensorUpdate(
+        selected => tensor.select(selector)(using ev, selected),
+        value =>
+          requireSelectionShape(value, tensor.shape.dimensions.patch(ev.index, Nil, 1))
+          Tensor(tensor.jaxValue.at.itemAt(tensor.indexAlong(ev.index, py.Any.from(selector.index))).set(value.jaxValue))
+      )
 
-    /** A copy of the tensor with new values at an index given by a tensor along an axis. The index may be traced.
+    /** Update the tensor at an index given by a tensor along an axis. The index may be traced.
       * An out-of-bounds index leaves the tensor unchanged.
       *
       * @param selector of the form `Axis[L].at(index: Tensor0[Int32])`
-      * @param value the new values, with the shape of `tensor.select(selector)`
+      * @return the update, to apply to the new values, with the shape of `tensor.select(selector)`
       */
-    def updated[L](selector: AxisAtTensorIndex[L])(using
-        ev: AxisRemover[T, L],
-        labels: Labels[T]
-    )(value: Tensor[ev.RemainingAxes, V]): Tensor[T, V] =
-      requireSelectionShape(value, tensor.shape.dimensions.patch(ev.index, Nil, 1))
-      Tensor(tensor.jaxValue.at.itemAt(tensor.indexAlong(ev.index, selector.index.jaxValue)).set(value.jaxValue))
+    def updated[L](selector: AxisAtTensorIndex[L])(using ev: AxisRemover[T, L], labels: Labels[T]): TensorUpdate[T, ev.RemainingAxes, V] =
+      TensorUpdate(
+        selected => tensor.select(selector)(using ev, selected),
+        value =>
+          requireSelectionShape(value, tensor.shape.dimensions.patch(ev.index, Nil, 1))
+          Tensor(tensor.jaxValue.at.itemAt(tensor.indexAlong(ev.index, selector.index.jaxValue)).set(value.jaxValue))
+      )
 
-    /** A copy of the tensor with new values at a range along an axis.
+    /** Update the tensor at a range along an axis.
       *
       * @param selector of the form `Axis[L].at(range)`
-      * @param value the new values, with the shape of `tensor.select(selector)`
+      * @return the update, to apply to the new values, with the shape of `tensor.select(selector)`
       */
-    def updated[L](selector: AxisAtRange[L])(using
-        axisIndex: AxisIndex[T, L],
-        labels: Labels[T]
-    )(value: Tensor[T, V]): Tensor[T, V] =
-      requireSelectionShape(value, tensor.shape.dimensions.updated(axisIndex.index, selector.range.length))
-      Tensor(tensor.jaxValue.at.itemAt(tensor.indexAlong(axisIndex.index, tensor.pyRange(selector.range, axisIndex.index))).set(value.jaxValue))
+    def updated[L](selector: AxisAtRange[L])(using axisIndex: AxisIndex[T, L], labels: Labels[T]): TensorUpdate[T, T, V] =
+      TensorUpdate(
+        _ => tensor.select(selector),
+        value =>
+          requireSelectionShape(value, tensor.shape.dimensions.updated(axisIndex.index, selector.range.length))
+          Tensor(tensor.jaxValue.at.itemAt(tensor.indexAlong(axisIndex.index, tensor.pyRange(selector.range, axisIndex.index))).set(value.jaxValue))
+      )
 
-    /** A copy of the tensor with new values at a sequence of indices along an axis.
+    /** Update the tensor at a sequence of indices along an axis.
       *
       * @param selector of the form `Axis[L].at(Seq(i, j, ...))`
-      * @param value the new values, with the shape of `tensor.select(selector)`
+      * @return the update, to apply to the new values, with the shape of `tensor.select(selector)`
       */
-    def updated[L](selector: AxisAtIndices[L])(using
-        axisIndex: AxisIndex[T, L],
-        labels: Labels[T]
-    )(value: Tensor[T, V]): Tensor[T, V] =
-      requireSelectionShape(value, tensor.shape.dimensions.updated(axisIndex.index, selector.indices.length))
-      Tensor(tensor.jaxValue.at.itemAt(tensor.indexAlong(axisIndex.index, pyIndices(selector.indices))).set(value.jaxValue))
+    def updated[L](selector: AxisAtIndices[L])(using axisIndex: AxisIndex[T, L], labels: Labels[T]): TensorUpdate[T, T, V] =
+      TensorUpdate(
+        _ => tensor.select(selector),
+        value =>
+          requireSelectionShape(value, tensor.shape.dimensions.updated(axisIndex.index, selector.indices.length))
+          Tensor(tensor.jaxValue.at.itemAt(tensor.indexAlong(axisIndex.index, pyIndices(selector.indices))).set(value.jaxValue))
+      )
 
-    /** A copy of the tensor with new values at a tuple of indices along an axis.
+    /** Update the tensor at a tuple of indices along an axis.
       *
       * @param selector of the form `Axis[L].at((i, j, ...))`
-      * @param value the new values, with the shape of `tensor.select(selector)`
+      * @return the update, to apply to the new values, with the shape of `tensor.select(selector)`
       */
-    def updated[L, I <: NonEmptyTuple](selector: AxisAtTupleIndices[L, I])(using
-        axisIndex: AxisIndex[T, L],
-        labels: Labels[T]
-    )(value: Tensor[T, V]): Tensor[T, V] =
-      val indices = selector.indices.toList.asInstanceOf[List[Int]]
-      requireSelectionShape(value, tensor.shape.dimensions.updated(axisIndex.index, indices.length))
-      Tensor(tensor.jaxValue.at.itemAt(tensor.indexAlong(axisIndex.index, pyIndices(indices))).set(value.jaxValue))
+    def updated[L, I <: NonEmptyTuple](selector: AxisAtTupleIndices[L, I])(using axisIndex: AxisIndex[T, L], labels: Labels[T]): TensorUpdate[T, T, V] =
+      TensorUpdate(
+        _ => tensor.select(selector),
+        value =>
+          val indices = selector.indices.toList.asInstanceOf[List[Int]]
+          requireSelectionShape(value, tensor.shape.dimensions.updated(axisIndex.index, indices.length))
+          Tensor(tensor.jaxValue.at.itemAt(tensor.indexAlong(axisIndex.index, pyIndices(indices))).set(value.jaxValue))
+      )
 
-    /** A copy of the tensor with new values at the indices of a vector along an axis. Out-of-bounds indices are skipped;
+    /** Update the tensor at the indices of a vector along an axis. Out-of-bounds indices are skipped;
       * for repeated indices, it is unspecified which of their values is written.
       *
       * @param selector of the form `Axis[L].at(indices: Tensor1[L2, Int32])`
-      * @param value the new values, with the shape of `tensor.select(selector)`
+      * @return the update, to apply to the new values, with the shape of `tensor.select(selector)`
       */
-    def updated[L, L2](selector: AxisAtTensorIndices[L, L2])(using
-        ev: AxisReplacer[T, L, L2],
-        labels: Labels[T]
-    )(value: Tensor[ev.NewShape, V]): Tensor[T, V] =
-      requireSelectionShape(value, tensor.shape.dimensions.updated(ev.index, selector.indices.shape.dimensions.head))
-      Tensor(tensor.jaxValue.at.itemAt(tensor.indexAlong(ev.index, selector.indices.jaxValue)).set(value.jaxValue))
+    def updated[L, L2](selector: AxisAtTensorIndices[L, L2])(using ev: AxisReplacer[T, L, L2], labels: Labels[T]): TensorUpdate[T, ev.NewShape, V] =
+      TensorUpdate(
+        selected => tensor.select(selector)(using ev, selected),
+        value =>
+          requireSelectionShape(value, tensor.shape.dimensions.updated(ev.index, selector.indices.shape.dimensions.head))
+          Tensor(tensor.jaxValue.at.itemAt(tensor.indexAlong(ev.index, selector.indices.jaxValue)).set(value.jaxValue))
+      )
 
-    /** A copy of the tensor with new values in a window of static size along an axis, like `jax.lax.dynamic_update_slice`.
+    /** Update the tensor in a window of static size along an axis, like `jax.lax.dynamic_update_slice`.
       * Its start may be a tensor, also a traced one, e.g. a loop index under `jit`.
       *
       * @param selector of the form `Axis[L].at(start, windowSize)`
-      * @param value the new window, with the shape of `tensor.select(selector)`
+      * @return the update, to apply to the new window, with the shape of `tensor.select(selector)`
       */
-    def updated[L](selector: AxisAtWindow[L])(using
-        axisIndex: AxisIndex[T, L],
-        labels: Labels[T]
-    )(value: Tensor[T, V]): Tensor[T, V] =
-      requireSelectionShape(value, tensor.windowExtents(selector, axisIndex.index))
-      Tensor(Jax.lax.dynamic_update_slice(tensor.jaxValue, value.jaxValue, tensor.windowStarts(selector, axisIndex.index)))
+    def updated[L](selector: AxisAtWindow[L])(using axisIndex: AxisIndex[T, L], labels: Labels[T]): TensorUpdate[T, T, V] =
+      TensorUpdate(
+        _ => tensor.select(selector),
+        value =>
+          requireSelectionShape(value, tensor.windowExtents(selector, axisIndex.index))
+          Tensor(Jax.lax.dynamic_update_slice(tensor.jaxValue, value.jaxValue, tensor.windowStarts(selector, axisIndex.index)))
+      )
 
     /** The Python index `tensor[:, ..., index, ..., :]`, with `index` at the axis `dimIndex`. */
     private def indexAlong(dimIndex: Int, index: py.Any): Jax.PyDynamic =
