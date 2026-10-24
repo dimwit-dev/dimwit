@@ -667,7 +667,8 @@ val concatenated = concatenate(t1, t2, Axis[A])
 Every selection along an axis is an `Axis[L].at(...)` selector. `select` reads the selection, and applying
 the tensor to the selector, `t(selector)`, is the same as `t.select(selector)`, as `seq(i)` reads a Scala collection.
 `updated` returns a copy with new values at the selection, as `updated` does for Scala's immutable collections.
-A selector selects along exactly one axis; to select along several axes, chain the calls.
+A selector selects along exactly one axis; to select along several axes, chain the selectors,
+for reading `t(s1)(s2)` and for writing `t.updated(s1).updated(s2)(value)`.
 
 ```scala
 // Shape: A=4, B=3, the value at (a, b) is 10a + b
@@ -697,6 +698,10 @@ val gridEntryApplied: Tensor0[Float32] = grid(Axis[A].at(1))(Axis[B].at(2)) // 1
 // updated takes a value with the shape of the selection
 val gridZeroRow = grid.updated(Axis[A].at(0))(Tensor1(Axis[B]).fromArray(Array(0.0f, 0.0f, 0.0f)))
 val gridZeroWindow = grid.updated(Axis[A].at(1, 2))(Tensor(Shape2(Axis[A] -> 2, Axis[B] -> 3)).fill(0.0f))
+
+// Several axes: chain updated; the value has the shape of grid(s1)(s2)
+val gridEntryWritten = grid.updated(Axis[A].at(1)).updated(Axis[B].at(2))(Tensor0(-1.0f)) // entry (1, 2) is -1
+val gridBlockWritten = grid.updated(Axis[A].at(1 until 3)).updated(Axis[B].at(order))(Tensor(Shape2(Axis[A] -> 2, Axis[C] -> 3)).fill(0.0f))
 ```
 
 The index of `Axis[L].at(index)` and the start of a window may also be a `Tensor0[Int32]`, also a traced one,
@@ -735,9 +740,9 @@ val gridWrongValue = grid.updated(Axis[A].at(0))(grid)
 //   dimwit.tensor.Tensor2[MdocApp1.this.A, MdocApp1.this.B,
 //     dimwit.tensor.DType.Float32]
 // )
-// Required: dimwit.tensor.Tensor[?1.RemainingAxes, dimwit.tensor.DType.Float32]
+// Required: dimwit.tensor.Tensor[?2.RemainingAxes, dimwit.tensor.DType.Float32]
 // 
-// where:    ?1 is an unknown value of type dimwit.tensor.ShapeTypeHelpers.AxisRemover.Aux[
+// where:    ?2 is an unknown value of type dimwit.tensor.ShapeTypeHelpers.AxisRemover.Aux[
 //   (MdocApp1.this.A, MdocApp1.this.B), MdocApp1.this.A, MdocApp1.this.B *:
 //   EmptyTuple.type]
 // 
@@ -750,10 +755,10 @@ val gridWrongValue = grid.updated(Axis[A].at(0))(grid)
 grid.select(Axis[A].at(3, 2))
 // java.lang.IllegalArgumentException: requirement failed: Window 3 until 5 is out of bounds for axis A of size 4
 // 	at scala.Predef$.require(Predef.scala:389)
-// 	at dimwit.tensor.tensorops.StructuralExtensions$.windowExtents(StructuralOps.scala:742)
+// 	at dimwit.tensor.tensorops.StructuralExtensions$.windowExtents(StructuralOps.scala:753)
 // 	at dimwit.tensor.tensorops.StructuralExtensions$.select(StructuralOps.scala:605)
 // 	at dimwit.package$.select(package.scala:80)
-// 	at repl.MdocSession$MdocApp17.$init$$$anonfun$3(AGENTS.md:723)
+// 	at repl.MdocSession$MdocApp17.$init$$$anonfun$3(AGENTS.md:731)
 ```
 
 ---
