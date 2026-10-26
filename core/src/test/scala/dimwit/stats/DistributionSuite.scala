@@ -63,6 +63,17 @@ class DistributionSuite extends DimwitTest:
       )
       scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
 
+    it("logProb is -inf outside [low, high]"):
+      val loc = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.0f, 0.0f))
+      val scale = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1.0f, 1.0f))
+      val low = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(-1.0f, -1.0f))
+      val high = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1.0f, 1.0f))
+      val x = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(-2.0f, 2.0f))
+
+      val dist = TruncatedNormal(loc, scale, low, high)
+      val logProbs = dist.elementWiseLogProb(x)
+      logProbs.asFloat.toArray.foreach(v => v should be(Float.NegativeInfinity))
+
     it("sample means approximates means"):
       val loc = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.0f, 1.0f))
       val scale = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1.0f, 0.5f))
@@ -98,6 +109,15 @@ class DistributionSuite extends DimwitTest:
         jstats.uniform.logpdf(x.jaxValue, loc = low.jaxValue, scale = (high - low).jaxValue)
       )
       scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
+
+    it("logProb is -inf outside [low, high]"):
+      val low = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.0f, 0.0f))
+      val high = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1.0f, 1.0f))
+      val x = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(-0.5f, 1.5f))
+
+      val dist = Uniform(low, high)
+      val logProbs = dist.elementWiseLogProb(x)
+      logProbs.asFloat.toArray.foreach(v => v should be(Float.NegativeInfinity))
 
     it("sample means approximates means"):
       val uniform = Uniform(
@@ -189,6 +209,15 @@ class DistributionSuite extends DimwitTest:
         jstats.binom.logpmf(x.jaxValue, n = n.jaxValue, p = probs.jaxValue)
       )
       scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
+
+    it("logProb is -inf outside [0, n]"):
+      val n = Tensor0(10)
+      val probs = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.3f, 0.5f))
+      val x = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(-1, 11))
+
+      val dist = Binomial(n, Prob(probs))
+      val logProbs = dist.elementWiseLogProb(x)
+      logProbs.asFloat.toArray.foreach(v => v should be(Float.NegativeInfinity))
 
     it("sample means approximates n*p"):
       val n = Tensor0(20)
@@ -300,6 +329,15 @@ class DistributionSuite extends DimwitTest:
       ) +! math.log(2.0).toFloat
       scalaLogProbs.asFloat should approxEqual(expectedLogProbs)
 
+    it("logProb is -inf for x < loc"):
+      val loc = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1.0f, 1.0f, 1.0f))
+      val scale = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1.0f, 1.0f, 1.0f))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.0f, 0.5f, 0.9f))
+
+      val dist = HalfNormal(loc, scale)
+      val logProbs = dist.elementWiseLogProb(x)
+      logProbs.asFloat.toArray.foreach(v => v should be(Float.NegativeInfinity))
+
     it("sample means approximates expected means"):
       val halfNormal = HalfNormal(
         Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.0f, 0.0f)),
@@ -382,6 +420,13 @@ class DistributionSuite extends DimwitTest:
       )
       scalaLogProb.asFloat should approxEqual(jaxLogProb)
 
+    it("logProb is -inf off the simplex"):
+      val concentration = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(2.0f, 3.0f, 5.0f))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 0.6f, 0.2f)) // sums to 1.3
+
+      val dist = Dirichlet(concentration)
+      dist.logProb(x).asFloat.item should be(Float.NegativeInfinity)
+
     it("sample mean approximates expected mean"):
       val concentration = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(2.0f, 5.0f, 3.0f))
       val dirichlet = Dirichlet(concentration)
@@ -407,6 +452,13 @@ class DistributionSuite extends DimwitTest:
       )
       scalaLogProb.asFloat should approxEqual(jaxLogProb)
 
+    it("logProb is -inf for counts that do not sum to n"):
+      val probs = Prob(Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.2f, 0.5f, 0.3f)))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1, 1, 1))
+
+      val dist = Multinomial[A](Tensor0(5), probs)
+      dist.logProb(x).asFloat.item should be(Float.NegativeInfinity)
+
     it("sample mean approximates expected counts"):
       val probsFloat = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.2f, 0.5f, 0.3f))
       val probs = Prob(probsFloat)
@@ -428,6 +480,14 @@ class DistributionSuite extends DimwitTest:
       val scalaLogProb = dist.logProb(x)
       val expectedLogProb = Tensor0(math.log(0.3f).toFloat)
       scalaLogProb.asFloat should approxEqual(expectedLogProb)
+
+    it("logProb is -inf outside 0..K-1"):
+      val probs = Prob(Tensor(Shape(Axis[A] -> 4)).fromArray(Array(0.1f, 0.2f, 0.3f, 0.4f)))
+
+      val dist = Categorical(probs)
+      // JAX would clamp 4 to the last index and wrap -1 around to it, giving log(0.4)
+      dist.logProb(Tensor0(4)).asFloat.item should be(Float.NegativeInfinity)
+      dist.logProb(Tensor0(-1)).asFloat.item should be(Float.NegativeInfinity)
 
     it("sample distribution matches probabilities"):
       val probs = Prob(Tensor(Shape(Axis[A] -> 4)).fromArray(Array(0.1f, 0.2f, 0.3f, 0.4f)))
@@ -454,6 +514,15 @@ class DistributionSuite extends DimwitTest:
       )
       scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
 
+    it("logProb is -inf outside [0, 1]"):
+      val alpha = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(2.0f, 2.0f))
+      val beta = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(2.0f, 2.0f))
+      val x = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(-0.5f, 1.5f))
+
+      val dist = Beta(alpha, beta)
+      val logProbs = dist.elementWiseLogProb(x)
+      logProbs.asFloat.toArray.foreach(v => v should be(Float.NegativeInfinity))
+
     it("sample means approximates expected means"):
       val betaDist = Beta(
         Tensor(Shape(Axis[A] -> 2)).fromArray(Array(2.0f, 5.0f)),
@@ -479,6 +548,14 @@ class DistributionSuite extends DimwitTest:
       )
       scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
 
+    it("logProb is -inf for x < 0"):
+      val rate = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.5f, 2.0f))
+      val x = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(-1.0f, -0.1f))
+
+      val dist = Exponential(rate)
+      val logProbs = dist.elementWiseLogProb(x)
+      logProbs.asFloat.toArray.foreach(v => v should be(Float.NegativeInfinity))
+
     it("sample means approximates 1/rate"):
       val exponential = Exponential(
         Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.5f, 2.0f))
@@ -501,6 +578,14 @@ class DistributionSuite extends DimwitTest:
         jstats.poisson.logpmf(x.jaxValue, mu = rate.jaxValue)
       )
       scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
+
+    it("logProb is -inf for x < 0"):
+      val rate = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1.0f, 3.0f))
+      val x = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(-1, -2))
+
+      val dist = Poisson(rate)
+      val logProbs = dist.elementWiseLogProb(x)
+      logProbs.asFloat.toArray.foreach(v => v should be(Float.NegativeInfinity))
 
     it("sample means approximates rate"):
       val poisson = Poisson(
