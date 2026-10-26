@@ -27,7 +27,7 @@ COPY project/ /workspace/project/
 
 # Set up Python venv with CPU JAX (pyproject.toml specifies cuda12; override here)
 RUN uv venv .venv --python python3.11 && \
-    uv pip install --python .venv/bin/python "jax[cpu]>=0.4" "einops>=0.8"
+    uv pip install --python .venv/bin/python "jax[cpu]>=0.4"
 
 # Skip uv sync at runtime and point directly at the venv Python
 # This also prevents uv from being called at sbt load time

@@ -35,7 +35,6 @@ object PythonSetup:
             |  requires-python = ">=3.11"
             |  dependencies = [
             |      "jax[cpu]>=0.4",      # or jax[cuda12], jax[tpu]
-            |      "einops>=0.8",
             |  ]
             |
             |Set DIMWIT_SKIP_SYNC=true to manage the Python environment yourself.""".stripMargin

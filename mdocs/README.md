@@ -117,7 +117,7 @@ lazy val myProject = (project in file("."))
 
 ### Python Environment Setup
 
-DimWit requires **Python 3.9+** and **JAX** since it uses JAX as the backend for tensor operations via ScalaPy. It also relies on **Einops** for tensor reshaping and manipulation.
+DimWit requires **Python 3.9+** and **JAX** since it uses JAX as the backend for tensor operations via ScalaPy.
 
 The easiest way to set up the Python environment is to install the [uv package manager](https://github.com/astral-sh/uv) and add a `pyproject.toml` to your **project root** (the directory where you run `sbt`):
 
@@ -127,7 +127,6 @@ name = "my-project-python-env"
 version = "0.1.0"
 requires-python = "==3.13.*"
 dependencies = [
-    "einops>=0.8.1",
     # Use jax[cpu] for CPU-only environments (e.g. development/CI without a GPU)
     # Use jax[cuda12] for NVIDIA GPU support
     "jax[cpu]>=0.8.2",

@@ -1,7 +1,6 @@
 package dimwit.tensor.tensorops
 
 import dimwit.python.PyIndex.itemAt
-import dimwit.jax.Einops
 import dimwit.jax.Jax
 import dimwit.tensor.Axis
 import dimwit.tensor.AxisAtIndex
@@ -25,15 +24,11 @@ import dimwit.tensor.ShapeTypeHelpers.AxisReplacerAll
 import dimwit.tensor.ShapeTypeHelpers.DimExtractor
 import dimwit.tensor.ShapeTypeHelpers.MergeLabels
 import dimwit.tensor.ShapeTypeHelpers.UnwrapAxes
-import dimwit.tensor.ShapeTypeHelpers.UnwrapDims
 import dimwit.tensor.Tensor
 import dimwit.tensor.Tensor1
 import dimwit.tensor.TupleHelpers
 import dimwit.tensor.TupleHelpers.StrictSubset
-import dimwit.tensor.TensorEvidence.CheckValid
-import dimwit.tensor.TensorEvidence.ComputeMissing
 import dimwit.tensor.TensorEvidence.IsPermutation
-import dimwit.tensor.TensorEvidence.ValidationResult
 import dimwit.tensor.Broadcast3
 import dimwit.|+|
 import me.shadaj.scalapy.py
@@ -320,7 +315,7 @@ private[dimwit] object StructuralOps:
           val headTensor = Tensor[NewShape, V](currentArr)(using newLabelsWitness)
           headTensor *: tailMaker(arrays.tail, compLabels.tail, originalLabels, splitIndex)
 
-/** Extension methods for structural operations, e.g. `t.transpose`, `t.select(...)` or `t.rearrange(...)`. */
+/** Extension methods for structural operations, e.g. `t.transpose`, `t.select(...)` or `t.flatten(...)`. */
 private[dimwit] object StructuralExtensions:
 
   import StructuralOps.*
@@ -467,7 +462,7 @@ private[dimwit] object StructuralExtensions:
       * @param NewOrder A tuple representing the new order of axes for the tensor.
       * @return A new tensor with the axes transposed according to the specified order.
       */
-    def transpose[NewOrder <: Tuple, Status <: ValidationResult](newOrder: NewOrder)(using
+    def transpose[NewOrder <: Tuple](newOrder: NewOrder)(using
         ev: AxisIndices[T, UnwrapAxes[NewOrder]],
         newLabels: Labels[UnwrapAxes[NewOrder]]
     )(using
@@ -775,81 +770,6 @@ private[dimwit] object StructuralExtensions:
         case start: Tensor[?, ?] => start.jaxValue
       val starts = Seq.tabulate[py.Any](tensor.shape.rank)(i => if i == dimIndex then start else py.Any.from(0))
       Jax.Dynamic.global.tuple(starts.toPythonProxy)
-
-    def rearrange[Axes <: Tuple, Status <: ValidationResult](newOrder: Axes)(using
-        Labels[UnwrapAxes[Axes]]
-    )(using
-        computer: ComputeMissing[UnwrapAxes[Axes], T, EmptyTuple, Status],
-        guard: CheckValid[Status]
-    ): Tensor[UnwrapAxes[Axes], V] =
-      rearrange[Axes, EmptyTuple, Status](newOrder, EmptyTuple)
-
-    // Convenience overload for 1 dims (to support error messages with single axis)
-    inline def rearrange[Axes <: Tuple, L1, Status <: ValidationResult](newOrder: Axes, d1: AxisExtent[L1])(using computer: ComputeMissing[UnwrapAxes[Axes], T, UnwrapDims[Tuple1[AxisExtent[L1]]], Status], guard: CheckValid[Status])(using newLabels: Labels[UnwrapAxes[Axes]], extractor: DimExtractor[Tuple1[AxisExtent[L1]]]): Tensor[UnwrapAxes[Axes], V] =
-      rearrange(newOrder, Tuple1(d1))
-
-    // Convenience overload for 2 dims
-    inline def rearrange[Axes <: Tuple, L1, L2, Status <: ValidationResult](newOrder: Axes, d1: AxisExtent[L1], d2: AxisExtent[L2])(using computer: ComputeMissing[UnwrapAxes[Axes], T, UnwrapDims[(AxisExtent[L1], AxisExtent[L2])], Status], guard: CheckValid[Status])(using newLabels: Labels[UnwrapAxes[Axes]], extractor: DimExtractor[(AxisExtent[L1], AxisExtent[L2])]): Tensor[UnwrapAxes[Axes], V] =
-      rearrange(newOrder, (d1, d2))
-
-    // Convenience overload for 3 dims
-    inline def rearrange[Axes <: Tuple, L1, L2, L3, Status <: ValidationResult](newOrder: Axes, d1: AxisExtent[L1], d2: AxisExtent[L2], d3: AxisExtent[L3])(using computer: ComputeMissing[UnwrapAxes[Axes], T, UnwrapDims[(AxisExtent[L1], AxisExtent[L2], AxisExtent[L3])], Status], guard: CheckValid[Status])(using newLabels: Labels[UnwrapAxes[Axes]], extractor: DimExtractor[(AxisExtent[L1], AxisExtent[L2], AxisExtent[L3])]): Tensor[UnwrapAxes[Axes], V] =
-      rearrange(newOrder, (d1, d2, d3))
-
-    // Convenience overload for 4 dims
-    inline def rearrange[Axes <: Tuple, L1, L2, L3, L4, Status <: ValidationResult](newOrder: Axes, d1: AxisExtent[L1], d2: AxisExtent[L2], d3: AxisExtent[L3], d4: AxisExtent[L4])(using computer: ComputeMissing[UnwrapAxes[Axes], T, UnwrapDims[(AxisExtent[L1], AxisExtent[L2], AxisExtent[L3], AxisExtent[L4])], Status], guard: CheckValid[Status])(using newLabels: Labels[UnwrapAxes[Axes]], extractor: DimExtractor[(AxisExtent[L1], AxisExtent[L2], AxisExtent[L3], AxisExtent[L4])]): Tensor[UnwrapAxes[Axes], V] =
-      rearrange(newOrder, (d1, d2, d3, d4))
-
-    def rearrange[Axes <: Tuple, Dims <: Tuple, Status <: ValidationResult](
-        newOrder: Axes,
-        dims: Dims
-    )(using
-        computer: ComputeMissing[UnwrapAxes[Axes], T, UnwrapDims[Dims], Status],
-        guard: CheckValid[Status]
-    )(using
-        newLabels: Labels[UnwrapAxes[Axes]],
-        extractor: DimExtractor[Dims]
-    ): Tensor[UnwrapAxes[Axes], V] =
-      def cleanPatternPrime(pattern: String): String =
-        // Support dimwit.Prime by replacing ' with "Prime"
-        pattern.replaceAll(
-          "'",
-          "Prime"
-        )
-      def createEinopsPattern(fromPattern: String, toPattern: String): String =
-        def cleanPatternStar(pattern: String): String =
-          // to replace all a*b*c in pattern with (a b c), example:
-          // "a*b*c d e f*g h" -> "(a b c) d e (f g) h"
-          val regex = raw"([a-zA-Z0-9_]+(\*[a-zA-Z0-9_]+)+)".r
-          regex.replaceAllIn(
-            pattern,
-            _.group(1).split("\\*").mkString("(", " ", ")")
-          )
-        def cleanPatternPlus(pattern: String): String =
-          // Support dimwit.|+| by replacing + with underlines
-          val regex = raw"([a-zA-Z0-9_]+(\+[a-zA-Z0-9_]+)+)".r
-          regex.replaceAllIn(
-            pattern,
-            _.group(1).replace("+", "_")
-          )
-        def cleanPattern(pattern: String): String =
-          cleanPatternPlus(cleanPatternStar(cleanPatternPrime(pattern)))
-        s"${cleanPattern(fromPattern)} -> ${cleanPattern(toPattern)}"
-      val fromPattern = tensor.shape.labels.mkString(" ")
-      val toPattern = newLabels.names.mkString(" ")
-      val pattern = createEinopsPattern(fromPattern, toPattern)
-      val dimSizesMap = extractor.extract(dims)
-      val cleanDimSizesMap = dimSizesMap.map { case (k, v) =>
-        val newKey = cleanPatternPrime(k)
-        (newKey, v)
-      }
-      Tensor(
-        Einops.rearrange(
-          tensor.jaxValue,
-          pattern,
-          kwargsMap = cleanDimSizesMap
-        )
-      )
 
     def broadcastTo[O <: Tuple: Labels](newShape: Shape[O])(using
         labels: Labels[T],
