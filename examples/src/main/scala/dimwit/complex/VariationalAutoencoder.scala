@@ -245,6 +245,17 @@ object VariationalAutoencoderExample:
       plt.imshow(toPyTensor(img2d), cmap = "gray")
       plt.show()
 
+    /** Arranges the images as a grid with 8 images per row, i.e. one image of rows * Height x 8 * Width pixels. */
+    def toImageGrid(images: Tensor2[Prime[Height] |*| Prime[Width], Height |*| Width, Float32]): Tensor2[Prime[Height] |*| Height, Prime[Width] |*| Width, Float32] =
+      val columns = 8
+      val numImages = images.shape(Axis[Prime[Height] |*| Prime[Width]])
+      require(numImages % columns == 0, s"The number of images ($numImages) must be a multiple of $columns")
+      images
+        .unflatten(Axis[Prime[Height] |*| Prime[Width]], Shape(Axis[Prime[Height]] -> numImages / columns, Axis[Prime[Width]] -> columns))
+        .unflatten(Axis[Height |*| Width], Shape(heightDim, widthDim))
+        .flatten((Axis[Prime[Height]], Axis[Height]))
+        .flatten((Axis[Prime[Width]], Axis[Width]))
+
     val vae = VariationalAutoencoder(trainedParams)
 
     /* Reconstructing images */
@@ -255,13 +266,7 @@ object VariationalAutoencoderExample:
         vae.decoder(latent)
       .relabel(Axis[TestSample].as(Axis[Prime[Height] |*| Prime[Width]]))
 
-    plotImg(
-      reconstructed
-        .rearrange(
-          (Axis[Prime[Height] |*| Height], Axis[Prime[Width] |*| Width]),
-          (Axis[Prime[Height]] -> 8, Axis[Prime[Width]] -> 8, heightDim, widthDim)
-        )
-    )
+    plotImg(toImageGrid(reconstructed))
 
     /* Sampling from the latent space */
     val stdNormal = Normal.standardNormal(Shape1(latentDim))
@@ -269,9 +274,4 @@ object VariationalAutoencoderExample:
       val z = stdNormal.sample(key)
       vae.decoder(z)
 
-    plotImg(
-      sampled.rearrange(
-        (Axis[Prime[Height] |*| Height], Axis[Prime[Width] |*| Width]),
-        (Axis[Prime[Height]] -> 8, Axis[Prime[Width]] -> 8, heightDim, widthDim)
-      )
-    )
+    plotImg(toImageGrid(sampled))

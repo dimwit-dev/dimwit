@@ -249,7 +249,6 @@ Runs on every push and pull request:
 **Python Packages**:
 - JAX (CPU version)
 - NumPy
-- Einops
 - Matplotlib, Pandas, Scikit-learn
 - Jupyter
 

@@ -37,7 +37,7 @@ COPY . /workspace/
 
 # Create venv inheriting JAX from the base image, add extra packages
 RUN uv venv .venv --system-site-packages && \
-    uv pip install --python .venv/bin/python einops matplotlib pandas
+    uv pip install --python .venv/bin/python matplotlib pandas
 
 # Skip uv sync — JAX is already available via system-site-packages
 ENV DIMWIT_SKIP_SYNC=true

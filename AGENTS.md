@@ -761,8 +761,8 @@ val gridWrongValue = grid.updated(Axis[A].at(0))(grid)
 grid.select(Axis[A].at(3, 2))
 // java.lang.IllegalArgumentException: requirement failed: Window 3 until 5 is out of bounds for axis A of size 4
 // 	at scala.Predef$.require(Predef.scala:389)
-// 	at dimwit.tensor.tensorops.StructuralExtensions$.windowExtents(StructuralOps.scala:767)
-// 	at dimwit.tensor.tensorops.StructuralExtensions$.select(StructuralOps.scala:605)
+// 	at dimwit.tensor.tensorops.StructuralExtensions$.windowExtents(StructuralOps.scala:762)
+// 	at dimwit.tensor.tensorops.StructuralExtensions$.select(StructuralOps.scala:600)
 // 	at dimwit.package$.select(package.scala:80)
 // 	at repl.MdocSession$MdocApp17.$init$$$anonfun$4(AGENTS.md:739)
 ```
