@@ -322,6 +322,12 @@ as `updated` does for Scala's immutable collections:
   val updated1 : Tensor2[A, B, Float32] = concatenated.updated(Axis[A].at(1))(Tensor(Shape(Axis[B] -> 2)).fill(0.0f))
 ```
 
+To write along several axes, e.g. a single entry, focus on the selection one axis at a time and write the value:
+
+```scala mdoc:silent
+  val updated2 : Tensor2[A, B, Float32] = concatenated.focus(Axis[A].at(1)).focus(Axis[B].at(0)).updated(Tensor0(0.0f))
+```
+
 #### Squeezing, Expanding and transposing axes
 
 Given a tensor, for which one axis has extent 1, we can remove that axis using the `squeeze`

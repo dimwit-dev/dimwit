@@ -1,6 +1,7 @@
 package dimwit.tensor
 
 import dimwit.*
+import dimwit.autodiff.Autodiff
 import scala.compiletime.testing.typeCheckErrors
 
 class TensorOpsStructureSuite extends DimwitTest:
@@ -508,6 +509,76 @@ class TensorOpsStructureSuite extends DimwitTest:
         val t = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1.0f, 2.0f, 3.0f), Array(4.0f, 5.0f, 6.0f)))
         t.roll(Axis[B], shift = 1) shouldEqual (Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(3.0f, 1.0f, 2.0f), Array(6.0f, 4.0f, 5.0f))))
         t.roll(Axis[A], shift = 1) shouldEqual (Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(4.0f, 5.0f, 6.0f), Array(1.0f, 2.0f, 3.0f))))
+
+  describe("focus"):
+
+    // Shape: A=3, B=4, the value at (a, b) is 10a + b
+    val ab = Tensor2(Axis[A], Axis[B]).fromArray(Array.tabulate(3, 4)((a, b) => 10f * a + b))
+
+    it("updated along one axis is the updated of the tensor"):
+      val row = Tensor1(Axis[B]).fromArray(Array(0f, 0f, 0f, 0f))
+      ab.focus(Axis[A].at(1)).updated(row) should approxEqual(ab.updated(Axis[A].at(1))(row))
+
+    it("get is the chained select"):
+      ab.focus(Axis[A].at(1)).get should approxEqual(ab(Axis[A].at(1)))
+      ab.focus(Axis[A].at(1)).focus(Axis[B].at(2)).get.item shouldBe 12f
+
+    it("updatedWith applies a function to the selection"):
+      ab.focus(Axis[A].at(1)).updatedWith(_ *! 2f) should approxEqual(ab.updated(Axis[A].at(1))(ab(Axis[A].at(1)) *! 2f))
+      ab.focus(Axis[A].at(1)).focus(Axis[B].at(2)).updatedWith(_ + Tensor0(1f))(Axis[A].at(1))(Axis[B].at(2)).item shouldBe 13f
+
+    it("writes a single entry"):
+      val written = ab.focus(Axis[A].at(1)).focus(Axis[B].at(2)).updated(Tensor0(-1f))
+      written should approxEqual(ab.updated(Axis[A].at(1))(ab(Axis[A].at(1)).updated(Axis[B].at(2))(Tensor0(-1f))))
+      written(Axis[A].at(1))(Axis[B].at(2)).item shouldBe -1f
+      ab.focus(Axis[B].at(2)).focus(Axis[A].at(1)).updated(-1f) should approxEqual(written)
+
+    it("writes where the chained select reads, for every selector"):
+      val idx = Tensor1(Axis[C]).fromArray(Array(3, 0))
+      ab.focus(Axis[A].at(0 to 2 by 2)).focus(Axis[B].at(idx)).updated(Tensor(Shape(Axis[A] -> 2, Axis[C] -> 2)).fill(-1f)) should approxEqual(
+        Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(-1f, 1f, 2f, -1f), Array(10f, 11f, 12f, 13f), Array(-1f, 21f, 22f, -1f)))
+      )
+      val written = ab
+        .focus(Axis[A].at(Seq(2, 1)))
+        .focus(Axis[A].at((1, 0)))
+        .focus(Axis[B].at(Tensor0(1), 2))
+        .focus(Axis[A].at(Tensor0(0)))
+        .focus(Axis[B].at(1 until 2))
+        .updated(Tensor1(Axis[B]).fromArray(Array(-1f)))
+      // rows 2, 1 -> rows 1, 2 -> row 1; columns 1, 2 -> column 2
+      written(Axis[A].at(1))(Axis[B].at(2)).item shouldBe -1f
+      written.sum.item shouldBe ab.sum.item - 12f - 1f
+
+    it("writes three levels deep"):
+      val abc = Tensor(Shape(Axis[A] -> 2, Axis[B] -> 3, Axis[C] -> 4)).fill(0f)
+      val written = abc.focus(Axis[C].at(3)).focus(Axis[A].at(1)).focus(Axis[B].at(0)).updated(Tensor0(1f))
+      written(Axis[A].at(1))(Axis[B].at(0))(Axis[C].at(3)).item shouldBe 1f
+      written.sum.item shouldBe 1f
+
+    it("writes entries at traced indices under jit"):
+      val filled = jit((t: Tensor2[A, B, Float32]) =>
+        foriLoop(0, 3)(t): (i, acc) =>
+          foriLoop(0, 4)(acc): (j, acc) =>
+            acc.focus(Axis[A].at(i)).focus(Axis[B].at(j)).updated((i * Tensor0(10) + j).asType(VType[Float32]))
+      )(Tensor(ab.shape).fill(0f))
+      filled should approxEqual(ab)
+
+    it("is differentiable"):
+      val grad = Autodiff.grad((v: Tensor0[Float32]) => (ab.focus(Axis[A].at(1)).focus(Axis[B].at(2)).updated(v) * ab).sum)
+      grad(Tensor0(0f)).value.item shouldBe 12f
+
+    it("updated writes directly and does not chain"):
+      "ab.updated(Axis[A].at(1)).updated(Axis[B].at(2))(Tensor0(0f))" shouldNot compile
+      "ab.focus(Axis[A].at(1))(Tensor1(Axis[B]).fromArray(Array(0f, 0f, 0f, 0f)))" shouldNot compile
+
+    it("rejects an axis that the selection does not have"):
+      "ab.focus(Axis[A].at(1)).focus(Axis[A].at(0)).updated(Tensor0(0f))" shouldNot compile
+      "ab.focus(Axis[A].at(1)).focus(Axis[C].at(0)).updated(Tensor0(0f))" shouldNot compile
+      "ab.focus(Axis[A].at(1)).focus(Axis[B].at(0)).updated(Tensor1(Axis[B]).fromArray(Array(0f)))" shouldNot compile
+
+    it("rejects a value whose shape differs from the selection"):
+      the[IllegalArgumentException] thrownBy ab.focus(Axis[B].at(0)).focus(Axis[A].at(0 to 1)).updated(Tensor1(Axis[A]).fromArray(Array(0f, 0f, 0f))) should have message
+        "requirement failed: Cannot set a value of shape Shape(A -> 3) into a selection of shape (A -> 2)"
 
   describe("window (AxisAtWindow)"):
 

@@ -711,6 +711,31 @@ private[dimwit] object StructuralExtensions:
       requireSelectionShape(value, tensor.windowExtents(selector, axisIndex.index))
       Tensor(Jax.lax.dynamic_update_slice(tensor.jaxValue, value.jaxValue, tensor.windowStarts(selector, axisIndex.index)))
 
+    // `tensor.focus(selector)` is a [[TensorFocus]] on the selection: `.updated(value)` is `tensor.updated(selector)(value)`,
+    // `.get` is `tensor.select(selector)`, and `.focus` with a further selector selects along another axis of the selection,
+    // so `tensor.focus(s1).focus(s2).updated(value)` writes what `tensor(s1)(s2)` reads, e.g. a single entry.
+
+    def focus[L](selector: AxisAtIndex[L])(using ev: AxisRemover[T, L], labels: Labels[T]): TensorFocus[T, ev.RemainingAxes, V] =
+      TensorFocus(selected => tensor.select(selector)(using ev, selected), tensor.updated(selector)(using ev, labels)(_))
+
+    def focus[L](selector: AxisAtTensorIndex[L])(using ev: AxisRemover[T, L], labels: Labels[T]): TensorFocus[T, ev.RemainingAxes, V] =
+      TensorFocus(selected => tensor.select(selector)(using ev, selected), tensor.updated(selector)(using ev, labels)(_))
+
+    def focus[L](selector: AxisAtRange[L])(using axisIndex: AxisIndex[T, L], labels: Labels[T]): TensorFocus[T, T, V] =
+      TensorFocus(_ => tensor.select(selector), tensor.updated(selector)(_))
+
+    def focus[L](selector: AxisAtIndices[L])(using axisIndex: AxisIndex[T, L], labels: Labels[T]): TensorFocus[T, T, V] =
+      TensorFocus(_ => tensor.select(selector), tensor.updated(selector)(_))
+
+    def focus[L, I <: NonEmptyTuple](selector: AxisAtTupleIndices[L, I])(using axisIndex: AxisIndex[T, L], labels: Labels[T]): TensorFocus[T, T, V] =
+      TensorFocus(_ => tensor.select(selector), tensor.updated(selector)(_))
+
+    def focus[L, L2](selector: AxisAtTensorIndices[L, L2])(using ev: AxisReplacer[T, L, L2], labels: Labels[T]): TensorFocus[T, ev.NewShape, V] =
+      TensorFocus(selected => tensor.select(selector)(using ev, selected), tensor.updated(selector)(using ev, labels)(_))
+
+    def focus[L](selector: AxisAtWindow[L])(using axisIndex: AxisIndex[T, L], labels: Labels[T]): TensorFocus[T, T, V] =
+      TensorFocus(_ => tensor.select(selector), tensor.updated(selector)(_))
+
     /** The Python index `tensor[:, ..., index, ..., :]`, with `index` at the axis `dimIndex`. */
     private def indexAlong(dimIndex: Int, index: py.Any): Jax.PyDynamic =
       val all = py.Dynamic.global.slice(py.None)

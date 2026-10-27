@@ -667,7 +667,10 @@ val concatenated = concatenate(t1, t2, Axis[A])
 Every selection along an axis is an `Axis[L].at(...)` selector. `select` reads the selection, and applying
 the tensor to the selector, `t(selector)`, is the same as `t.select(selector)`, as `seq(i)` reads a Scala collection.
 `updated` returns a copy with new values at the selection, as `updated` does for Scala's immutable collections.
-A selector selects along exactly one axis; to select along several axes, chain the calls.
+A selector selects along exactly one axis; to select along several axes, chain the selectors,
+for reading `t(s1)(s2)` and for writing `t.focus(s1).focus(s2).updated(value)`.
+`t.focus(selector)` focuses on the selection: `.updated(value)` writes it, `.updatedWith(f)` applies `f` to it
+and `.get` reads it; `t.updated(selector)(value)` is short for `t.focus(selector).updated(value)`.
 
 ```scala
 // Shape: A=4, B=3, the value at (a, b) is 10a + b
@@ -697,6 +700,14 @@ val gridEntryApplied: Tensor0[Float32] = grid(Axis[A].at(1))(Axis[B].at(2)) // 1
 // updated takes a value with the shape of the selection
 val gridZeroRow = grid.updated(Axis[A].at(0))(Tensor1(Axis[B]).fromArray(Array(0.0f, 0.0f, 0.0f)))
 val gridZeroWindow = grid.updated(Axis[A].at(1, 2))(Tensor(Shape2(Axis[A] -> 2, Axis[B] -> 3)).fill(0.0f))
+
+// Several axes: chain focus and write the value, which has the shape of grid(s1)(s2)
+val gridEntryWritten = grid.focus(Axis[A].at(1)).focus(Axis[B].at(2)).updated(Tensor0(-1.0f)) // entry (1, 2) is -1
+val gridBlockWritten = grid.focus(Axis[A].at(1 until 3)).focus(Axis[B].at(order)).updated(Tensor(Shape2(Axis[A] -> 2, Axis[C] -> 3)).fill(0.0f))
+
+// updatedWith applies a function to the selection, get reads it
+val gridEntryRead: Tensor0[Float32] = grid.focus(Axis[A].at(1)).focus(Axis[B].at(2)).get // 12
+val gridDoubledRow = grid.focus(Axis[A].at(1)).updatedWith(_ *! Tensor0(2.0f)) // row 1 is [20, 22, 24]
 ```
 
 The index of `Axis[L].at(index)` and the start of a window may also be a `Tensor0[Int32]`, also a traced one,
@@ -750,10 +761,10 @@ val gridWrongValue = grid.updated(Axis[A].at(0))(grid)
 grid.select(Axis[A].at(3, 2))
 // java.lang.IllegalArgumentException: requirement failed: Window 3 until 5 is out of bounds for axis A of size 4
 // 	at scala.Predef$.require(Predef.scala:389)
-// 	at dimwit.tensor.tensorops.StructuralExtensions$.windowExtents(StructuralOps.scala:737)
+// 	at dimwit.tensor.tensorops.StructuralExtensions$.windowExtents(StructuralOps.scala:762)
 // 	at dimwit.tensor.tensorops.StructuralExtensions$.select(StructuralOps.scala:600)
 // 	at dimwit.package$.select(package.scala:80)
-// 	at repl.MdocSession$MdocApp17.$init$$$anonfun$3(AGENTS.md:723)
+// 	at repl.MdocSession$MdocApp17.$init$$$anonfun$4(AGENTS.md:739)
 ```
 
 ---
