@@ -19,7 +19,10 @@ class Categorical[L: Label](val probs: Tensor1[L, Prob]) extends UnivariateDistr
   private val logProbs: Tensor1[L, LogProb] = probs.log
 
   override def logProb(x: Tensor0[Int32]): Tensor0[LogProb] =
-    liftPyTensor(logProbs.jaxValue.__getitem__(x.jaxValue))
+    // JAX clamps out-of-range indices (and wraps negative ones), so values outside 0..K-1 are masked explicitly
+    val indexed: Tensor0[LogProb] = liftPyTensor(logProbs.jaxValue.__getitem__(x.jaxValue))
+    val inRange = (x >= Tensor0(0)) and (x < Tensor0(probs.shape.dimensions(0)))
+    where(inRange, indexed, LogProb(Tensor0(Float.NegativeInfinity)))
 
   override def sample(key: Key): Tensor0[Int32] =
     liftPyTensor(Jax.jrandom.categorical(key.jaxKey, logProbs.jaxValue))
