@@ -243,6 +243,37 @@ class Exponential[T <: Tuple: Labels, V: IsFloating](val rate: Tensor[T, V]) ext
     )
     stndExp / rate
 
+/** Gamma distribution with `concentration` (the shape parameter, often written alpha or k) and `rate` (often written beta).
+  *
+  * The parameter is called concentration rather than shape, as in Dirichlet, to avoid a clash with a tensor's `shape`.
+  * Mean is concentration / rate, variance concentration / rate^2. Gamma(1, rate) is Exponential(rate).
+  */
+class Gamma[T <: Tuple: Labels, V: IsFloating](val concentration: Tensor[T, V], val rate: Tensor[T, V]) extends IndependentDistribution[T, V]:
+
+  private lazy val scale = Tensor.like(rate).fill(1f) / rate
+
+  override def elementWiseLogProb(x: Tensor[T, V]): Tensor[T, LogProb] =
+    LogProb.fromPy(jstats.gamma.logpdf(x.jaxValue, a = concentration.jaxValue, scale = scale.jaxValue))
+
+  override def sample(k: Random.Key): Tensor[T, V] =
+    // jax.random.gamma samples with rate 1, so divide by the rate
+    val standardGamma = liftPyTensor(concentration.shape, VType[V])(
+      Jax.jrandom.gamma(k.jaxKey, a = concentration.jaxValue, shape = concentration.shape.dimensions.toPythonProxy, dtype = VType[V].dtype.jaxType)
+    )
+    standardGamma / rate
+
+object Gamma:
+
+  /** Create a Gamma distribution from concentration and rate tensors */
+  def apply[T <: Tuple: Labels, V: IsFloating](concentration: Tensor[T, V], rate: Tensor[T, V]): Gamma[T, V] =
+    require(concentration.shape.dimensions == rate.shape.dimensions, "concentration and rate must have the same dimensions")
+    new Gamma(concentration, rate)
+
+  /** Create a Gamma distribution from concentration and scale tensors, where scale = 1 / rate */
+  def fromScale[T <: Tuple: Labels, V: IsFloating](concentration: Tensor[T, V], scale: Tensor[T, V]): Gamma[T, V] =
+    require(concentration.shape.dimensions == scale.shape.dimensions, "concentration and scale must have the same dimensions")
+    new Gamma(concentration, Tensor.like(scale).fill(1f) / scale)
+
 class Poisson[T <: Tuple: Labels, VSample: IsInteger, VRate: IsFloating](val rate: Tensor[T, VRate]) extends IndependentDistribution[T, VSample]:
 
   override def elementWiseLogProb(x: Tensor[T, VSample]): Tensor[T, LogProb] =

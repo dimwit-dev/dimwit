@@ -567,6 +567,63 @@ class DistributionSuite extends DimwitTest:
       val expectedMeans = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(2.0f, 0.5f))
       sampleMeans should approxEqual(expectedMeans, 0.1f)
 
+  describe("Gamma"):
+    it("logProbs matches JAX"):
+      val concentration = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.5f, 2.0f, 5.0f))
+      val rate = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1.0f, 0.5f, 4.0f))
+      val x = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(0.3f, 2.5f, 1.2f))
+
+      val dist = Gamma(concentration, rate)
+      val scalaLogProbs = dist.elementWiseLogProb(x)
+      val scale = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1.0f, 2.0f, 0.25f))
+      val jaxLogProbs = liftPyTensor1(Axis[A], VType[Float32])(
+        jstats.gamma.logpdf(x.jaxValue, a = concentration.jaxValue, scale = scale.jaxValue)
+      )
+      scalaLogProbs.asFloat should approxEqual(jaxLogProbs)
+
+    it("fromScale is the same as the rate parameterisation"):
+      val concentration = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(2.0f, 3.0f))
+      val scale = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(2.0f, 0.5f))
+      val rate = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.5f, 2.0f))
+      val x = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1.0f, 1.5f))
+
+      Gamma.fromScale(concentration, scale).elementWiseLogProb(x).asFloat should approxEqual(Gamma(concentration, rate).elementWiseLogProb(x).asFloat)
+
+    it("Gamma(1, rate) is Exponential(rate)"):
+      val rate = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.5f, 2.0f))
+      val x = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(0.7f, 1.3f))
+      val gamma = Gamma(Tensor.like(rate).fill(1.0f), rate)
+
+      gamma.elementWiseLogProb(x).asFloat should approxEqual(Exponential(rate).elementWiseLogProb(x).asFloat)
+
+    it("logProb is -inf for x < 0"):
+      val concentration = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(2.0f, 3.0f))
+      val rate = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(1.0f, 2.0f))
+      val x = Tensor(Shape(Axis[A] -> 2)).fromArray(Array(-1.0f, -0.1f))
+
+      val dist = Gamma(concentration, rate)
+      val logProbs = dist.elementWiseLogProb(x)
+      logProbs.asFloat.toArray.foreach(v => v should be(Float.NegativeInfinity))
+
+    it("sample means approximates concentration / rate"):
+      val gamma = Gamma(
+        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(2.0f, 9.0f)),
+        Tensor(Shape(Axis[A] -> 2)).fromArray(Array(4.0f, 3.0f))
+      )
+      val key = Random.Key(42)
+      val samples = key.splitvmap(Axis[Samples] -> 10000)(k => gamma.sample(k))
+      val sampleMeans = samples.mean(Axis[Samples])
+      val expectedMeans = gamma.concentration / gamma.rate
+      sampleMeans should approxEqual(expectedMeans, 0.1f)
+
+    it("works with scalar parameters"):
+      val gamma = Gamma(Tensor0(2.0f), Tensor0(4.0f))
+      val key = Random.Key(7)
+      val samples = key.splitvmap(Axis[Samples] -> 10000)(k => gamma.sample(k))
+      samples.mean.item shouldBe 0.5f +- 0.05f
+      val jaxLogProb = liftPyTensor0(VType[Float32])(jstats.gamma.logpdf(1.0f, a = 2.0f, scale = 0.25f))
+      gamma.logProb(Tensor0(1.0f)).asFloat should approxEqual(jaxLogProb)
+
   describe("Poisson"):
     it("logProbs matches JAX"):
       val rate = Tensor(Shape(Axis[A] -> 3)).fromArray(Array(1.0f, 3.0f, 10.0f))
@@ -618,6 +675,7 @@ class DistributionSuite extends DimwitTest:
     checkTypes("StudentT", StudentT(Tensor0(3.0f).asType(VType[Float16]), loc, scale), x)
     checkTypes("Beta", Beta(f16(2.0f, 3.0f), f16(2.0f, 1.0f)), f16(0.3f, 0.6f))
     checkTypes("Exponential", Exponential(f16(1.0f, 2.0f)), x)
+    checkTypes("Gamma", Gamma(f16(2.0f, 3.0f), f16(1.0f, 2.0f)), x)
     checkTypes("Dirichlet", Dirichlet(f16(1.0f, 2.0f)), f16(0.3f, 0.7f))
 
     it("TruncatedNormal samples Float16"):
