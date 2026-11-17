@@ -87,6 +87,40 @@ class SeqConversionsSuite extends DimwitTest:
         Seq.empty[Seq[Float]].toTensor2(Axis[A], Axis[B])
       error.getMessage should include("extent of axis B is unknown")
 
+  describe("toSeq"):
+
+    it("reads the elements of a Tensor1 in order"):
+      val xs: IndexedSeq[Float] = Tensor1(Axis[A]).fromArray(Array(3.0f, 1.0f, 2.0f)).toSeq
+      xs shouldBe Seq(3.0f, 1.0f, 2.0f)
+
+    it("reads a Tensor2 as rows along the first axis"):
+      val rows: IndexedSeq[IndexedSeq[Int]] = Tensor2(Axis[A], Axis[B]).fromArray(Array(Array(1, 2, 3), Array(4, 5, 6))).toSeq
+      rows shouldBe Seq(Seq(1, 2, 3), Seq(4, 5, 6))
+
+    it("is the reverse of toTensor1 and toTensor2"):
+      val xs = List(1.5f, -2.0f, 0.25f)
+      xs.toTensor1(Axis[A]).toSeq shouldBe xs
+      Seq(true, false).toTensor1(Axis[A]).toSeq shouldBe Seq(true, false)
+      val rows = Vector(Vector(1L, 2L), Vector(3L, 4L), Vector(5L, 6L))
+      withJaxX64Support:
+        rows.toTensor2(Axis[A], Axis[B]).toSeq shouldBe rows
+
+    it("handles axes of extent 0"):
+      Seq.empty[Int].toTensor1(Axis[A]).toSeq shouldBe empty
+      Tensor(Shape2(Axis[A] -> 2, Axis[B] -> 0)).fill(0.0f).toSeq shouldBe Seq(Seq.empty, Seq.empty)
+      Tensor(Shape2(Axis[A] -> 0, Axis[B] -> 3)).fill(0.0f).toSeq shouldBe empty
+
+    it("converts to other collections via the Seq"):
+      Tensor1(Axis[A]).fromArray(Array(1, 2, 3)).toSeq.toList shouldBe List(1, 2, 3)
+
+    it("fails inside jit, where the values are unknown"):
+      val f = jit((t: Tensor1[A, Float32]) =>
+        t.toSeq
+        t
+      )
+      val error = intercept[Exception](f(Tensor1(Axis[A]).fromArray(Array(1.0f))))
+      error.getMessage should include("Cannot convert a JAX Tracer to a Seq")
+
   describe("Tensor2 fromArray"):
     it("rejects ragged rows even if the total number of values fits"):
       // 3 rows, the first of length 2, and 6 values in total: used to become a wrong 3x2 matrix

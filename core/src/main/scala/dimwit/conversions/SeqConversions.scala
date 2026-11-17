@@ -7,17 +7,18 @@ import dimwit.tensor.ValueTypeClasses.IsFloating
 import dimwit.tensor.ValueTypeClasses.IsInteger
 
 import scala.annotation.targetName
+import scala.collection.immutable.ArraySeq
 
-/* Conversions from Scala sequences to tensors, e.g. `Seq(1.0f, 2.0f).toTensor1(Axis[A])`.
+/* Conversions between Scala sequences and tensors. They are opt-in: `import dimwit.conversions.*` makes them
+ * available, `import dimwit.*` does not.
  *
-  * They are opt-in: `import dimwit.conversions.*` makes them available, `import dimwit.*` does not.
+ * From Seqs to tensors, e.g. `Seq(1.0f, 2.0f).toTensor1(Axis[A])`: the value type is derived from the element type
+ * as for `fromArray` (Float to Float32, Double to Float64, Byte to Int8, Short to Int16, Int to Int32, Long to Int64,
+ * Boolean to Bool), or given explicitly, e.g. `Seq(1.0f, 2.0f).toTensor1(Axis[A], VType[Float16])`.
+ * For `toTensor2` the outer Seq runs along the first axis and the inner Seqs, the rows, along the second.
+ * All rows must have the same length, and there must be at least one row.
  *
-  * The value type is derived from the element type as for `fromArray`
- * (Float to Float32, Double to Float64, Byte to Int8, Short to Int16, Int to Int32, Long to Int64, Boolean to Bool),
- * or given explicitly, e.g. `Seq(1.0f, 2.0f).toTensor1(Axis[A], VType[Float16])`.
- *
-  * For `toTensor2` the outer sequence runs along the first axis, the inner sequences along the second,
- * i.e. the inner sequences are the rows. All rows must have the same length, and there must be at least one row.
+ * From tensors to Seqs with `toSeq`, the reverse: `xs.toTensor1(Axis[A]).toSeq == xs`.
  */
 
 extension (values: Seq[Boolean])
@@ -110,3 +111,26 @@ extension (values: Seq[Seq[Double]])
   @targetName("doubleSeqToTensor2Typed")
   def toTensor2[L1: Label, L2: Label, V: IsFloating](axis1: Axis[L1], axis2: Axis[L2], vtype: VType[V]): Tensor2[L1, L2, V] =
     Tensor2(axis1, axis2, vtype).fromArray(values.map(_.toArray).toArray)
+
+// --- From tensors to Seqs ---
+// The elements are read into a fresh array, which is wrapped without copying. Nothing else references it,
+// so the result is a proper immutable IndexedSeq. Other collections are one call away, e.g. `t.toSeq.toList`.
+
+extension [L, V, X](t: Tensor1[L, V])(using ev: HasScalar[V, X])
+  /** The elements of the vector, in order. Not available inside `jit`, as the values of a traced tensor are unknown. */
+  @targetName("tensor1ToSeq")
+  def toSeq: IndexedSeq[X] =
+    require(!t.isTracer, "Cannot convert a JAX Tracer to a Seq.")
+    ArraySeq.unsafeWrapArray(ev.readFlat(t.jaxValue))
+
+extension [L1, L2, V, X](t: Tensor2[L1, L2, V])(using ev: HasScalar[V, X])
+  /** The rows of the matrix, i.e. the outer Seq runs along the first axis and the inner Seqs along the second,
+    * as for `toTensor2`. Not available inside `jit`, as the values of a traced tensor are unknown.
+    */
+  @targetName("tensor2ToSeq")
+  def toSeq: IndexedSeq[IndexedSeq[X]] =
+    require(!t.isTracer, "Cannot convert a JAX Tracer to a Seq.")
+    val rows = t.shape.dimensions(0)
+    val columns = t.shape.dimensions(1)
+    val values = ev.readFlat(t.jaxValue)
+    IndexedSeq.tabulate(rows)(row => ArraySeq.unsafeWrapArray(values.slice(row * columns, (row + 1) * columns)))
