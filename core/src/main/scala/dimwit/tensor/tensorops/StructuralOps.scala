@@ -162,7 +162,7 @@ private[dimwit] object StructuralOps:
       newAxis: Axis[L]
   ): Tensor[L *: T, V] =
     require(tensors.nonEmpty, "Cannot stack an empty sequence of tensors")
-    val jaxValuesSeq = tensors.map(_.jaxValue).toPythonProxy
+    val jaxValuesSeq = tensors.map(_.jaxValue).toPythonCopy
     val stackedJaxValue = Jax.jnp.stack(jaxValuesSeq, axis = 0)
     Tensor(stackedJaxValue)
 
@@ -185,7 +185,7 @@ private[dimwit] object StructuralOps:
   ): Tensor[inserter.Out, V] =
     require(tensors.nonEmpty, "Cannot stack an empty sequence of tensors")
     val axisIdx = axisIndex.index + 1 // we are inserting after the given axis, so shift by 1
-    val jaxValuesSeq = tensors.map(_.jaxValue).toPythonProxy
+    val jaxValuesSeq = tensors.map(_.jaxValue).toPythonCopy
     val stackedJaxValue = Jax.jnp.stack(jaxValuesSeq, axis = axisIdx)
     val names = summon[Labels[T]].names
     val newNames = names.take(axisIdx) ++ Seq(newLabel.name) ++ names.drop(axisIdx)
@@ -209,7 +209,7 @@ private[dimwit] object StructuralOps:
   ): Tensor[T, V] =
     require(tensors.nonEmpty, "Cannot concatenate an empty sequence of tensors")
     val axisIdx = axisIndex.index
-    val jaxValuesSeq = tensors.map(_.jaxValue).toPythonProxy
+    val jaxValuesSeq = tensors.map(_.jaxValue).toPythonCopy
     val concatenatedJaxValue = Jax.jnp.concatenate(jaxValuesSeq, axis = axisIdx)
     Tensor(concatenatedJaxValue)
 
