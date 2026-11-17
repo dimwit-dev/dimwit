@@ -28,6 +28,10 @@ class ToArraySuite extends DimwitTest:
       val t = Tensor2(Axis[A], Axis[B]).fromArray(data)
       t.toArray shouldBe data
 
+    it("axes of extent 0"):
+      Tensor(Shape2(Axis[A] -> 2, Axis[B] -> 0)).fill(0.0f).toArray shouldBe Array(Array.empty[Float], Array.empty[Float])
+      Tensor(Shape2(Axis[A] -> 0, Axis[B] -> 3)).fill(0.0f).toArray shouldBe empty
+
   describe("Tensor3.toArray"):
     it("Float32 roundtrip"):
       val data = Array(
@@ -38,6 +42,12 @@ class ToArraySuite extends DimwitTest:
         data.flatten.flatten
       )
       t.toArray shouldBe data
+
+    it("axes of extent 0"):
+      val emptyRow = Array.empty[Float]
+      Tensor(Shape3(Axis[A] -> 2, Axis[B] -> 3, Axis[C] -> 0)).fill(0.0f).toArray shouldBe Array.fill(2, 3)(emptyRow)
+      Tensor(Shape3(Axis[A] -> 2, Axis[B] -> 0, Axis[C] -> 4)).fill(0.0f).toArray shouldBe Array.fill(2)(Array.empty[Array[Float]])
+      Tensor(Shape3(Axis[A] -> 0, Axis[B] -> 3, Axis[C] -> 4)).fill(0.0f).toArray shouldBe empty
 
   describe("toArray with filled tensors"):
     it("fill value is reflected in array"):
