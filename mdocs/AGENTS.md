@@ -133,6 +133,46 @@ val t2dNested = Tensor2(Axis[A], Axis[B]).fromArray(
 )
 ```
 
+### Conversion from Scala Seqs with `toTensor1` / `toTensor2`
+
+The extension methods `toTensor1` and `toTensor2` convert a Scala `Seq` (`List`, `Vector`, a `map` result, ...)
+into a tensor. They are **opt-in**: `import dimwit.*` does not bring them in scope, they need `import dimwit.conversions.*`.
+
+```scala mdoc:fail
+// ERROR: the conversions are not available without their import
+val notImported = Seq(1.0f, 2.0f).toTensor1(Axis[A])
+```
+
+```scala mdoc:silent
+import dimwit.conversions.*
+
+// The extent of the axis is the length of the Seq
+val fromSeq1 = Seq(1.0f, 2.0f, 3.0f).toTensor1(Axis[A])  // Tensor1[A, Float32]
+val fromList = List(1, 2, 3).toTensor1(Axis[A])          // Tensor1[A, Int32]
+val fromMap = (1 to 4).map(_ * 0.5f).toTensor1(Axis[A])  // Tensor1[A, Float32]
+
+// toTensor2: the outer Seq runs along the first axis, the inner Seqs (the rows) along the second
+val fromSeq2 = Seq(Seq(1.0f, 2.0f, 3.0f), Seq(4.0f, 5.0f, 6.0f)).toTensor2(Axis[A], Axis[B])  // A -> 2, B -> 3
+
+// As for fromArray, the value type is derived from the element type
+// (Float -> Float32, Double -> Float64, Byte -> Int8, Short -> Int16, Int -> Int32, Long -> Int64, Boolean -> Bool),
+// or given explicitly
+val halfSeq = Seq(1.0f, 2.0f).toTensor1(Axis[A], VType[Float16])
+val byteSeq2 = Seq(Seq(1, 2), Seq(3, 4)).toTensor2(Axis[A], Axis[B], VType[Int8])
+```
+
+```scala mdoc:fail
+// ERROR: the value type must fit the elements, Floats cannot become an integer tensor
+val wrongVType = Seq(1.0f, 2.0f).toTensor1(Axis[A], VType[Int32])
+```
+
+```scala mdoc:crash
+// ERROR at runtime: all rows of toTensor2 must have the same length
+Seq(Seq(1.0f, 2.0f), Seq(3.0f)).toTensor2(Axis[A], Axis[B])
+```
+
+**Note**: For a `Range`, prefer `Tensor1(Axis[A]).fromRange(...)`, which creates the values in JAX without copying them from Scala.
+
 ### Identity Matrices with `eye`
 
 `eye` is a creation method on the rank 2 factory: fix the shape first, then ask for the identity matrix.

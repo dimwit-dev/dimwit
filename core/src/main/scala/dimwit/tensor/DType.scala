@@ -138,18 +138,30 @@ enum DType(val name: String, val size: Int):
         while i < arr.length do
           db.put(arr(i).toDouble); i += 1
 
-      // --- Int32 Target ---
-      case (Int32, arr: Array[Int]) =>
-        buffer.asIntBuffer().put(arr)
-      case (Int32, arr: Array[Byte]) =>
-        val ib = buffer.asIntBuffer()
-        var i = 0;
-        while i < arr.length do
-          ib.put(arr(i).toInt); i += 1
+      // --- Signed integer targets from an array of the same width: bulk copy ---
+      case (Int8, arr: Array[Byte])   => buffer.put(arr)
+      case (Int16, arr: Array[Short]) => buffer.asShortBuffer().put(arr)
+      case (Int32, arr: Array[Int])   => buffer.asIntBuffer().put(arr)
+      case (Int64, arr: Array[Long])  => buffer.asLongBuffer().put(arr)
 
-      // --- Int8 Target ---
-      case (Int8, arr: Array[Byte]) =>
-        buffer.put(arr)
+      // --- Signed integer targets from an array of another width, e.g. Array[Byte] -> Int32, Array[Int] -> Int8 ---
+      case (Int8 | Int16 | Int32 | Int64, integers: (Array[Byte] | Array[Short] | Array[Int] | Array[Long])) =>
+        val get = longReader(integers)
+        val (min, max) = this match
+          case Int8  => (Byte.MinValue.toLong, Byte.MaxValue.toLong)
+          case Int16 => (Short.MinValue.toLong, Short.MaxValue.toLong)
+          case Int32 => (Int.MinValue.toLong, Int.MaxValue.toLong)
+          case _     => (Long.MinValue, Long.MaxValue)
+        var i = 0
+        while i < values.length do
+          val v = get(i)
+          require(v >= min && v <= max, s"Value $v at index $i is out of range for DType $name")
+          this match
+            case Int8  => buffer.put(v.toByte)
+            case Int16 => buffer.putShort(v.toShort)
+            case Int32 => buffer.putInt(v.toInt)
+            case _     => buffer.putLong(v)
+          i += 1
 
       case (UInt8, arr: Array[Byte]) =>
         buffer.put(arr) // Interpret bytes as unsigned when reading
@@ -166,6 +178,13 @@ enum DType(val name: String, val size: Int):
         throw new IllegalArgumentException(s"Conversion from ${values.getClass.getSimpleName} to DType $name is not supported or implemented.")
 
     buffer.array()
+
+  /** Reads the elements of an array of integers as `Long`, without copying or boxing them. */
+  private def longReader(values: Array[Byte] | Array[Short] | Array[Int] | Array[Long]): Int => Long = values match
+    case arr: Array[Byte]  => i => arr(i).toLong
+    case arr: Array[Short] => i => arr(i).toLong
+    case arr: Array[Int]   => i => arr(i).toLong
+    case arr: Array[Long]  => i => arr(i)
 
   private def floatToFloat16(f: Float): Short =
     // TODO replace with java.lang.Float.floatToFloat16 when we can require Java 20+
