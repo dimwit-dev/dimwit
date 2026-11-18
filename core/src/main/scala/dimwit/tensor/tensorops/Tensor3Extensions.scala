@@ -14,5 +14,6 @@ private[dimwit] object Tensor3Extensions:
     def toArray: Array[Array[Array[X]]] =
       require(!t.isTracer, "Cannot convert a JAX Tracer to an array.")
       given scala.reflect.ClassTag[X] = ev.classTag
-      val d1 = t.shape.dimensions(1); val d2 = t.shape.dimensions(2)
-      ev.readFlat(t.jaxValue).grouped(d1 * d2).map(_.grouped(d2).toArray).toArray
+      val d0 = t.shape.dimensions(0); val d1 = t.shape.dimensions(1); val d2 = t.shape.dimensions(2)
+      val values = ev.readFlat(t.jaxValue)
+      Array.tabulate(d0, d1)((i, j) => values.slice((i * d1 + j) * d2, (i * d1 + j + 1) * d2))
