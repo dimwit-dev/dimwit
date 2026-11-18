@@ -165,6 +165,103 @@ val t2dNested = Tensor2(Axis[A], Axis[B]).fromArray(
 )
 ```
 
+### Conversion between Scala Seqs and Tensors with `toTensor1` / `toTensor2` / `toSeq`
+
+The extension methods `toTensor1` and `toTensor2` convert a Scala `Seq` (`List`, `Vector`, a `map` result, ...)
+into a tensor, and `toSeq` converts a `Tensor1` or `Tensor2` back. They are **opt-in**: `import dimwit.*` does not bring them in scope, they need `import dimwit.conversions.*`.
+
+```scala
+// ERROR: the conversions are not available without their import, in either direction
+val notImported = Seq(1.0f, 2.0f).toTensor1(Axis[A])
+val notImportedBack = t1d.toSeq
+// error:
+// value toTensor1 is not a member of Seq[Float]
+// val notImported = Seq(1.0f, 2.0f).toTensor1(Axis[A])
+//                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+// error:
+// value toSeq is not a member of dimwit.tensor.Tensor[Tuple1[repl.MdocSession.MdocApp.A],
+//   dimwit.tensor.DType.Float32]
+// val notImportedBack = t1d.toSeq
+//                       ^^^^^^^^^
+```
+
+```scala
+import dimwit.conversions.*
+
+// The extent of the axis is the length of the Seq
+val fromSeq1 = Seq(1.0f, 2.0f, 3.0f).toTensor1(Axis[A])  // Tensor1[A, Float32]
+val fromList = List(1, 2, 3).toTensor1(Axis[A])          // Tensor1[A, Int32]
+val fromMap = (1 to 4).map(_ * 0.5f).toTensor1(Axis[A])  // Tensor1[A, Float32]
+
+// toTensor2: the outer Seq runs along the first axis, the inner Seqs (the rows) along the second
+val fromSeq2 = Seq(Seq(1.0f, 2.0f, 3.0f), Seq(4.0f, 5.0f, 6.0f)).toTensor2(Axis[A], Axis[B])  // A -> 2, B -> 3
+
+// As for fromArray, the value type is derived from the element type
+// (Float -> Float32, Double -> Float64, Byte -> Int8, Short -> Int16, Int -> Int32, Long -> Int64, Boolean -> Bool),
+// or given explicitly
+val halfSeq = Seq(1.0f, 2.0f).toTensor1(Axis[A], VType[Float16])
+val byteSeq2 = Seq(Seq(1, 2), Seq(3, 4)).toTensor2(Axis[A], Axis[B], VType[Int8])
+```
+
+```scala
+// ERROR: the value type must fit the elements, Floats cannot become an integer tensor
+val wrongVType = Seq(1.0f, 2.0f).toTensor1(Axis[A], VType[Int32])
+// error:
+// Operation only valid for Floating tensors.
+// val wrongVType = Seq(1.0f, 2.0f).toTensor1(Axis[A], VType[Int32])
+//                                                                 ^
+```
+
+```scala
+// ERROR at runtime: all rows of toTensor2 must have the same length
+Seq(Seq(1.0f, 2.0f), Seq(3.0f)).toTensor2(Axis[A], Axis[B])
+// java.lang.IllegalArgumentException: requirement failed: All rows along axis A must have the same length along axis B, but row 0 has length 2 and row 1 has length 1
+// 	at scala.Predef$.require(Predef.scala:389)
+// 	at dimwit.tensor.Tensor$package$Tensor2$Axes2TypedFactory.createShape(Tensor.scala:346)
+// 	at dimwit.tensor.Tensor$package$Tensor2$Axes2TypedFactory.fromArray(Tensor.scala:355)
+// 	at dimwit.tensor.Tensor$package$Tensor2$Axes2Factory.fromArray(Tensor.scala:333)
+// 	at dimwit.conversions.SeqConversions$package$.floatSeqToTensor2(SeqConversions.scala:103)
+// 	at repl.MdocSession$MdocApp.$init$$$anonfun$2(AGENTS.md:171)
+```
+
+`toSeq` is the reverse: a `Tensor1` becomes an `IndexedSeq` of its elements, a `Tensor2` an `IndexedSeq` of its rows.
+The element type is the Scala type of the value type, e.g. `Float` for `Float32`. For other collections, convert the `Seq`.
+
+```scala
+val backToSeq = fromSeq1.toSeq            // IndexedSeq[Float]
+// backToSeq: IndexedSeq[Float] = ArraySeq(1.0F, 2.0F, 3.0F)
+val backToRows = fromSeq2.toSeq           // IndexedSeq[IndexedSeq[Float]], the rows along A
+// backToRows: IndexedSeq[IndexedSeq[Float]] = Vector(
+//   ArraySeq(1.0F, 2.0F, 3.0F),
+//   ArraySeq(4.0F, 5.0F, 6.0F)
+// )
+val backToList = fromList.toSeq.toList    // List[Int]
+// backToList: List[Int] = List(1, 2, 3)
+```
+
+```scala
+// ERROR: toSeq is only defined for Tensor1 and Tensor2
+val rank3 = Tensor(Shape3(Axis[A] -> 1, Axis[B] -> 1, Axis[C] -> 1)).fill(0.0f).toSeq
+// error:
+// value toSeq is not a member of dimwit.tensor.Tensor[
+//   (repl.MdocSession.MdocApp.A, repl.MdocSession.MdocApp.B,
+//     repl.MdocSession.MdocApp.C),
+// dimwit.tensor.DType.Float32].
+// An extension method was tried, but could not be fully constructed:
+// 
+//     dimwit.conversions.toSeq()
+// 
+//     failed with:
+// 
+//         value toSeq: <overloaded dimwit.conversions.toSeq> does not take parameters
+// val rank3 = Tensor(Shape3(Axis[A] -> 1, Axis[B] -> 1, Axis[C] -> 1)).fill(0.0f).toSeq
+//             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+```
+
+**Note**: `toSeq` cannot be used inside `jit`, where the values of a traced tensor are unknown.
+
+**Note**: For a `Range`, prefer `Tensor1(Axis[A]).fromRange(...)`, which creates the values in JAX without copying them from Scala.
+
 ### Identity Matrices with `eye`
 
 `eye` is a creation method on the rank 2 factory: fix the shape first, then ask for the identity matrix.
@@ -472,10 +569,10 @@ val wrong = t.sum(Axis[C])
 // Conflicting definitions:
 // val t:
 //   dimwit.tensor.Tensor2[MdocApp0.this.A, MdocApp0.this.B,
-//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 70 and
+//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 81 and
 // val t:
 //   dimwit.tensor.Tensor2[MdocApp0.this.A, MdocApp0.this.B,
-//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 116
+//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 127
 //
 ```
 
@@ -517,10 +614,10 @@ val wrong = t + 5.0f  // Use +! instead
 // Conflicting definitions:
 // val t:
 //   dimwit.tensor.Tensor2[MdocApp0.this.A, MdocApp0.this.B,
-//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 70 and
+//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 81 and
 // val t:
 //   dimwit.tensor.Tensor2[MdocApp0.this.A, MdocApp0.this.B,
-//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 125
+//     dimwit.tensor.DType.Float32] in class MdocApp0 at line 136
 //
 ```
 
@@ -610,19 +707,19 @@ val wrong = m1.dot(Axis[B])(m2)
 // Conflicting definitions:
 // val m1:
 //   dimwit.tensor.Tensor2[MdocApp1.this.A, MdocApp1.this.B,
-//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 147 and
+//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 158 and
 // val m1:
 //   dimwit.tensor.Tensor2[MdocApp1.this.A, MdocApp1.this.B,
-//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 150
+//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 161
 // 
 // error: 
 // Conflicting definitions:
 // val m2:
 //   dimwit.tensor.Tensor2[MdocApp1.this.B, MdocApp1.this.C,
-//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 148 and
+//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 159 and
 // val m2:
 //   dimwit.tensor.Tensor2[MdocApp1.this.C, MdocApp1.this.D,
-//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 151
+//     dimwit.tensor.DType.Float32] in class MdocApp1 at line 162
 //
 ```
 
@@ -764,7 +861,7 @@ grid.select(Axis[A].at(3, 2))
 // 	at dimwit.tensor.tensorops.StructuralExtensions$.windowExtents(StructuralOps.scala:762)
 // 	at dimwit.tensor.tensorops.StructuralExtensions$.select(StructuralOps.scala:600)
 // 	at dimwit.package$.select(package.scala:80)
-// 	at repl.MdocSession$MdocApp17.$init$$$anonfun$4(AGENTS.md:739)
+// 	at repl.MdocSession$MdocApp20.$init$$$anonfun$6(AGENTS.md:809)
 ```
 
 ---

@@ -133,6 +133,63 @@ val t2dNested = Tensor2(Axis[A], Axis[B]).fromArray(
 )
 ```
 
+### Conversion between Scala Seqs and Tensors with `toTensor1` / `toTensor2` / `toSeq`
+
+The extension methods `toTensor1` and `toTensor2` convert a Scala `Seq` (`List`, `Vector`, a `map` result, ...)
+into a tensor, and `toSeq` converts a `Tensor1` or `Tensor2` back. They are **opt-in**: `import dimwit.*` does not bring them in scope, they need `import dimwit.conversions.*`.
+
+```scala mdoc:fail
+// ERROR: the conversions are not available without their import, in either direction
+val notImported = Seq(1.0f, 2.0f).toTensor1(Axis[A])
+val notImportedBack = t1d.toSeq
+```
+
+```scala mdoc:silent
+import dimwit.conversions.*
+
+// The extent of the axis is the length of the Seq
+val fromSeq1 = Seq(1.0f, 2.0f, 3.0f).toTensor1(Axis[A])  // Tensor1[A, Float32]
+val fromList = List(1, 2, 3).toTensor1(Axis[A])          // Tensor1[A, Int32]
+val fromMap = (1 to 4).map(_ * 0.5f).toTensor1(Axis[A])  // Tensor1[A, Float32]
+
+// toTensor2: the outer Seq runs along the first axis, the inner Seqs (the rows) along the second
+val fromSeq2 = Seq(Seq(1.0f, 2.0f, 3.0f), Seq(4.0f, 5.0f, 6.0f)).toTensor2(Axis[A], Axis[B])  // A -> 2, B -> 3
+
+// As for fromArray, the value type is derived from the element type
+// (Float -> Float32, Double -> Float64, Byte -> Int8, Short -> Int16, Int -> Int32, Long -> Int64, Boolean -> Bool),
+// or given explicitly
+val halfSeq = Seq(1.0f, 2.0f).toTensor1(Axis[A], VType[Float16])
+val byteSeq2 = Seq(Seq(1, 2), Seq(3, 4)).toTensor2(Axis[A], Axis[B], VType[Int8])
+```
+
+```scala mdoc:fail
+// ERROR: the value type must fit the elements, Floats cannot become an integer tensor
+val wrongVType = Seq(1.0f, 2.0f).toTensor1(Axis[A], VType[Int32])
+```
+
+```scala mdoc:crash
+// ERROR at runtime: all rows of toTensor2 must have the same length
+Seq(Seq(1.0f, 2.0f), Seq(3.0f)).toTensor2(Axis[A], Axis[B])
+```
+
+`toSeq` is the reverse: a `Tensor1` becomes an `IndexedSeq` of its elements, a `Tensor2` an `IndexedSeq` of its rows.
+The element type is the Scala type of the value type, e.g. `Float` for `Float32`. For other collections, convert the `Seq`.
+
+```scala mdoc
+val backToSeq = fromSeq1.toSeq            // IndexedSeq[Float]
+val backToRows = fromSeq2.toSeq           // IndexedSeq[IndexedSeq[Float]], the rows along A
+val backToList = fromList.toSeq.toList    // List[Int]
+```
+
+```scala mdoc:fail
+// ERROR: toSeq is only defined for Tensor1 and Tensor2
+val rank3 = Tensor(Shape3(Axis[A] -> 1, Axis[B] -> 1, Axis[C] -> 1)).fill(0.0f).toSeq
+```
+
+**Note**: `toSeq` cannot be used inside `jit`, where the values of a traced tensor are unknown.
+
+**Note**: For a `Range`, prefer `Tensor1(Axis[A]).fromRange(...)`, which creates the values in JAX without copying them from Scala.
+
 ### Identity Matrices with `eye`
 
 `eye` is a creation method on the rank 2 factory: fix the shape first, then ask for the identity matrix.

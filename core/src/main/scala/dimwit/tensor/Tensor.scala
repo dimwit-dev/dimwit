@@ -335,7 +335,17 @@ object Tensor2:
 
   class Axes2TypedFactory[L1: Label, L2: Label, V](axis1: Axis[L1], axis2: Axis[L2], vtype: VType[V]):
 
-    private def createShape[V](values: Array2D[V]): Shape2[L1, L2] = Shape2(AxisExtent(axis1, values.length), AxisExtent(axis2, values.head.length))
+    private def createShape[X](values: Array2D[X]): Shape2[L1, L2] =
+      val name1 = summon[Label[L1]].name
+      val name2 = summon[Label[L2]].name
+      require(values.nonEmpty, s"Cannot create a matrix without rows: the extent of axis $name2 is unknown")
+      val columns = values.head.length
+      val uneven = values.indexWhere(_.length != columns)
+      require(
+        uneven < 0,
+        s"All rows along axis $name1 must have the same length along axis $name2, but row 0 has length $columns and row $uneven has length ${values(uneven).length}"
+      )
+      Shape2(AxisExtent(axis1, values.length), AxisExtent(axis2, columns))
 
     def fromArray(values: Array2D[Boolean])(using IsBoolean[V]): Tensor2[L1, L2, V] = Tensor(createShape(values), VType[V]).fromArray(values.flatten)
     def fromArray(values: Array2D[Byte])(using IsInteger[V]): Tensor2[L1, L2, V] = Tensor(createShape(values), VType[V]).fromArray(values.flatten)

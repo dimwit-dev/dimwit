@@ -67,6 +67,26 @@ class TensorCreationSuite extends DimwitTest:
         val floatTensorFromDouble2 = Tensor(Shape2(Axis[A] -> 2, Axis[B] -> 2), VType[Float32]).fromArray(Array(1.0, 2.0, 3.0, 4.0))
         floatTensorFromDouble2.dtype shouldBe DType.Float32
 
+  describe("fromArray with integers"):
+    it("Short and Long arrays default to Int16 and Int64"):
+      val shorts = Tensor1(Axis[A]).fromArray(Array[Short](-3, 0, 32767))
+      shorts.dtype shouldBe DType.Int16
+      shorts.toArray shouldBe Array[Short](-3, 0, 32767)
+      withJaxX64Support:
+        val longs = Tensor1(Axis[A]).fromArray(Array(-1L, Long.MaxValue))
+        longs.dtype shouldBe DType.Int64
+        longs.toArray shouldBe Array(-1L, Long.MaxValue)
+
+    it("converts between integer widths"):
+      Tensor1(Axis[A], VType[Int8]).fromArray(Array(-128, 0, 127)).toArray shouldBe Array[Byte](-128, 0, 127)
+      Tensor1(Axis[A], VType[Int16]).fromArray(Array[Byte](1, -2)).toArray shouldBe Array[Short](1, -2)
+      Tensor1(Axis[A], VType[Int32]).fromArray(Array(-5L, 7L)).toArray shouldBe Array(-5, 7)
+
+    it("rejects values out of range of the value type"):
+      val error = intercept[IllegalArgumentException]:
+        Tensor1(Axis[A], VType[Int8]).fromArray(Array(1, 200))
+      error.getMessage should include("Value 200 at index 1 is out of range for DType int8")
+
   describe("fromFunction"):
 
     it("2D: identity matrix from indices"):
